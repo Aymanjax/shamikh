@@ -842,9 +842,7 @@ setTimeout(()=>{
   const ses=getSession();
   if(ses&&ses.uid&&ses.token){
     _uid=ses.uid; _token=ses.token; _refreshToken=ses.refresh;
-    // أظهر الـ app مؤقتاً بينما يتحمل
-    showLogin(); // ابدأ بصفحة الدخول
-    // حاول الدخول التلقائي في الخلفية
+    // دخول تلقائي
     startApp(ses).catch(()=>showLogin());
   } else {
     showLogin();
@@ -1023,59 +1021,44 @@ async function doCodeLookup(){
   const full=(document.getElementById('su-full-code')?.value||'').trim().toUpperCase();
   const ok=document.getElementById('lookup-ok');
   const err=document.getElementById('lookup-err');
-  ok.style.display='none'; err.style.display='none';
+  if(ok) ok.style.display='none';
+  if(err) err.style.display='none';
   if(full.length<8) return;
 
   const codeInput=document.getElementById('su-full-code');
   if(codeInput) codeInput.style.opacity='0.6';
 
   try{
-    // فك تشفير الكود مباشرة - لا يحتاج Firebase
-    const decoded = decodeEmpCode(full);
-    if(!decoded){
-      if(codeInput) codeInput.style.opacity='1';
-      err.style.display='block';
-      return;
-    }
-    const {adminUID, empId} = decoded;
+    // فك تشفير الكود
+    const decoded=decodeEmpCode(full);
+    if(!decoded){ if(codeInput) codeInput.style.opacity='1'; if(err) err.style.display='block'; return; }
+    const {adminUID,empId}=decoded;
 
-    // جلب بيانات الموظف مباشرة بـ path معروف
-    const empR = await fetch(
-      `${FS_URL}/users/${adminUID}/employees/${empId}`,
-      {headers: {'Content-Type':'application/json'}}
-    );
-    if(!empR.ok){
-      if(codeInput) codeInput.style.opacity='1';
-      err.style.display='block';
-      return;
-    }
-    const empData = await empR.json();
-    const emp = {id:empId, ...jsDoc(empData.fields||{})};
+    // جلب بيانات الموظف مع API Key (بدون auth)
+    const r=await fetch(`${FS_URL}/users/${adminUID}/employees/${empId}?key=${FB.apiKey}`);
+    if(!r.ok){ if(codeInput) codeInput.style.opacity='1'; if(err) err.style.display='block'; return; }
+    const d=await r.json();
+    const emp={id:empId,...jsDoc(d.fields||{})};
 
-    // ✅ عرض معلومات الموظف
-    document.getElementById('lookup-name').textContent=emp.name||'';
-    document.getElementById('lookup-dept').textContent=(emp.dept||'')+(emp.phone?' · '+emp.phone:'');
-    document.getElementById('lookup-emoji').textContent=emp.emoji||'👤';
-    ok.style.display='block';
+    // عرض المعلومات
+    if(document.getElementById('lookup-name')) document.getElementById('lookup-name').textContent=emp.name||'';
+    if(document.getElementById('lookup-dept')) document.getElementById('lookup-dept').textContent=(emp.dept||'')+(emp.phone?' · '+emp.phone:'');
+    if(document.getElementById('lookup-emoji')) document.getElementById('lookup-emoji').textContent=emp.emoji||'👤';
+    if(ok) ok.style.display='block';
 
-    // تعبئة الاسم
-    const nameInput=document.getElementById('su-name');
-    const nameField=document.getElementById('su-name-field');
-    if(nameInput){ nameInput.value=emp.name||''; nameInput.readOnly=true; }
-    if(nameField) nameField.style.display='none';
+    // تعبئة الاسم تلقائياً
+    const ni=document.getElementById('su-name');
+    const nf=document.getElementById('su-name-field');
+    if(ni){ ni.value=emp.name||''; ni.readOnly=true; }
+    if(nf) nf.style.display='none';
 
-    const orgId=emp.orgId||('org_'+adminUID);
-    window._lookupResult={
-      emp, adminUID, orgId,
-      org:{id:orgId, adminUID}
-    };
+    window._lookupResult={emp,adminUID,orgId:emp.orgId||('org_'+adminUID),org:{id:emp.orgId||('org_'+adminUID),adminUID}};
     if(codeInput) codeInput.style.opacity='1';
     setTimeout(()=>document.getElementById('su-email')?.focus(),300);
-
   }catch(e){
     console.warn('lookup error:',e);
     if(codeInput) codeInput.style.opacity='1';
-    err.style.display='block';
+    if(err) err.style.display='block';
   }
 }
 
@@ -1381,10 +1364,13 @@ async function saveAtt(){
   if(S.role==='employee'||S.role==='viewer'){ showToast('⛔ ليس لديك صلاحية','err'); return; }
   if(GUEST){ showToast('لا يمكن الحفظ في وضع الضيف','err'); return; }
   const rec=S.attendance[currentDay]||{};
+  const entries=Object.entries(rec).filter(([,d])=>d.status);
+  if(!entries.length){ showToast('لم تسجل أي حضور بعد'); return; }
   try{
-    for(const [empId,data] of Object.entries(rec)){
-      if(data.status) await fsSet(attDocPath(currentDay,empId),{date:currentDay,empId,status:data.status,note:data.note||''});
-    }
+    // حفظ متوازي - أسرع
+    await Promise.all(entries.map(([empId,data])=>
+      fsSet(attDocPath(currentDay,empId),{date:currentDay,empId,status:data.status,note:data.note||''})
+    ));
     showToast('✅ تم حفظ الحضور','ok');
     renderDash();
   }catch(e){ showToast('خطأ: '+e.message,'err'); }
@@ -1632,7 +1618,7 @@ function setRange(type,btn){
   document.getElementById('rep-to').value=to;
 }
 
-function genReport(){
+async function genReport(){
   const from=document.getElementById('rep-from').value;
   const to=document.getElementById('rep-to').value;
   if(!from||!to){ showToast('اختر التواريخ','err'); return; }
@@ -1640,16 +1626,36 @@ function genReport(){
   const empF=document.getElementById('rep-emp').value;
   const emps=S.employees.filter(e=>!empF||e.id===empF);
   const cur=getCur();
-  // بناء قائمة الأيام
   const dates=[]; let d=new Date(from+'T00:00:00'); const end=new Date(to+'T00:00:00');
   while(d<=end){ dates.push(d.toISOString().split('T')[0]); d.setDate(d.getDate()+1); }
   const empty=document.getElementById('rep-empty');
   const list=document.getElementById('rep-list');
   if(!emps.length){ empty.style.display='block'; list.innerHTML=''; return; }
+
+  // جلب بيانات الحضور من Firebase للفترة المطلوبة
+  showToast('⏳ جاري تحميل البيانات...');
+  try{
+    const atts=await fsQuery(attColPath(),[
+      {field:'date',op:'>=',value:from},
+      {field:'date',op:'<=',value:to}
+    ]);
+    // دمج مع البيانات المحلية
+    atts.forEach(r=>{
+      if(!S.attendance[r.date]) S.attendance[r.date]={};
+      S.attendance[r.date][r.empId]={status:r.status,note:r.note||''};
+    });
+  }catch(e){ console.warn('Could not fetch attendance from server, using local data'); }
+
   empty.style.display='none';
   list.innerHTML=emps.map(e=>{
     let p=0,a=0;
-    dates.forEach(ds=>{ const st=(S.attendance[ds]||{})[e.id]?.status; if(st==='present')p++; else if(st==='absent')a++; });
+    dates.forEach(ds=>{
+      const rec=S.attendance[ds];
+      if(!rec) return;
+      const st=rec[e.id]?.status;
+      if(st==='present') p++;
+      else if(st==='absent') a++;
+    });
     const tot=p+a, pct=tot>0?Math.round(p/tot*100):0, salary=p*e.rate;
     return `<div class="rep-card">
       <div class="rep-top">
