@@ -1953,7 +1953,7 @@ async function genAllCodes(){
   if(!total){ showToast('لا يوجد موظفون','err'); return; }
   const msg=noCode.length>0
     ?`توليد كود لـ ${noCode.length} موظف جديد + مزامنة ${total-noCode.length} موظف موجود؟`
-    ?`مزامنة كودات ${total} موظف في Firebase حتى تعمل عند التسجيل؟`:`مزامنة كودات ${total} موظف في Firebase حتى تعمل عند التسجيل؟`;
+    :`مزامنة كودات ${total} موظف في Firebase حتى تعمل عند التسجيل؟`;
   if(!confirm(msg)) return;
 
   showToast('⏳ جاري المعالجة...');
