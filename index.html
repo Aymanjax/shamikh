@@ -1987,19 +1987,27 @@ async function genReport(){
   const list=document.getElementById('rep-list');
   if(!emps.length){ empty.style.display='block'; list.innerHTML=''; return; }
 
-  // جلب بيانات الحضور من Firebase للفترة المطلوبة
+  // جلب بيانات الحضور والمدفوعات من Firebase
   showToast('⏳ جاري تحميل البيانات...');
+  let periodPayments=[];
   try{
-    const atts=await fsQuery(attColPath(),[
-      {field:'date',op:'>=',value:from},
-      {field:'date',op:'<=',value:to}
+    const [atts,fbPays]=await Promise.all([
+      fsQuery(attColPath(),[{field:'date',op:'>=',value:from},{field:'date',op:'<=',value:to}]),
+      (!GUEST&&_uid)?fsGetAll(`users/${_uid}/weeklyPayments`):Promise.resolve([])
     ]);
-    // دمج مع البيانات المحلية
     atts.forEach(r=>{
       if(!S.attendance[r.date]) S.attendance[r.date]={};
       S.attendance[r.date][r.empId]={status:r.status,note:r.note||''};
     });
-  }catch(e){ console.warn('Could not fetch attendance from server, using local data'); }
+    const allPays=fbPays.length?fbPays:JSON.parse(localStorage.getItem('shm_payments')||'[]');
+    periodPayments=allPays.filter(p=>p.date>=from&&p.date<=to);
+  }catch(e){
+    console.warn('Could not fetch from server, using local data');
+    const allPays=JSON.parse(localStorage.getItem('shm_payments')||'[]');
+    periodPayments=allPays.filter(p=>p.date>=from&&p.date<=to);
+  }
+
+  const PAY_LABEL={full:'كامل',partial:'جزئي',advance:'سلفة'};
 
   empty.style.display='none';
   list.innerHTML=emps.map(e=>{
@@ -2012,13 +2020,47 @@ async function genReport(){
       else if(st==='absent') a++;
     });
     const tot=p+a, pct=tot>0?Math.round(p/tot*100):0, salary=p*e.rate;
+    const empPays=periodPayments.filter(p=>p.empId===e.id);
+    const totalPaid=empPays.reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
+    const remaining=Math.max(0,salary-totalPaid);
+    const fullyPaid=salary>0&&remaining===0;
+
+    const payHistHTML=empPays.length?`
+      <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+        ${empPays.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:4px;">
+          <span style="color:var(--muted)">${p.date} · <span style="background:rgba(59,130,246,.12);color:var(--blue);padding:1px 6px;border-radius:6px;font-weight:700">${PAY_LABEL[p.type]||p.type}</span>${p.note?' · '+p.note:''}</span>
+          <span style="font-weight:900;color:var(--blue)">${fmt(p.amount)} ${cur}</span>
+        </div>`).join('')}
+      </div>`:'';
+
+    const payStatsHTML=salary>0?`
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;">
+        <div style="background:rgba(16,185,129,.08);border-radius:9px;padding:8px;text-align:center;">
+          <div style="font-size:14px;font-weight:900;color:var(--green)">${fmt(salary)}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">المستحق</div>
+        </div>
+        <div style="background:rgba(59,130,246,.08);border-radius:9px;padding:8px;text-align:center;">
+          <div style="font-size:14px;font-weight:900;color:var(--blue)">${fmt(totalPaid)}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">المدفوع</div>
+        </div>
+        <div style="background:${remaining>0?'rgba(239,68,68,.08)':'rgba(16,185,129,.08)'};border-radius:9px;padding:8px;text-align:center;">
+          <div style="font-size:14px;font-weight:900;color:${remaining>0?'var(--red)':'var(--green)'}">${fmt(remaining)}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">المتبقي</div>
+        </div>
+      </div>
+      ${payHistHTML}`:'';
+
     return `<div class="rep-card">
       <div class="rep-top">
         <div style="display:flex;align-items:center;gap:10px;">
           <div style="width:42px;height:42px;border-radius:11px;background:${e.color};display:flex;align-items:center;justify-content:center;font-size:19px">${e.emoji}</div>
           <div><div style="font-weight:800;font-size:14px">${e.name}</div><div style="font-size:11px;color:var(--muted)">${e.dept}</div></div>
         </div>
-        <div style="text-align:left"><div class="rep-salary">${fmt(salary)}</div><div style="font-size:10px;color:var(--muted)">${cur} مستحق</div></div>
+        <div style="text-align:left">
+          <div class="rep-salary">${fmt(salary)}</div>
+          <div style="font-size:10px;color:var(--muted)">${cur} مستحق</div>
+          ${fullyPaid?'<div style="font-size:10px;font-weight:800;color:var(--green)">✅ مكتمل الدفع</div>':''}
+        </div>
       </div>
       <div class="rep-boxes">
         <div class="rbox p"><div class="rbox-num">${p}</div><div class="rbox-lbl">✅ حاضر</div></div>
@@ -2026,7 +2068,8 @@ async function genReport(){
         <div class="rbox r"><div class="rbox-num">${pct}%</div><div class="rbox-lbl">📊 الالتزام</div></div>
       </div>
       <div class="prog"><div class="prog-fill" style="width:${pct}%"></div></div>
-      ${S.role==='admin'?`<div style="margin-top:10px"><button data-empid="${e.id}" data-salary="${salary}" data-from="${from}" data-to="${to}" onclick="openPayModal(this)" style="width:100%;padding:11px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:10px;color:#fff;font-family:Cairo,sans-serif;font-size:14px;font-weight:800;cursor:pointer">💰 دفع الراتب الأسبوعي</button></div>`:''}
+      ${payStatsHTML}
+      ${S.role==='admin'?`<div style="margin-top:10px"><button data-empid="${e.id}" data-salary="${salary}" data-paid="${totalPaid}" data-remaining="${remaining}" data-from="${from}" data-to="${to}" onclick="openPayModal(this)" style="width:100%;padding:11px;background:${fullyPaid?'rgba(16,185,129,.15)':'linear-gradient(135deg,#10b981,#059669)'};border:${fullyPaid?'2px solid var(--green)':'none'};border-radius:10px;color:${fullyPaid?'var(--green)':'#fff'};font-family:Cairo,sans-serif;font-size:14px;font-weight:800;cursor:pointer">${fullyPaid?'✅ تسجيل دفعة إضافية':'💰 دفع الراتب الأسبوعي'}</button></div>`:''}
     </div>`;
   }).join('');
 }
@@ -2883,13 +2926,23 @@ let _payCtx = {};
 function openPayModal(btn) {
   const empId = btn.dataset.empid;
   const salary = parseFloat(btn.dataset.salary) || 0;
+  const paid = parseFloat(btn.dataset.paid) || 0;
+  const remaining = parseFloat(btn.dataset.remaining) ?? salary;
   const from = btn.dataset.from;
   const to = btn.dataset.to;
   const emp = S.employees.find(e => e.id === empId);
   const empName = emp?.name || '';
-  _payCtx = { empId, empName, salary, from, to, type: null, amount: salary };
+  const cur = getCur();
+  _payCtx = { empId, empName, salary, paid, remaining, from, to, type: null, amount: remaining };
   document.getElementById('pay-title').textContent = `💰 دفع — ${empName}`;
-  document.getElementById('pay-salary-info').textContent = `الراتب المستحق: ${fmt(salary)} ${getCur()}`;
+  const infoEl = document.getElementById('pay-salary-info');
+  infoEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;">
+      <div><div style="font-size:16px;font-weight:900;color:var(--green)">${fmt(salary)}</div><div style="font-size:10px;color:var(--muted)">المستحق</div></div>
+      <div><div style="font-size:16px;font-weight:900;color:var(--blue)">${fmt(paid)}</div><div style="font-size:10px;color:var(--muted)">المدفوع</div></div>
+      <div><div style="font-size:16px;font-weight:900;color:${remaining>0?'var(--red)':'var(--green)'}">${fmt(remaining)}</div><div style="font-size:10px;color:var(--muted)">المتبقي</div></div>
+    </div>`;
+  document.getElementById('ptype-full').textContent = `💵 دفع كامل المتبقي — ${fmt(remaining)} ${cur}`;
   document.getElementById('pay-amount-wrap').style.display = 'none';
   document.getElementById('pay-custom-amt').value = '';
   document.getElementById('pay-note-input').value = '';
@@ -2909,7 +2962,7 @@ function selectPayType(type) {
     if(t === type){ b.style.background='var(--accent)'; b.style.color='#0a0f1a'; b.style.borderColor='var(--accent)'; }
     else { b.style.background='var(--surface)'; b.style.color='var(--text)'; b.style.borderColor='var(--border)'; }
   });
-  if(type === 'full'){ document.getElementById('pay-amount-wrap').style.display='none'; _payCtx.amount=_payCtx.salary; }
+  if(type === 'full'){ document.getElementById('pay-amount-wrap').style.display='none'; _payCtx.amount=_payCtx.remaining; }
   else { document.getElementById('pay-amount-wrap').style.display='block'; document.getElementById('pay-custom-amt').value=''; }
 }
 
