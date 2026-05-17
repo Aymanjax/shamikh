@@ -567,7 +567,7 @@ window.onerror=function(msg,src,line,col,err){
       style="display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;background:var(--blue);border-radius:14px;color:#fff;font-family:Cairo,sans-serif;font-size:15px;font-weight:800;text-decoration:none;">
       <span style="font-size:20px">📧</span> تواصل إيميل
     </a>
-    <button onclick="doOut()" style="padding:12px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
+    <button onclick="doSignOut()" style="padding:12px;background:none;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-family:Cairo,sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
       🚪 تسجيل خروج
     </button>
   </div>
@@ -804,8 +804,6 @@ window.onerror=function(msg,src,line,col,err){
           <span style="font-size:11px;color:var(--muted)">v4.0</span></div>
       </div>
     </div>
-  </div>
-</div>
 
 <!-- PROJECTS PAGE -->
 <div class="page" id="pg-projects">
@@ -1123,7 +1121,7 @@ setTimeout(()=>{
     splash.style.opacity='0'; splash.style.display='none';
   }
   if(app&&!app.classList.contains('active')&&login&&!login.classList.contains('active')){
-    if(lp){ lp.style.display='flex'; lp.classList.add('active'); }
+    login.style.display='flex'; login.classList.add('active');
   }
 },5000);
 
@@ -1195,13 +1193,14 @@ async function doSignUp(){
     } else {
       // عضو فريق
       // استخدم النتيجة المحفوظة من البحث
-      let emp, org, adminUID, orgId2;
+      let emp, org, adminUID, orgId2, empPart='';
       if(window._lookupResult){
         emp=window._lookupResult.emp;
         adminUID=window._lookupResult.adminUID;
         org=window._lookupResult.org||{};
         orgId2=window._lookupResult.orgId||org.id||('org_'+adminUID);
         org={...org, id:orgId2, adminUID};
+        empPart=emp.empCode||'';
       } else {
         // إعادة البحث لو ما في نتيجة محفوظة
         const fullCode=document.getElementById('su-full-code').value.trim().toUpperCase();
@@ -1723,14 +1722,14 @@ function openEmpModal(editId){
   const codeInp=document.getElementById('m-code');
   if(isEdit){
     if(e?.empCode){
-      codeInp.value=(_uid||S.saveUID||'').slice(0,3).toUpperCase()+'-'+(e.empCode||generateCode(6));
+      codeInp.value=e.fullCode||(S.orgCode||'???')+'-'+e.empCode;
       codeWrap.style.display='block';
     } else {
       // ولّد كود جديد للموظف القديم
       const newCode=generateCode(6);
       e.empCode=newCode;
-      const newCode=generateCode(6); e.empCode=newCode;
-      codeInp.value=(_uid||S.saveUID||'').slice(0,3).toUpperCase()+'-'+newCode;
+      const fc=generateEmpFullCode(_uid,e.id); e.fullCode=fc; codeInp.value=fc; fsSet(empDocPath(e.id),e).catch(console.warn);
+      codeWrap.style.display='block';
       // احفظه تلقائياً
       fsSet(empDocPath(e.id),e).catch(console.warn);
     }
@@ -1861,7 +1860,12 @@ async function genAllCodes(){
 
   let done=0;
   for(const e of noCode){
+    const empCode = generateCode(6);
+    const fullCode = generateEmpFullCode(_uid, e.id);
     e.empCode = empCode;
+    e.fullCode = fullCode;
+    e.adminUID = e.adminUID || _uid;
+    e.orgId = e.orgId || S.orgId || ('org_'+_uid);
     try{
       await fsSet(empDocPath(e.id), e);
       done++;
@@ -2509,7 +2513,7 @@ async function saveAsset(){
     ASSETS.push(data);
   }
   saveAssetsLocal();
-  if(!GUEST&&_U) await fsSet(`users/${_U}/assets/${data.id||editId}`,data).catch(()=>{});
+  if(!GUEST&&_uid) await fsSet(`users/${_uid}/assets/${data.id||editId}`,data).catch(()=>{});
   closeModal('asset-modal');
   renderAssets();
   showToast('✅ تم حفظ المعدة بنجاح','ok');
@@ -2519,7 +2523,7 @@ async function deleteAsset(id){
   if(!confirm('حذف هذه المعدة؟')) return;
   ASSETS=ASSETS.filter(a=>a.id!==id);
   saveAssetsLocal();
-  if(!GUEST&&_U) await fsDel(`users/${_U}/assets/${id}`).catch(()=>{});
+  if(!GUEST&&_uid) await fsDelete(`users/${_uid}/assets/${id}`).catch(()=>{});
   renderAssets();
   showToast('تم الحذف');
 }
@@ -2590,7 +2594,7 @@ function updateQty(id){
   if(isNaN(qty)){ showToast('رقم غير صحيح','err'); return; }
   asset.qty=qty;
   saveAssetsLocal();
-  if(!GUEST&&_U) fsSet(`users/${_U}/assets/${id}`,asset).catch(()=>{});
+  if(!GUEST&&_uid) fsSet(`users/${_uid}/assets/${id}`,asset).catch(()=>{});
   renderAssets();
   showToast('✅ تم تحديث الكمية','ok');
 }
@@ -2676,7 +2680,7 @@ async function saveCash(){
   };
   CASH.push(data);
   saveCashLocal();
-  if(!GUEST&&_U) await fsSet(`users/${_U}/cash/${data.id}`,data).catch(()=>{});
+  if(!GUEST&&_uid) await fsSet(`users/${_uid}/cash/${data.id}`,data).catch(()=>{});
   closeModal('cash-modal');
   renderCash();
   showToast('✅ تم حفظ المصروف بنجاح','ok');
@@ -2686,7 +2690,7 @@ async function deleteCash(id){
   if(!confirm('حذف هذا المصروف؟')) return;
   CASH=CASH.filter(c=>c.id!==id);
   saveCashLocal();
-  if(!GUEST&&_U) await fsDel(`users/${_U}/cash/${id}`).catch(()=>{});
+  if(!GUEST&&_uid) await fsDelete(`users/${_uid}/cash/${id}`).catch(()=>{});
   renderCash();
   showToast('تم الحذف');
 }
