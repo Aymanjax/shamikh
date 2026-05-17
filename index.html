@@ -1531,6 +1531,21 @@ async function loadData(){
     }
     S.attendance={};
     (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
+    // للمدير: مزامنة الحضور إلى مسار المؤسسة لتمكين الموظفين من الاطلاع
+    if(S.role==='admin'&&S.orgId&&Object.keys(S.attendance).length){
+      const syncKey='shm_att_sync_'+S.orgId+'_'+new Date().toISOString().slice(0,10);
+      if(!localStorage.getItem(syncKey)){
+        localStorage.setItem(syncKey,'1');
+        const writes=[];
+        for(const date in S.attendance){
+          for(const empId in S.attendance[date]){
+            const d=S.attendance[date][empId];
+            if(d.status) writes.push(fsSet(`orgs/${S.orgId}/attendance/${date}_${empId}`,{date,empId,status:d.status,note:d.note||''}).catch(()=>{}));
+          }
+        }
+        if(writes.length) Promise.all(writes).catch(()=>{});
+      }
+    }
   }catch(e){ S.attendance={}; }
 }
 
@@ -2849,7 +2864,7 @@ async function renderCash(){
   const em=document.getElementById('cash-empty');
   const total=CASH.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
   document.getElementById('cash-total').textContent=fmt(total)+' '+getCur();
-  if(!CASH.length){ el.innerHTML=''; em.style.display='block'; return; }
+  if(!CASH.length){ el.innerHTML=''; em.style.display='block'; renderEmpSubmissions(); return; }
   em.style.display='none';
   const catIcons={tools:'🔧',materials:'📦',transport:'🚗',other:'📝'};
   // ترتيب من الأحدث للأقدم
@@ -3070,13 +3085,33 @@ async function renderEmpExpenses(){
     </div>`).join('');
 }
 
-function renderEmpAttendance(){
+async function renderEmpAttendance(){
   const section=document.getElementById('emp-att-section');
   if(!section||S.role!=='employee') return;
   section.style.display='block';
   const myId=S.myEmpId;
   const list=document.getElementById('emp-att-list');
   const empty=document.getElementById('emp-att-empty');
+  if(!myId){ list.innerHTML=''; empty.style.display='block'; return; }
+  // لو S.attendance فاضي، نجرب نجلب من مسارات الحضور مباشرة
+  if(!Object.keys(S.attendance).length&&!GUEST&&_uid){
+    const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
+    const cutoffStr=cutoff.toISOString().split('T')[0];
+    // محاولة 1: مسار المدير
+    if(S.orgAdminUID){
+      try{
+        const atts=await fsQuery(`users/${S.orgAdminUID}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
+        (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
+      }catch(_){}
+    }
+    // محاولة 2: مسار المؤسسة
+    if(!Object.keys(S.attendance).length&&S.orgId){
+      try{
+        const atts=await fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
+        (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
+      }catch(_){}
+    }
+  }
   // جمع كل التواريخ التي يوجد فيها سجل للموظف
   const records=[];
   for(const ds in S.attendance){
