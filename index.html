@@ -2008,6 +2008,7 @@ async function genReport(){
   }
 
   const PAY_LABEL={full:'كامل',partial:'جزئي',advance:'سلفة'};
+  _lastPeriodPayments=periodPayments; // للاستخدام في الطباعة
 
   empty.style.display='none';
   list.innerHTML=emps.map(e=>{
@@ -2020,18 +2021,24 @@ async function genReport(){
       else if(st==='absent') a++;
     });
     const tot=p+a, pct=tot>0?Math.round(p/tot*100):0, salary=p*e.rate;
-    const empPays=periodPayments.filter(p=>p.empId===e.id);
-    const totalPaid=empPays.reduce((s,p)=>s+(parseFloat(p.amount)||0),0);
-    const remaining=Math.max(0,salary-totalPaid);
-    const fullyPaid=salary>0&&remaining===0;
+    const empPays=periodPayments.filter(pp=>pp.empId===e.id);
+    const totalPaid=empPays.reduce((s,pp)=>s+(parseFloat(pp.amount)||0),0);
+    const diff=salary-totalPaid; // موجب=متبقي، سالب=زيادة دفع
+    const fullyPaid=salary>0&&diff<=0;
+    const overPaid=diff<0;
 
     const payHistHTML=empPays.length?`
       <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
-        ${empPays.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:4px;">
-          <span style="color:var(--muted)">${p.date} · <span style="background:rgba(59,130,246,.12);color:var(--blue);padding:1px 6px;border-radius:6px;font-weight:700">${PAY_LABEL[p.type]||p.type}</span>${p.note?' · '+p.note:''}</span>
-          <span style="font-weight:900;color:var(--blue)">${fmt(p.amount)} ${cur}</span>
+        ${empPays.map(pp=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:4px;">
+          <span style="color:var(--muted)">${pp.date} · <span style="background:rgba(59,130,246,.12);color:var(--blue);padding:1px 6px;border-radius:6px;font-weight:700">${PAY_LABEL[pp.type]||pp.type}</span>${pp.note?' · '+pp.note:''}</span>
+          <span style="font-weight:900;color:var(--blue)">${fmt(pp.amount)} ${cur}</span>
         </div>`).join('')}
       </div>`:'';
+
+    const remainingColor=overPaid?'var(--purple)':diff>0?'var(--red)':'var(--green)';
+    const remainingBg=overPaid?'rgba(139,92,246,.08)':diff>0?'rgba(239,68,68,.08)':'rgba(16,185,129,.08)';
+    const remainingLabel=overPaid?'زادت دفعة':diff>0?'المتبقي':'مكتمل';
+    const remainingVal=overPaid?'+ '+fmt(-diff):fmt(Math.max(0,diff));
 
     const payStatsHTML=salary>0?`
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;">
@@ -2043,13 +2050,14 @@ async function genReport(){
           <div style="font-size:14px;font-weight:900;color:var(--blue)">${fmt(totalPaid)}</div>
           <div style="font-size:9px;color:var(--muted);margin-top:2px">المدفوع</div>
         </div>
-        <div style="background:${remaining>0?'rgba(239,68,68,.08)':'rgba(16,185,129,.08)'};border-radius:9px;padding:8px;text-align:center;">
-          <div style="font-size:14px;font-weight:900;color:${remaining>0?'var(--red)':'var(--green)'}">${fmt(remaining)}</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:2px">المتبقي</div>
+        <div style="background:${remainingBg};border-radius:9px;padding:8px;text-align:center;">
+          <div style="font-size:14px;font-weight:900;color:${remainingColor}">${remainingVal}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">${remainingLabel}</div>
         </div>
       </div>
       ${payHistHTML}`:'';
 
+    const btnRemaining=Math.max(0,diff);
     return `<div class="rep-card">
       <div class="rep-top">
         <div style="display:flex;align-items:center;gap:10px;">
@@ -2059,7 +2067,8 @@ async function genReport(){
         <div style="text-align:left">
           <div class="rep-salary">${fmt(salary)}</div>
           <div style="font-size:10px;color:var(--muted)">${cur} مستحق</div>
-          ${fullyPaid?'<div style="font-size:10px;font-weight:800;color:var(--green)">✅ مكتمل الدفع</div>':''}
+          ${fullyPaid&&!overPaid?'<div style="font-size:10px;font-weight:800;color:var(--green)">✅ مكتمل الدفع</div>':''}
+          ${overPaid?`<div style="font-size:10px;font-weight:800;color:var(--purple)">⚠️ زادت دفعة ${fmt(-diff)} ${cur}</div>`:''}
         </div>
       </div>
       <div class="rep-boxes">
@@ -2069,7 +2078,7 @@ async function genReport(){
       </div>
       <div class="prog"><div class="prog-fill" style="width:${pct}%"></div></div>
       ${payStatsHTML}
-      ${S.role==='admin'?`<div style="margin-top:10px"><button data-empid="${e.id}" data-salary="${salary}" data-paid="${totalPaid}" data-remaining="${remaining}" data-from="${from}" data-to="${to}" onclick="openPayModal(this)" style="width:100%;padding:11px;background:${fullyPaid?'rgba(16,185,129,.15)':'linear-gradient(135deg,#10b981,#059669)'};border:${fullyPaid?'2px solid var(--green)':'none'};border-radius:10px;color:${fullyPaid?'var(--green)':'#fff'};font-family:Cairo,sans-serif;font-size:14px;font-weight:800;cursor:pointer">${fullyPaid?'✅ تسجيل دفعة إضافية':'💰 دفع الراتب الأسبوعي'}</button></div>`:''}
+      ${S.role==='admin'?`<div style="margin-top:10px"><button data-empid="${e.id}" data-salary="${salary}" data-paid="${totalPaid}" data-remaining="${btnRemaining}" data-from="${from}" data-to="${to}" onclick="openPayModal(this)" style="width:100%;padding:11px;background:${fullyPaid?'rgba(16,185,129,.15)':'linear-gradient(135deg,#10b981,#059669)'};border:${fullyPaid?'2px solid var(--green)':'none'};border-radius:10px;color:${fullyPaid?'var(--green)':'#fff'};font-family:Cairo,sans-serif;font-size:14px;font-weight:800;cursor:pointer">${fullyPaid?'✅ تسجيل دفعة إضافية':'💰 دفع الراتب الأسبوعي'}</button></div>`:''}
     </div>`;
   }).join('');
 }
@@ -2157,6 +2166,49 @@ function printReport(){
           </tr>
         </tfoot>
       </table>
+      ${(()=>{
+        const PAY_LBL={full:'كامل',partial:'جزئي',advance:'سلفة'};
+        const empPays=_lastPeriodPayments.filter(pp=>pp.empId===e.id);
+        if(!empPays.length) return '';
+        const totalPaid=empPays.reduce((s,pp)=>s+(parseFloat(pp.amount)||0),0);
+        const salary=p*rate;
+        const diff=salary-totalPaid;
+        const overPaid=diff<0;
+        const payRows=empPays.map(pp=>`<tr>
+          <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;color:#64748b">${pp.date}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;text-align:center">
+            <span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">${PAY_LBL[pp.type]||pp.type}</span>
+          </td>
+          <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:11px">${pp.note||'—'}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;text-align:left;color:#2563eb;font-weight:700">${fmt(pp.amount)} ${cur}</td>
+        </tr>`).join('');
+        return `<div style="margin-top:14px;background:#f0fdf4;border-radius:10px;padding:12px;">
+          <div style="font-size:13px;font-weight:900;color:#065f46;margin-bottom:10px;">💰 سجل المدفوعات</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead><tr style="background:#dcfce7;">
+              <th style="padding:6px 10px;text-align:right;font-weight:800;color:#065f46;border-bottom:1px solid #bbf7d0;">التاريخ</th>
+              <th style="padding:6px 10px;text-align:center;font-weight:800;color:#065f46;border-bottom:1px solid #bbf7d0;">النوع</th>
+              <th style="padding:6px 10px;text-align:right;font-weight:800;color:#065f46;border-bottom:1px solid #bbf7d0;">ملاحظة</th>
+              <th style="padding:6px 10px;text-align:left;font-weight:800;color:#065f46;border-bottom:1px solid #bbf7d0;">المبلغ</th>
+            </tr></thead>
+            <tbody>${payRows}</tbody>
+          </table>
+          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+            <div style="background:#dcfce7;border-radius:8px;padding:8px;">
+              <div style="font-size:15px;font-weight:900;color:#059669">${fmt(salary)}</div>
+              <div style="font-size:10px;color:#065f46">المستحق</div>
+            </div>
+            <div style="background:#dbeafe;border-radius:8px;padding:8px;">
+              <div style="font-size:15px;font-weight:900;color:#2563eb">${fmt(totalPaid)}</div>
+              <div style="font-size:10px;color:#1e3a8a">المدفوع</div>
+            </div>
+            <div style="background:${overPaid?'#ede9fe':diff>0?'#fee2e2':'#dcfce7'};border-radius:8px;padding:8px;">
+              <div style="font-size:15px;font-weight:900;color:${overPaid?'#7c3aed':diff>0?'#dc2626':'#059669'}">${overPaid?'+ '+fmt(-diff):fmt(Math.max(0,diff))}</div>
+              <div style="font-size:10px;color:${overPaid?'#4c1d95':diff>0?'#7f1d1d':'#065f46'}">${overPaid?'زادت دفعة':diff>0?'المتبقي':'مكتمل ✅'}</div>
+            </div>
+          </div>
+        </div>`;
+      })()}
     </div>`;
   });
   const win=window.open('','_blank');
@@ -2524,7 +2576,7 @@ document.addEventListener('visibilitychange',()=>{
 // ══════════════════════════════════════════
 // PROJECTS — العهدة والحاسبة والنثرية
 // ══════════════════════════════════════════
-let ASSETS=[], CASH=[];
+let ASSETS=[], CASH=[], _lastPeriodPayments=[];
 
 function switchPTab(tab){
   if(GUEST){ showToast('غير متاح في وضع الضيف','err'); return; }
