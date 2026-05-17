@@ -521,14 +521,9 @@ window.onerror=function(msg,src,line,col,err){
           <input type="password" id="su-admin-code" placeholder="الرمز السري للمدير">
           <div class="hint">الرمز: <b style="color:var(--accent)">shamikh2024</b></div>
         </div>
-        <!-- كود الانضمام للعضو -->
-        <div class="lf" id="member-code-field" style="display:none">
-          <label>🔑 كود الانضمام</label>
-          <input type="text" id="su-full-code" placeholder="XXX-XXXXXX"
-            style="font-size:18px;font-weight:900;letter-spacing:4px;text-align:center;color:var(--accent);text-transform:uppercase;"
-            maxlength="12" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');debounceCodeLookup()">
-          <div class="hint">الكود من المدير — مثال: KMN-AB12CD</div>
-          <div class="lookup-ok" id="lookup-ok">
+        <!-- معلومات الموظف — تُعبأ من رابط التسجيل -->
+        <div id="member-code-field" style="display:none">
+          <div class="lookup-ok" id="lookup-ok" style="display:none">
             <div style="display:flex;align-items:center;gap:10px;">
               <div id="lookup-emoji" style="font-size:28px">👤</div>
               <div>
@@ -538,7 +533,6 @@ window.onerror=function(msg,src,line,col,err){
               </div>
             </div>
           </div>
-          <div class="lookup-err" id="lookup-err">❌ الكود غير صحيح — تواصل مع المدير</div>
         </div>
         <button class="lbtn" id="su-btn" onclick="doSignUp()">✨ إنشاء الحساب</button>
       </div>
@@ -677,14 +671,6 @@ window.onerror=function(msg,src,line,col,err){
       <div style="display:flex;gap:8px;margin-bottom:10px;">
         <input type="text" id="emp-search" class="rinput" style="flex:1" placeholder="🔍 بحث..." oninput="renderEmps()">
         <button class="btn btn-gold btn-sm" id="add-emp-btn" onclick="openEmpModal()">➕</button>
-      </div>
-      <div id="gen-codes-bar" style="display:none;margin-bottom:12px;">
-        <button class="btn btn-gold" style="width:100%" onclick="genAllCodes()">
-          🔢 توليد كود لكل الموظفين
-        </button>
-        <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:4px">
-          للموظفين الذين ليس لديهم كود بعد
-        </div>
       </div>
       <div id="emp-list"></div>
       <div class="empty" id="emp-empty"><span class="eico">👤</span><p>لا يوجد موظفون</p></div>
@@ -945,14 +931,6 @@ window.onerror=function(msg,src,line,col,err){
         </select></div>
       <div class="mf"><label>الراتب اليومي</label>
         <input id="m-rate" type="number" placeholder="0" min="0"></div>
-    </div>
-    <div class="mf" id="m-code-wrap" style="display:none">
-      <label>🔢 كود الموظف (انسخه وأعطه للموظف)</label>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input id="m-code" type="text" readonly
-          style="flex:1;font-size:16px;font-weight:900;letter-spacing:4px;color:var(--accent);text-align:center;background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3);cursor:default;">
-        <button type="button" onclick="copyCode()" class="btn btn-gold btn-sm">📋</button>
-      </div>
     </div>
     <input type="hidden" id="m-edit-id">
     <div class="modal-acts">
@@ -1215,9 +1193,6 @@ function initRegLink(encoded){
     const d=JSON.parse(decodeURIComponent(escape(atob(encoded))));
     switchTab('signup');
     pickRole('member');
-    // إخفاء حقل الكود (البيانات جاهزة من الرابط)
-    const mcf=document.getElementById('member-code-field');
-    if(mcf) mcf.style.display='none';
     // عرض بطاقة الموظف
     document.getElementById('lookup-ok').style.display='block';
     document.getElementById('lookup-name').textContent=d.name||'';
@@ -1298,41 +1273,15 @@ async function doSignUp(){
       const ses=getSession(); if(ses){ses.name=name;localStorage.setItem(LS_KEY,JSON.stringify(ses));}
       await startApp({uid:user.uid,email:em,name});
     } else {
-      // عضو فريق
-      // استخدم النتيجة المحفوظة من البحث
-      let emp, org, adminUID, orgId2, empPart='';
-      if(window._lookupResult){
-        emp=window._lookupResult.emp;
-        adminUID=window._lookupResult.adminUID;
-        org=window._lookupResult.org||{};
-        orgId2=window._lookupResult.orgId||org.id||('org_'+adminUID);
-        org={...org, id:orgId2, adminUID};
-        empPart=emp.empCode||'';
-      } else {
-        // إعادة البحث لو ما في نتيجة محفوظة
-        const fullCode=document.getElementById('su-full-code').value.trim().toUpperCase();
-        if(!fullCode||!fullCode.includes('-')){ showAuthErr('أدخل كود الانضمام'); return; }
-        const dashIdx=fullCode.indexOf('-');
-        const orgPart=fullCode.slice(0,dashIdx);
-        const empPart=fullCode.slice(dashIdx+1);
-        const invR=await fetch(`${FS_URL}/inviteCodes/${orgPart}`);
-        if(!invR.ok){ showAuthErr('كود المؤسسة غير صحيح'); return; }
-        const invD=await invR.json();
-        const inv=jsDoc(invD.fields||{});
-        adminUID=inv.adminUID;
-        orgId2=inv.orgId||'org_'+adminUID;
-        org={id:orgId2, adminUID, inviteCode:orgPart};
-        const empsR=await fetch(`${FS_URL}/users/${adminUID}/employees`);
-        const empsD=await empsR.json();
-        const allEmps=(empsD.documents||[]).map(doc=>({id:doc.name.split('/').pop(),...jsDoc(doc.fields||{})}));
-        emp=allEmps.find(e=>e.empCode===empPart);
-        if(!emp){ showAuthErr('كود الموظف غير صحيح'); return; }
-      }
+      // عضو فريق — يجب فتح رابط التسجيل من المدير
+      if(!window._lookupResult){ showAuthErr('افتح رابط التسجيل الذي أرسله لك المدير'); return; }
+      const emp=window._lookupResult.emp;
+      const adminUID=window._lookupResult.adminUID;
+      const orgId2=window._lookupResult.orgId||('org_'+adminUID);
+      const org={id:orgId2,adminUID};
       const user=await authRegister(em,ps);
       await authUpdateName(emp.name);
-      // حفظ البروفايل
-      await fsSet(profilePath(user.uid),{name:emp.name,email:em,role:emp.role||'employee',orgId:org.id,orgAdminUID:org.adminUID,myEmpId:emp.id,empCode:empPart,status:'pending',createdAt:new Date().toISOString()});
-      // إضافة للقائمة المعلقة
+      await fsSet(profilePath(user.uid),{name:emp.name,email:em,role:emp.role||'employee',orgId:org.id,orgAdminUID:org.adminUID,myEmpId:emp.id,empCode:emp.empCode||'',status:'pending',createdAt:new Date().toISOString()});
       await fsSet(`orgs/${org.id}/pendingMembers/${user.uid}`,{uid:user.uid,name:emp.name,email:em,role:emp.role||'employee',empId:emp.id,status:'pending',requestedAt:new Date().toISOString()});
       // أظهر شاشة الانتظار
       showPending({name:emp.name,email:em,role:emp.role||'employee'});
@@ -1393,112 +1342,7 @@ function pickRole(r){
   }
 }
 
-// ════════════════════════════════════════
-// CODE LOOKUP
-// ════════════════════════════════════════
-let _lookupT=null;
-function debounceCodeLookup(){ clearTimeout(_lookupT); _lookupT=setTimeout(doCodeLookup,700); }
-async function getAnonToken(){
-  if(_token) return _token;
-  try{
-    const r=await fetch(`${AUTH_URL}:signUp?key=${FB.apiKey}`,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({returnSecureToken:true})
-    });
-    if(r.ok){ const d=await r.json(); return d.idToken||''; }
-  }catch(_){}
-  return '';
-}
 
-async function doCodeLookup(){
-  const full=(document.getElementById('su-full-code')?.value||'').trim().toUpperCase();
-  const ok=document.getElementById('lookup-ok');
-  const err=document.getElementById('lookup-err');
-  ok.style.display='none'; err.style.display='none';
-  if(full.length<8) return;
-
-  const codeInput=document.getElementById('su-full-code');
-  if(codeInput) codeInput.style.opacity='0.6';
-
-  try{
-    const dash=full.indexOf('-');
-    if(dash<0){ if(codeInput) codeInput.style.opacity='1'; if(err) err.style.display='block'; return; }
-
-    // احصل على token (مجهول إذا لم يكن مسجّلاً) حتى تنجح قراءة Firestore
-    const tok=await getAnonToken();
-    const fsh=tok?{'Authorization':'Bearer '+tok,'Content-Type':'application/json'}:{'Content-Type':'application/json'};
-
-    // ── الطريقة الأولى: قراءة مباشرة من inviteCodes/{fullCode} ──
-    let emp=null, adminUID='', orgId='';
-    try{
-      const invR=await fetch(`${FS_URL}/inviteCodes/${encodeURIComponent(full)}`,{headers:fsh});
-      if(invR.ok){
-        const inv=jsDoc((await invR.json()).fields||{});
-        if(inv.empId){
-          adminUID=inv.adminUID||''; orgId=inv.orgId||('org_'+adminUID);
-          emp={id:inv.empId,name:inv.empName||'',dept:inv.empDept||'',phone:inv.empPhone||'',emoji:inv.empEmoji||'👤',empCode:full.slice(dash+1),orgId,adminUID};
-        }
-      }
-    }catch(_){}
-
-    // ── الطريقة الثانية: inviteCodes/{orgCode} → قائمة الموظفين ──
-    if(!emp){
-      const orgPart=full.slice(0,dash), empPart=full.slice(dash+1);
-      try{
-        const orgR=await fetch(`${FS_URL}/inviteCodes/${encodeURIComponent(orgPart)}`,{headers:fsh});
-        if(orgR.ok){
-          const orgInv=jsDoc((await orgR.json()).fields||{});
-          if(orgInv.adminUID){
-            adminUID=orgInv.adminUID; orgId=orgInv.orgId||('org_'+adminUID);
-            const empsR=await fetch(`${FS_URL}/users/${adminUID}/employees`,{headers:fsh});
-            if(empsR.ok){
-              const allEmps=((await empsR.json()).documents||[]).map(d=>({id:d.name.split('/').pop(),...jsDoc(d.fields||{})}));
-              const found=allEmps.find(e=>e.empCode===empPart);
-              if(found) emp={...found,empCode:empPart,adminUID,orgId};
-            }
-          }
-        }
-      }catch(_){}
-    }
-
-    // ── الطريقة الثالثة (احتياطية): collectionGroup query ──
-    if(!emp){
-      const empPart=full.slice(dash+1);
-      try{
-        const qBody={structuredQuery:{from:[{collectionId:'employees',allDescendants:true}],where:{fieldFilter:{field:{fieldPath:'empCode'},op:'EQUAL',value:{stringValue:empPart}}},limit:5}};
-        const qR=await fetch(`https://firestore.googleapis.com/v1/projects/${FB.projectId}/databases/(default)/documents:runQuery`,{method:'POST',headers:fsh,body:JSON.stringify(qBody)});
-        const docs=(await qR.json());
-        const hit=(Array.isArray(docs)?docs:[]).filter(x=>x.document)[0];
-        if(hit){
-          emp={id:hit.document.name.split('/').pop(),...jsDoc(hit.document.fields||{})};
-          adminUID=emp.adminUID||''; orgId=emp.orgId||('org_'+adminUID);
-        }
-      }catch(_){}
-    }
-
-    if(!emp){ if(codeInput) codeInput.style.opacity='1'; if(err) err.style.display='block'; return; }
-
-    // ✅ عرض معلومات الموظف
-    document.getElementById('lookup-name').textContent=emp.name||'';
-    document.getElementById('lookup-dept').textContent=(emp.dept||'')+(emp.phone?' · '+emp.phone:'');
-    document.getElementById('lookup-emoji').textContent=emp.emoji||'👤';
-    ok.style.display='block';
-
-    const nameInput=document.getElementById('su-name');
-    const nameField=document.getElementById('su-name-field');
-    if(nameInput){ nameInput.value=emp.name||''; nameInput.readOnly=true; }
-    if(nameField) nameField.style.display='none';
-
-    window._lookupResult={emp,adminUID,orgId,org:{id:orgId,adminUID}};
-    if(codeInput) codeInput.style.opacity='1';
-    setTimeout(()=>document.getElementById('su-email')?.focus(),300);
-
-  }catch(e){
-    console.warn('lookup error:',e);
-    if(codeInput) codeInput.style.opacity='1';
-    err.style.display='block';
-  }
-}
 
 // ════════════════════════════════════════
 // PENDING
@@ -1581,30 +1425,12 @@ async function loadProfileAndData(ses){
     }
     // تحميل الموظفين والحضور
     await loadData();
-    // مزامنة كودات الانضمام تلقائياً في الخلفية (بدون انتظار)
-    if(S.role==='admin' && S.employees.length>0){
-      silentSyncCodes().catch(()=>{});
-    }
   }catch(e){
     console.warn('startApp error:',e);
     // دخول بدون بيانات
     S.role='admin'; S.userName=ses.name||ses.email||'مدير'; S.saveUID=_uid;
   }
   showApp();
-}
-
-async function silentSyncCodes(){
-  if(!_uid||S.role!=='admin'||!S.employees.length) return;
-  const orgCode=S.orgCode||_uid.slice(0,3).toUpperCase();
-  for(const e of S.employees){
-    if(!e.empCode) continue;
-    const lk=orgCode+'-'+e.empCode;
-    await fsSet(`inviteCodes/${lk}`,{
-      empId:e.id, empName:e.name||'', empDept:e.dept||'',
-      empPhone:e.phone||'', empEmoji:e.emoji||'👤',
-      orgId:e.orgId||S.orgId, adminUID:_uid, orgCode
-    }).catch(()=>{});
-  }
 }
 
 async function loadData(){
@@ -1881,36 +1707,7 @@ function openEmpModal(editId){
   document.getElementById('m-dept').value=e?.dept||'إدارة';
   document.getElementById('m-rate').value=e?.rate||'';
   document.getElementById('m-edit-id').value=editId||'';
-  // عرض كود الموظف في التعديل
-  const codeWrap=document.getElementById('m-code-wrap');
-  const codeInp=document.getElementById('m-code');
-  if(isEdit){
-    const orgCode=S.orgCode||_uid.slice(0,3).toUpperCase();
-    if(e?.empCode){
-      // اعرض الكود الصحيح بالصيغة orgCode-empCode
-      codeInp.value=orgCode+'-'+e.empCode;
-      codeWrap.style.display='block';
-    } else {
-      // ولّد كود جديد للموظف القديم
-      const newCode=generateCode(6);
-      e.empCode=newCode;
-      e.adminUID=e.adminUID||_uid;
-      e.orgId=e.orgId||S.orgId||('org_'+_uid);
-      codeInp.value=orgCode+'-'+newCode;
-      codeWrap.style.display='block';
-      const lk=orgCode+'-'+newCode;
-      fsSet(empDocPath(e.id),e).catch(()=>{});
-      fsSet(`inviteCodes/${lk}`,{empId:e.id,empName:e.name,empDept:e.dept||'',empPhone:e.phone||'',empEmoji:e.emoji||'👤',orgId:e.orgId,adminUID:_uid,orgCode}).catch(()=>{});
-    }
-  } else { codeWrap.style.display='none'; }
   document.getElementById('emp-modal').classList.add('active');
-}
-
-function copyCode(){
-  const val=document.getElementById('m-code').value;
-  const name=document.getElementById('m-name').value||'الموظف';
-  const txt=`كود الانضمام لـ ${name}:\n${val}\n\nادخل هذا الكود عند التسجيل في تطبيق شموخ`;
-  navigator.clipboard?.writeText(txt).then(()=>showToast('✅ تم النسخ','ok')).catch(()=>showToast('الكود: '+val,'ok'));
 }
 
 async function saveEmp(){
@@ -1935,31 +1732,16 @@ async function saveEmp(){
   } else {
     const ci=S.employees.length%COLORS.length;
     const empCode=generateCode(6);
-    const empId = 'e'+Date.now();
-    const fullCode = generateEmpFullCode(_uid, empId); // كود مشفر للتسجيل
+    const empId='e'+Date.now();
     const emp={
       id:empId,...data,
       color:COLORS[ci],emoji:EMOJIS[ci],
-      empCode, fullCode,
+      empCode,
       orgId:S.orgId||('org_'+_uid),
       adminUID:_uid
     };
     S.employees.push(emp);
     await fsSet(empDocPath(emp.id),emp);
-    // حفظ مفتاح البحث في inviteCodes للتسجيل بدون auth
-    const lookupKey=(S.orgCode||_uid.slice(0,3).toUpperCase())+'-'+empCode;
-    fsSet(`inviteCodes/${lookupKey}`,{
-      empId:emp.id, empName:emp.name, empDept:emp.dept,
-      empPhone:emp.phone||'', empEmoji:emp.emoji,
-      orgId:emp.orgId, adminUID:_uid, orgCode:S.orgCode||''
-    }).catch(()=>{});
-    // أظهر الكود
-    document.getElementById('m-code').value=(S.orgCode||'???')+'-'+empCode;
-    document.getElementById('m-code-wrap').style.display='block';
-    document.getElementById('emp-modal-title').textContent='✅ تم الحفظ — انسخ الكود';
-    renderEmps();
-    showToast('✅ تم إضافة الموظف','ok');
-    return; // لا تغلق الـ modal حتى ينسخ الكود
   }
   closeModal('emp-modal');
   renderEmps();
@@ -1977,15 +1759,6 @@ async function deleteEmp(id){
 function renderEmps(){
   const q=(document.getElementById('emp-search')?.value||'').toLowerCase();
   const isEmp=S.role==='employee';
-  // إظهار زر الكودات للمدير دائماً (توليد جديد أو مزامنة موجودة)
-  const genBar=document.getElementById('gen-codes-bar');
-  if(genBar && S.role==='admin' && S.employees.length>0){
-    genBar.style.display='block';
-    const noCode=S.employees.filter(e=>!e.empCode);
-    genBar.querySelector('button').textContent=noCode.length>0
-      ?`🔢 توليد كود لـ ${noCode.length} موظف`
-      :`🔄 مزامنة كودات الانضمام (${S.employees.length} موظف)`;
-  } else if(genBar){ genBar.style.display='none'; }
   let list=isEmp&&S.myEmpId?S.employees.filter(e=>e.id===S.myEmpId):S.employees;
   if(q) list=list.filter(e=>e.name.toLowerCase().includes(q));
   const container=document.getElementById('emp-list');
@@ -2004,7 +1777,6 @@ function renderEmps(){
         <div style="flex:1;min-width:0">
           <div class="emp-name">${e.name}${isEmp?'<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--accent);padding:2px 6px;border-radius:6px;margin-right:6px">أنت</span>':''}</div>
           <div class="emp-info">${e.dept}${e.phone?' · '+e.phone:''}</div>
-          ${isAdmin&&e.empCode?`<div class="emp-code" onclick="copyEmpCode('${e.empCode}','${e.name}')"><span>${S.orgCode||'?'}-${e.empCode}</span><span style="font-size:10px;color:var(--muted)">📋</span></div>`:''}
         </div>
       </div>
       <div class="emp-stats">
@@ -2033,100 +1805,13 @@ function renderEmps(){
   else { const s=document.getElementById('emp-expenses-section'); if(s) s.style.display='none'; }
 }
 
-async function genAllCodes(){
-  const noCode=S.employees.filter(e=>!e.empCode);
-  const orgCode=S.orgCode||_uid.slice(0,3).toUpperCase();
-  const total=S.employees.length;
-  if(!total){ showToast('لا يوجد موظفون','err'); return; }
-  const msg=noCode.length>0
-    ?`توليد كود لـ ${noCode.length} موظف جديد + مزامنة ${total-noCode.length} موظف موجود؟`
-    :`مزامنة كودات ${total} موظف في Firebase حتى تعمل عند التسجيل؟`;
-  if(!confirm(msg)) return;
-
-  showToast('⏳ جاري المعالجة...');
-  let done=0;
-  const newEmps=[];
-  for(const e of S.employees){
-    try{
-      // توليد كود جديد لمن ليس عنده
-      if(!e.empCode){
-        e.empCode=generateCode(6);
-        e.fullCode=generateEmpFullCode(_uid,e.id);
-        e.adminUID=e.adminUID||_uid;
-        e.orgId=e.orgId||S.orgId||('org_'+_uid);
-        await fsSet(empDocPath(e.id),e);
-        newEmps.push(e);
-      }
-      // مزامنة كود الانضمام في inviteCodes (للكل)
-      const lk=orgCode+'-'+e.empCode;
-      await fsSet(`inviteCodes/${lk}`,{
-        empId:e.id, empName:e.name, empDept:e.dept||'',
-        empPhone:e.phone||'', empEmoji:e.emoji||'👤',
-        orgId:e.orgId||S.orgId, adminUID:_uid, orgCode
-      });
-      done++;
-    }catch(err){ console.warn('Error:',err); }
-  }
-  // تأكد إن org inviteCode محفوظ
-  if(S.orgId&&S.orgCode){
-    fsSet(`inviteCodes/${S.orgCode}`,{orgId:S.orgId,adminUID:_uid,createdAt:new Date().toISOString()}).catch(()=>{});
-  }
-  renderEmps();
-  showToast(`✅ تمت المزامنة لـ ${done} موظف`,'ok');
-  if(newEmps.length) showCodesModal(newEmps);
-}
-
-function showCodesModal(emps){
-  // إنشاء modal مؤقت يعرض الكودات
-  const existing = document.getElementById('codes-modal-temp');
-  if(existing) existing.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'codes-modal-temp';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:flex;align-items:flex-end;justify-content:center;padding:0;';
-  modal.innerHTML = `
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:22px;width:100%;max-height:80vh;overflow-y:auto;">
-      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;"></div>
-      <div style="font-size:16px;font-weight:800;color:var(--accent);margin-bottom:16px;">🔢 كودات الموظفين الجديدة</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">انسخ كل كود وأرسله للموظف المقابل</div>
-      ${emps.map(e=>`
-        <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:36px;height:36px;border-radius:9px;background:${e.color};display:flex;align-items:center;justify-content:center;font-size:16px;">${e.emoji}</div>
-            <div>
-              <div style="font-weight:700;font-size:13px">${e.name}</div>
-              <div style="font-size:11px;color:var(--muted)">${e.dept}</div>
-            </div>
-          </div>
-          <div style="text-align:left">
-            <div style="font-size:14px;font-weight:900;color:var(--accent);letter-spacing:2px">${S.orgCode||'?'}-${e.empCode}</div>
-            <button onclick="copyEmpCode('${e.empCode}','${e.name}')" 
-              style="font-size:10px;padding:3px 8px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:6px;color:var(--accent);font-family:Cairo,sans-serif;cursor:pointer;margin-top:3px;font-weight:700;">
-              📋 نسخ
-            </button>
-          </div>
-        </div>`).join('')}
-      <button onclick="document.getElementById('codes-modal-temp').remove()" 
-        style="width:100%;padding:13px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;">
-        ✔️ تم
-      </button>
-    </div>`;
-  document.body.appendChild(modal);
-  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
-}
-
-function copyEmpCode(fullCode,name){
-  const txt=`كود الانضمام لـ ${name}:\n${fullCode}\n\nادخل هذا الكود في تطبيق شموخ عند التسجيل`;
-  navigator.clipboard?.writeText(txt).then(()=>showToast('✅ تم نسخ الكود','ok')).catch(()=>showToast('الكود: '+fullCode,'ok'));
-}
-
 function shareRegLink(empId){
   const e=S.employees.find(emp=>emp.id===empId);
   if(!e){ showToast('لم يتم العثور على الموظف','err'); return; }
   const orgCode=S.orgCode||_uid.slice(0,3).toUpperCase();
   const d={id:e.id,name:e.name,dept:e.dept||'',phone:e.phone||'',emoji:e.emoji||'👤',empCode:e.empCode||'',orgCode,adminUID:_uid,orgId:S.orgId||('org_'+_uid)};
   const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(d))));
-  const url=location.origin+location.pathname+'?reg='+encoded;
+  const url=location.origin+location.pathname+'?reg='+encodeURIComponent(encoded);
   const text=`رابط تسجيل ${e.name} في شموخ:\n${url}`;
   if(navigator.share){
     navigator.share({title:'انضم إلى فريق شموخ',text,url}).catch(()=>{
