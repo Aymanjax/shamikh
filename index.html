@@ -1393,16 +1393,30 @@ function showPending(data){
 async function checkPending(){
   if(!_uid){ showToast('خطأ في الاتصال','err'); return; }
   try{
-    const profile=await fsGet(profilePath(_uid));
+    let profile=await fsGet(profilePath(_uid));
     if(!profile){ showToast('لا يوجد بيانات','err'); return; }
+    // لو ما تمت الموافقة بعد — تحقق من قائمة أعضاء المؤسسة مباشرة
+    if(profile.status!=='approved'){
+      const orgId=profile.orgId||('org_'+(profile.orgAdminUID||''));
+      if(orgId&&orgId!=='org_'){
+        try{
+          const org=await fsGet(`orgs/${orgId}`);
+          if(org?.members?.[_uid]){
+            // المدير وافق — الموظف يحدّث بروفايله بنفسه
+            await fsSet(profilePath(_uid),{status:'approved'},{merge:true}).catch(()=>{});
+            profile={...profile,status:'approved'};
+          }
+        }catch(_){}
+      }
+    }
     if(profile.status==='approved'){
       showToast('✅ تمت الموافقة! جاري الدخول...','ok');
       document.getElementById('pendingPage').classList.remove('active');
       setTimeout(()=>startApp(getSession()),1000);
     } else if(profile.status==='rejected'){
-      showToast('❌ تم رفض طلبك','err');
+      showToast('❌ تم رفض طلبك من المدير','err');
     } else {
-      showToast('⏳ لم تتم الموافقة بعد');
+      showToast('⏳ لم تتم الموافقة بعد — تواصل مع المدير');
     }
   }catch(e){ showToast('خطأ: '+e.message,'err'); }
 }
@@ -1430,7 +1444,20 @@ async function loadProfileAndData(ses){
       fsSet(`orgs/${orgId}`,{name:'مؤسسة',adminUID:_uid,adminName:ses.name||ses.email,inviteCode:orgCode,createdAt:new Date().toISOString(),members:{}}).catch(()=>{});
       fsSet(profilePath(_uid),{name:ses.name||ses.email||'',email:ses.email||'',role:'admin',orgId,orgCode,status:'approved',createdAt:new Date().toISOString()}).catch(()=>{});
     }
-    if(profile.status==='pending'){ showPending({name:profile.name,email:profile.email,role:profile.role}); return; }
+    if(profile.status==='pending'){
+      // تحقق من قائمة أعضاء المؤسسة — المدير قد وافق لكن الكتابة على ملف الموظف فشلت
+      try{
+        const orgId=profile.orgId||('org_'+(profile.orgAdminUID||''));
+        if(orgId&&orgId!=='org_'){
+          const org=await fsGet(`orgs/${orgId}`);
+          if(org?.members?.[_uid]){
+            await fsSet(profilePath(_uid),{status:'approved'},{merge:true}).catch(()=>{});
+            profile={...profile,status:'approved'};
+          }
+        }
+      }catch(_){}
+      if(profile.status==='pending'){ showPending({name:profile.name,email:profile.email,role:profile.role}); return; }
+    }
     if(profile.status==='rejected'){ showLogin(); showToast('طلبك مرفوض','err'); return; }
     S.role=profile.role||'admin';
     S.userName=profile.name||ses.name||ses.email||'';
