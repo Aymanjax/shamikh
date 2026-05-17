@@ -105,6 +105,18 @@ function getAuthErr(msg){
 
 function getSession(){ return lsGet(LS_KEY); }
 
+// SECURITY HELPERS
+// منع XSS — يجب استخدامها دائماً عند عرض بيانات المستخدمين في innerHTML
+function esc(s){
+  if(s===null||s===undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Logger موحّد — بدل catch(e){} الصامت
+function logErr(context,err){
+  try{ console.error('[Shamikh]',context,err?.message||err); }catch(_){}
+}
+
 // FIRESTORE
 function fsVal(v){
   if(v===null||v===undefined) return {nullValue:null};
@@ -1710,7 +1722,7 @@ function renderDash(){
       <div style="width:22px;height:22px;border-radius:6px;background:${rnkc[i]||'var(--border)'};color:${i<3?'#0a0f1a':'var(--muted)'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0">${i+1}</div>
       <div style="width:34px;height:34px;border-radius:9px;background:${e.color};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">${e.emoji}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.name}</div>
+        <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.name)}</div>
         <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
           <div style="flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="height:100%;width:${e.pct}%;background:var(--green);border-radius:2px"></div></div>
           <span style="font-size:10px;font-weight:700;color:var(--green)">${e.pct}%</span>
@@ -1774,7 +1786,7 @@ function renderAtt(){
     const cls=st==='present'?'p':st==='absent'?'a':'';
     return `<div class="att-row ${cls}">
       <div class="att-ava" style="background:${e.color}">${e.emoji}</div>
-      <div class="att-name">${e.name}</div>
+      <div class="att-name">${esc(e.name)}</div>
       ${isViewer
         ?`<div style="font-size:13px;font-weight:800;padding:8px 14px;border-radius:9px;background:${st==='present'?'rgba(16,185,129,.15)':st==='absent'?'rgba(239,68,68,.15)':'var(--surface)'};color:${st==='present'?'var(--green)':st==='absent'?'var(--red)':'var(--muted)'};">${st==='present'?'✅ حاضر':st==='absent'?'❌ غائب':'— غير مسجل'}</div>`
         :`<div class="att-btns">
@@ -1925,8 +1937,8 @@ function renderEmps(){
       <div class="emp-top">
         <div class="emp-ava" style="background:${e.color}">${e.emoji}</div>
         <div style="flex:1;min-width:0">
-          <div class="emp-name">${e.name}</div>
-          <div class="emp-info">${e.dept}${e.phone?' · '+e.phone:''}</div>
+          <div class="emp-name">${esc(e.name)}</div>
+          <div class="emp-info">${esc(e.dept)}${e.phone?' · '+esc(e.phone):''}</div>
         </div>
       </div>
       <div class="emp-stats">
@@ -2057,8 +2069,8 @@ async function renderSelfView(){
     <div class="self-hero">
       <div class="self-ava" style="background:${color}">${emoji}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:17px;font-weight:900;color:var(--text)">${empDoc.name||S.userName}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:3px">${empDoc.dept||''}${empDoc.phone?' · '+empDoc.phone:''}</div>
+        <div style="font-size:17px;font-weight:900;color:var(--text)">${esc(empDoc.name||S.userName)}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">${esc(empDoc.dept||'')}${empDoc.phone?' · '+esc(empDoc.phone):''}</div>
         <div style="font-size:11px;color:var(--accent);font-weight:700;margin-top:5px">📅 ${monthName}</div>
       </div>
       <button onclick="refreshSelfView(this)" style="width:34px;height:34px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">🔄</button>
@@ -2092,8 +2104,8 @@ async function renderSelfView(){
         <div class="exp-item">
           <div class="exp-ico" style="background:${SBG[x.status]||'var(--surface)'}">${EE_CAT_ICO[x.cat]||'📝'}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:800">${x.desc}</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:3px">${x.date}${x.note?' · '+x.note:''}</div>
+            <div style="font-size:14px;font-weight:800">${esc(x.desc)}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:3px">${x.date}${x.note?' · '+esc(x.note):''}</div>
             <span class="exp-status" style="background:${SBG[x.status]||'var(--surface)'};color:${SCLR[x.status]||'var(--muted)'}">${SLBL[x.status]||x.status}</span>
           </div>
           <div style="text-align:left;flex-shrink:0">
@@ -2138,7 +2150,7 @@ function shareRegLink(empId){
 function populateRepSel(){
   const sel=document.getElementById('rep-emp');
   const cur=sel.value;
-  sel.innerHTML='<option value="">كل الموظفين</option>'+S.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  sel.innerHTML='<option value="">كل الموظفين</option>'+S.employees.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
   if(cur) sel.value=cur;
 }
 
@@ -2211,7 +2223,7 @@ async function genReport(){
     const payHistHTML=empPays.length?`
       <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
         ${empPays.map(pp=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:4px;">
-          <span style="color:var(--muted)">${pp.date} · <span style="background:rgba(59,130,246,.12);color:var(--blue);padding:1px 6px;border-radius:6px;font-weight:700">${PAY_LABEL[pp.type]||pp.type}</span>${pp.note?' · '+pp.note:''}</span>
+          <span style="color:var(--muted)">${pp.date} · <span style="background:rgba(59,130,246,.12);color:var(--blue);padding:1px 6px;border-radius:6px;font-weight:700">${PAY_LABEL[pp.type]||pp.type}</span>${pp.note?' · '+esc(pp.note):''}</span>
           <span style="font-weight:900;color:var(--blue)">${fmt(pp.amount)} ${cur}</span>
         </div>`).join('')}
       </div>`:'';
@@ -2243,7 +2255,7 @@ async function genReport(){
       <div class="rep-top">
         <div style="display:flex;align-items:center;gap:10px;">
           <div style="width:42px;height:42px;border-radius:11px;background:${e.color};display:flex;align-items:center;justify-content:center;font-size:19px">${e.emoji}</div>
-          <div><div style="font-weight:800;font-size:14px">${e.name}</div><div style="font-size:11px;color:var(--muted)">${e.dept}</div></div>
+          <div><div style="font-weight:800;font-size:14px">${esc(e.name)}</div><div style="font-size:11px;color:var(--muted)">${esc(e.dept)}</div></div>
         </div>
         <div style="text-align:left">
           <div class="rep-salary">${fmt(salary)}</div>
@@ -2305,8 +2317,8 @@ function printReport(){
       <!-- رأس الموظف -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:12px;border-bottom:2px solid #f59e0b;">
         <div>
-          <div style="font-size:16px;font-weight:900">${e.name}</div>
-          <div style="font-size:12px;color:#64748b;margin-top:2px">${e.dept} · ${fmt(rate)} ${cur}/يوم</div>
+          <div style="font-size:16px;font-weight:900">${esc(e.name)}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px">${esc(e.dept)} · ${fmt(rate)} ${cur}/يوم</div>
         </div>
         <div style="text-align:left">
           <div style="font-size:22px;font-weight:900;color:#059669">${fmt(p*rate)} ${cur}</div>
@@ -2360,7 +2372,7 @@ function printReport(){
           <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;text-align:center">
             <span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">${PAY_LBL[pp.type]||pp.type}</span>
           </td>
-          <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:11px">${pp.note||'—'}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:11px">${esc(pp.note||'—')}</td>
           <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;text-align:left;color:#2563eb;font-weight:700">${fmt(pp.amount)} ${cur}</td>
         </tr>`).join('');
         return `<div style="margin-top:14px;background:#f0fdf4;border-radius:10px;padding:12px;">
@@ -2470,7 +2482,7 @@ async function loadPendingMembers(){
     el.innerHTML=list.map(m=>`
       <div style="background:var(--surface);border-radius:10px;padding:12px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div><div style="font-weight:700;font-size:13px">${m.name}</div><div style="font-size:10px;color:var(--muted)">${m.email}</div></div>
+          <div><div style="font-weight:700;font-size:13px">${esc(m.name)}</div><div style="font-size:10px;color:var(--muted)">${esc(m.email)}</div></div>
           <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(59,130,246,.12);color:var(--blue)">${getRoleLabel(m.role)}</span>
         </div>
         <div style="display:flex;gap:7px;">
@@ -2491,7 +2503,7 @@ async function loadOrgMembers(){
     if(!items.length){ el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px">لا يوجد أعضاء بعد</div>'; return; }
     el.innerHTML=items.map(m=>`
       <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(30,58,95,.4);">
-        <div><div style="font-weight:700;font-size:13px">${m.name}</div><div style="font-size:10px;color:var(--muted)">${m.email||''}</div></div>
+        <div><div style="font-weight:700;font-size:13px">${esc(m.name)}</div><div style="font-size:10px;color:var(--muted)">${esc(m.email||'')}</div></div>
         <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:9px;background:rgba(16,185,129,.1);color:var(--green)">${getRoleLabel(m.role)}</span>
       </div>`).join('');
   }catch(e){}
@@ -2863,7 +2875,7 @@ function openAssetModal(editId){
   document.getElementById('a-id').value=editId||'';
   // تعبئة قائمة الموظفين
   const sel=document.getElementById('a-worker');
-  sel.innerHTML='<option value="">— غير محدد —</option>'+(S.employees||S.emp||[]).map(emp=>`<option value="${emp.id}" ${e.workerId===emp.id?'selected':''}>${emp.name}</option>`).join('');
+  sel.innerHTML='<option value="">— غير محدد —</option>'+(S.employees||S.emp||[]).map(emp=>`<option value="${emp.id}" ${e.workerId===emp.id?'selected':''}>${esc(emp.name)}</option>`).join('');
   document.getElementById('asset-modal').classList.add('active');
 }
 
@@ -2943,8 +2955,8 @@ async function renderAssets(){
         <div style="display:flex;align-items:center;gap:10px">
           <div style="font-size:24px">${typeIcon}</div>
           <div>
-            <div style="font-weight:800;font-size:14px">${a.name} ${isLow?'<span style="font-size:10px;background:rgba(239,68,68,.15);color:var(--red);padding:2px 7px;border-radius:8px">⚠️ ناقص</span>':''}</div>
-            <div style="font-size:11px;color:var(--muted)">${typeLabel}${a.workerName?' · مسؤول: '+a.workerName:''}</div>
+            <div style="font-weight:800;font-size:14px">${esc(a.name)} ${isLow?'<span style="font-size:10px;background:rgba(239,68,68,.15);color:var(--red);padding:2px 7px;border-radius:8px">⚠️ ناقص</span>':''}</div>
+            <div style="font-size:11px;color:var(--muted)">${typeLabel}${a.workerName?' · مسؤول: '+esc(a.workerName):''}</div>
           </div>
         </div>
         <div style="text-align:left">
@@ -2952,7 +2964,7 @@ async function renderAssets(){
           <div style="font-size:10px;color:var(--muted)">${a.type==='tool'?'قطعة':'كمية'}</div>
         </div>
       </div>
-      ${a.note?`<div style="font-size:11px;color:var(--muted);margin-bottom:8px">📝 ${a.note}</div>`:''}
+      ${a.note?`<div style="font-size:11px;color:var(--muted);margin-bottom:8px">📝 ${esc(a.note)}</div>`:''}
       <div style="display:flex;gap:7px">
         <button onclick="openAssetModal('${a.id}')" style="flex:1;padding:8px;border:none;border-radius:8px;background:rgba(59,130,246,.12);color:var(--blue);font-family:Cairo,sans-serif;font-size:12px;font-weight:700;cursor:pointer">✏️ تعديل</button>
         <button onclick="updateQty('${a.id}')" style="flex:1;padding:8px;border:none;border-radius:8px;background:rgba(16,185,129,.12);color:var(--green);font-family:Cairo,sans-serif;font-size:12px;font-weight:700;cursor:pointer">📊 تحديث الكمية</button>
@@ -3037,7 +3049,7 @@ function openCashModal(){
   document.getElementById('c-date').value=todayStr();
   document.getElementById('c-note').value='';
   const sel=document.getElementById('c-worker');
-  sel.innerHTML='<option value="">— غير محدد —</option>'+(S.employees||S.emp||[]).map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  sel.innerHTML='<option value="">— غير محدد —</option>'+(S.employees||S.emp||[]).map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('');
   document.getElementById('cash-modal').classList.add('active');
 }
 
@@ -3101,9 +3113,9 @@ async function renderCash(){
     <div class="cash-card">
       <div style="font-size:24px">${catIcons[c.cat]||'📝'}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.desc}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">${c.date}${c.workerName?' · '+c.workerName:''}</div>
-        ${c.note?`<div style="font-size:10px;color:var(--muted)">📝 ${c.note}</div>`:''}
+        <div style="font-weight:800;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.desc)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${c.date}${c.workerName?' · '+esc(c.workerName):''}</div>
+        ${c.note?`<div style="font-size:10px;color:var(--muted)">📝 ${esc(c.note)}</div>`:''}
       </div>
       <div style="text-align:left;flex-shrink:0">
         <div style="font-size:16px;font-weight:900;color:var(--red)">${fmt(c.amt)}</div>
@@ -3295,9 +3307,9 @@ async function renderEmpSubmissions(){
     <div class="cash-card" style="${e.status==='pending'?'border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.04)':''}">
       <div style="font-size:22px">${EE_CAT_ICO[e.cat]||'📝'}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:800;font-size:13px">${e.desc}</div>
-        <div style="font-size:11px;font-weight:700;color:var(--blue);margin-top:2px">👤 ${e.empName}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:1px">${e.date}${e.note?' · '+e.note:''}</div>
+        <div style="font-weight:800;font-size:13px">${esc(e.desc)}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--blue);margin-top:2px">👤 ${esc(e.empName)}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:1px">${e.date}${e.note?' · '+esc(e.note):''}</div>
         ${e.status==='pending'?`<div style="display:flex;gap:6px;margin-top:7px">
           <button onclick="approveEmpExpense('${e.id}')" style="padding:5px 12px;border:none;border-radius:8px;background:rgba(16,185,129,.15);color:var(--green);font-family:Cairo,sans-serif;font-size:12px;font-weight:800;cursor:pointer">✅ قبول</button>
           <button onclick="rejectEmpExpense('${e.id}')" style="padding:5px 12px;border:none;border-radius:8px;background:rgba(239,68,68,.1);color:var(--red);font-family:Cairo,sans-serif;font-size:12px;font-weight:800;cursor:pointer">❌ رفض</button>
