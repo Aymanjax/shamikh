@@ -705,9 +705,11 @@ window.onerror=function(msg,src,line,col,err){
             </div>
           </div>
           <div id="emp-att-list"></div>
-          <div id="emp-att-empty" style="display:none;text-align:center;padding:30px 20px;color:var(--muted)">
-            <div style="font-size:40px;margin-bottom:8px">📅</div>
-            <div style="font-size:13px;font-weight:700">لا توجد سجلات حضور بعد</div>
+          <div id="emp-att-empty" style="display:none;text-align:center;padding:24px 16px;color:var(--muted)">
+            <div style="font-size:38px;margin-bottom:8px">📅</div>
+            <div style="font-size:13px;font-weight:700;margin-bottom:6px">لا توجد سجلات حضور بعد</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6">اطلب من المدير فتح التطبيق<br>لتحديث سجل حضورك</div>
+            <button onclick="refreshSelfView()" style="padding:8px 18px;border:none;border-radius:10px;background:rgba(16,185,129,.12);color:var(--green);font-family:Cairo,sans-serif;font-size:12px;font-weight:800;cursor:pointer">🔄 تحديث</button>
           </div>
         </div>
         <!-- مصاريفي -->
@@ -1997,6 +1999,14 @@ async function renderSelfView(){
     </div>`;
   renderEmpAttendance(e);
   renderEmpExpenses();
+}
+
+async function refreshSelfView(){
+  const btn=event?.target;
+  if(btn){ btn.textContent='⏳ جاري التحديث...'; btn.disabled=true; }
+  await renderSelfView();
+  if(btn){ btn.textContent='🔄 تحديث'; btn.disabled=false; }
+  showToast('تم التحديث');
 }
 
 function shareRegLink(empId){
