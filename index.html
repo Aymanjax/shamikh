@@ -1520,17 +1520,20 @@ async function loadData(){
     }
     S.attendance={};
     (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
-    // للمدير: مزامنة الحضور لمسار المؤسسة مرة يومياً حتى يتمكن الموظفون من القراءة
-    if(S.role==='admin'&&S.orgId&&Object.keys(S.attendance).length){
-      const syncKey='shm_att_sync_'+S.orgId+'_'+new Date().toISOString().slice(0,10);
+    // للمدير: مزامنة الحضور داخل وثائق الموظفين مرة يومياً (الموظف يقرأها بدون أي قيود)
+    if(S.role==='admin'&&S.employees.length&&Object.keys(S.attendance).length){
+      const syncKey='shm_emp_att_'+new Date().toISOString().slice(0,10);
       if(!localStorage.getItem(syncKey)){
         localStorage.setItem(syncKey,'1');
-        const writes=[];
+        // نبني map الحضور لكل موظف
+        const attByEmp={};
         for(const date in S.attendance) for(const empId in S.attendance[date]){
-          const d=S.attendance[date][empId];
-          if(d.status) writes.push(fsSet(`orgs/${S.orgId}/attendance/${date}_${empId}`,{date,empId,status:d.status,note:d.note||''}).catch(()=>{}));
+          const st=S.attendance[date][empId]?.status;
+          if(st){ if(!attByEmp[empId]) attByEmp[empId]={}; attByEmp[empId][date]=st; }
         }
-        if(writes.length) Promise.all(writes).catch(()=>{});
+        Object.entries(attByEmp).forEach(([empId,attMap])=>{
+          fsSet(empDocPath(empId),{att:attMap},true).catch(()=>{});
+        });
       }
     }
   }catch(e){ S.attendance={}; }
@@ -1799,9 +1802,14 @@ async function saveAtt(){
     await Promise.all(entries.map(([empId,data])=>
       fsSet(attDocPath(currentDay,empId),{date:currentDay,empId,status:data.status,note:data.note||''})
     ));
-    // نسخة في مسار المؤسسة ليتمكن الموظفون من القراءة
-    if(S.orgId) entries.forEach(([empId,data])=>{
-      fsSet(`orgs/${S.orgId}/attendance/${currentDay}_${empId}`,{date:currentDay,empId,status:data.status,note:data.note||''}).catch(()=>{});
+    // تحديث حقل att داخل وثيقة الموظف — الموظف يقرأ بياناته من مسار الموظفين مباشرة
+    entries.forEach(([empId,data])=>{
+      if(!data.status) return;
+      // نبني map الحضور الكامل لهذا الموظف من S.attendance
+      const attMap={};
+      for(const date in S.attendance){ const st=(S.attendance[date][empId]||{}).status; if(st) attMap[date]=st; }
+      attMap[currentDay]=data.status;
+      fsSet(empDocPath(empId),{att:attMap},true).catch(()=>{});
     });
     showToast('✅ تم حفظ الحضور','ok');
     renderDash();
@@ -1887,7 +1895,14 @@ function renderEmps(){
   const isAdmin=S.role==='admin';
   container.innerHTML=list.map(e=>{
     let pd=0,td=0,absent=0;
-    for(const ds in S.attendance){ const d=new Date(ds+'T00:00:00'); if(d.getFullYear()===y&&d.getMonth()===m){ const st=(S.attendance[ds][e.id]||{}).status; if(st)td++; if(st==='present')pd++; if(st==='absent')absent++; } }
+    // للموظف: نقرأ من حقل att داخل بياناته (متاح دائماً)
+    // للمدير: نقرأ من S.attendance
+    const attSrc=isEmp?(e.att||{}):{};
+    if(isEmp){
+      Object.entries(attSrc).forEach(([ds,st])=>{ const d=new Date(ds+'T00:00:00'); if(d.getFullYear()===y&&d.getMonth()===m){ if(st)td++; if(st==='present')pd++; if(st==='absent')absent++; } });
+    } else {
+      for(const ds in S.attendance){ const d=new Date(ds+'T00:00:00'); if(d.getFullYear()===y&&d.getMonth()===m){ const st=(S.attendance[ds][e.id]||{}).status; if(st)td++; if(st==='present')pd++; if(st==='absent')absent++; } }
+    }
     const pct=td>0?Math.round(pd/td*100):0;
     return `<div class="emp-card">
       <div class="emp-top">
@@ -3064,28 +3079,10 @@ async function renderEmpAttendance(){
   const list=document.getElementById('emp-att-list');
   const empty=document.getElementById('emp-att-empty');
   if(!myId){ list.innerHTML=''; empty.style.display='block'; return; }
-  // لو S.attendance فاضي، نحاول نجلب من مسار المدير أو المؤسسة
-  if(!Object.keys(S.attendance).length&&!GUEST&&_uid){
-    const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
-    const cutoffStr=cutoff.toISOString().split('T')[0];
-    if(S.orgAdminUID){
-      try{
-        const atts=await fsQuery(`users/${S.orgAdminUID}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
-        (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
-      }catch(_){}
-    }
-    if(!Object.keys(S.attendance).length&&S.orgId){
-      try{
-        const atts=await fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
-        (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
-      }catch(_){}
-    }
-  }
-  const records=[];
-  for(const ds in S.attendance){
-    const rec=S.attendance[ds][myId];
-    if(rec&&rec.status) records.push({date:ds,status:rec.status,note:rec.note||''});
-  }
+  // المصدر الأول: حقل att داخل وثيقة الموظف (يُقرأ مع S.employees بدون قيود)
+  const emp=S.employees.find(e=>e.id===myId);
+  const attMap=emp?.att||{};
+  const records=Object.entries(attMap).filter(([,s])=>s).map(([date,status])=>({date,status}));
   if(!records.length){ list.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
   records.sort((a,b)=>b.date.localeCompare(a.date));
@@ -3098,10 +3095,18 @@ async function renderEmpAttendance(){
     const dateStr=dt.toLocaleDateString('ar-SA',{day:'numeric',month:'short'});
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border-radius:10px;margin-bottom:6px;border:1px solid var(--border)">
       <div style="font-size:20px">${ICO[r.status]||'📌'}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:700">${dayName} ${dateStr}</div>${r.note?`<div style="font-size:10px;color:var(--muted);margin-top:2px">📝 ${r.note}</div>`:''}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700">${dayName} ${dateStr}</div></div>
       <div style="font-size:12px;font-weight:800;color:${CLR[r.status]||'var(--muted)'}">${LBL[r.status]||r.status}</div>
     </div>`;
   }).join('');
+  // تحديث إحصائيات الشهر الحالي
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  let pd=0,ab=0;
+  records.forEach(r=>{ const d=new Date(r.date+'T00:00:00'); if(d.getFullYear()===y&&d.getMonth()===m){ if(r.status==='present')pd++; else if(r.status==='absent')ab++; } });
+  const valEl=document.getElementById('att-val-present');
+  const abEl=document.getElementById('att-val-absent');
+  if(valEl) valEl.textContent=pd;
+  if(abEl) abEl.textContent=ab;
 }
 
 async function renderEmpExpenses(){
