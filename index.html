@@ -1389,7 +1389,31 @@ async function doCodeLookup(){
       }
     }
 
-    // ── الطريقة الثانية (احتياطية): collectionGroup query ──
+    // ── الطريقة الثانية: قراءة orgCode من inviteCodes ثم قائمة الموظفين ──
+    if(!emp){
+      const orgPart=full.slice(0,dash);
+      const empPart=full.slice(dash+1);
+      try{
+        const orgR=await fetch(`${FS_URL}/inviteCodes/${encodeURIComponent(orgPart)}?key=${FB.apiKey}`);
+        if(orgR.ok){
+          const orgD=await orgR.json();
+          const orgInv=jsDoc(orgD.fields||{});
+          if(orgInv.adminUID){
+            adminUID=orgInv.adminUID;
+            orgId=orgInv.orgId||('org_'+adminUID);
+            const empsR=await fetch(`${FS_URL}/users/${adminUID}/employees?key=${FB.apiKey}`);
+            if(empsR.ok){
+              const empsD=await empsR.json();
+              const allEmps=(empsD.documents||[]).map(doc=>({id:doc.name.split('/').pop(),...jsDoc(doc.fields||{})}));
+              const found=allEmps.find(e=>e.empCode===empPart);
+              if(found){ emp={...found,empCode:empPart,adminUID,orgId}; }
+            }
+          }
+        }
+      }catch(_){}
+    }
+
+    // ── الطريقة الثالثة (احتياطية): collectionGroup query ──
     if(!emp){
       const empPart=full.slice(dash+1);
       const qBody={structuredQuery:{
