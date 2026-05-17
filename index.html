@@ -281,7 +281,7 @@ html,body{height:100%;overflow:hidden;font-family:'Cairo',sans-serif;background:
 
 /* PAGES */
 .pages{flex:1;overflow:hidden;position:relative;}
-.page{position:absolute;inset:0;overflow-y:auto;padding:14px;padding-bottom:calc(76px + env(safe-area-inset-bottom, 16px));display:none;-webkit-overflow-scrolling:touch;}
+.page{position:absolute;inset:0;overflow-y:auto;padding:14px;padding-bottom:calc(96px + env(safe-area-inset-bottom, 24px));display:none;-webkit-overflow-scrolling:touch;}
 .page.active{display:block;}
 
 /* BOTTOM NAV */
@@ -713,7 +713,7 @@ window.onerror=function(msg,src,line,col,err){
           </div>
         </div>
         <!-- مصاريفي -->
-        <div style="margin-top:20px;margin-bottom:80px">
+        <div style="margin-top:20px;margin-bottom:20px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <div style="font-size:15px;font-weight:900;color:var(--text)">💸 مصاريفي</div>
             <button onclick="openEmpExpenseModal()" style="display:flex;align-items:center;gap:5px;padding:7px 14px;border:none;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-family:Cairo,sans-serif;font-size:12px;font-weight:800;cursor:pointer">➕ إضافة</button>
@@ -767,7 +767,7 @@ window.onerror=function(msg,src,line,col,err){
           <button class="btn btn-red btn-sm" onclick="doSignOut()">🚪 خروج</button></div>
       </div>
       <!-- الشركة -->
-      <div class="set-panel">
+      <div class="set-panel" id="set-company-panel">
         <h4>🏢 الشركة</h4>
         <div class="set-row">
           <span class="set-lbl">اسم المؤسسة</span>
@@ -868,7 +868,7 @@ window.onerror=function(msg,src,line,col,err){
       </div>
 
       <!-- البيانات -->
-      <div class="set-panel">
+      <div class="set-panel" id="data-panel">
         <h4>💾 البيانات</h4>
         <div class="set-row"><span class="set-lbl">تصدير نسخة احتياطية</span>
           <button class="btn btn-out btn-sm" onclick="exportBackup()">📥 تصدير</button></div>
@@ -1947,16 +1947,29 @@ async function renderSelfView(){
   // جلب أحدث بيانات الحضور مباشرة من مسار المؤسسة
   await reloadEmpAtt();
   const now=new Date(),y=now.getFullYear(),m=now.getMonth();
-  let pd=0,td=0,ab=0,salary=0;
+  let pd=0,td=0,ab=0,grossSalary=0;
   for(const ds in S.attendance){
     const d=new Date(ds+'T00:00:00');
     if(d.getFullYear()===y&&d.getMonth()===m){
       const st=(S.attendance[ds][myId]||{}).status;
-      if(st)td++; if(st==='present'){pd++;salary+=parseFloat(e.rate)||0;} if(st==='absent')ab++;
+      if(st)td++; if(st==='present'){pd++;grossSalary+=parseFloat(e.rate)||0;} if(st==='absent')ab++;
     }
   }
-  const pct=td>0?Math.round(pd/td*100):0;
+  // جلب المصاريف المعتمدة لهذا الشهر
+  let approvedExp=0;
+  const path=empExpPath();
+  if(!GUEST&&_uid&&path){
+    try{
+      const all=await fsGetAll(path);
+      all.filter(x=>x.empId===myId&&x.status==='approved').forEach(x=>{
+        const xd=new Date((x.date||'')+'T00:00:00');
+        if(xd.getFullYear()===y&&xd.getMonth()===m) approvedExp+=parseFloat(x.amt)||0;
+      });
+    }catch(_){}
+  }
+  const netSalary=grossSalary+approvedExp;
   const monthName=now.toLocaleDateString('ar-SA',{month:'long'});
+  const cur=getCur();
   const card=document.getElementById('emp-self-card');
   if(card) card.innerHTML=`
     <div class="self-hero">
@@ -1970,9 +1983,23 @@ async function renderSelfView(){
     <div class="self-stats-row">
       <div class="self-stat"><div class="sv" style="color:var(--green)">${pd}</div><div class="sl">أيام حضور</div></div>
       <div class="self-stat"><div class="sv" style="color:var(--red)">${ab}</div><div class="sl">أيام غياب</div></div>
-      <div class="self-stat"><div class="sv" style="color:var(--accent);font-size:15px">${fmt(salary)}</div><div class="sl">راتب ${getCur()}</div></div>
-    </div>`;
-  renderEmpAttendance(e);
+      <div class="self-stat"><div class="sv" style="color:var(--accent);font-size:14px">${fmt(grossSalary)}</div><div class="sl">راتب ${cur}</div></div>
+    </div>
+    ${approvedExp>0?`<div style="margin-top:10px;background:rgba(16,185,129,.07);border:1.5px solid rgba(16,185,129,.2);border-radius:14px;padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:12px;color:var(--muted)">راتب الحضور</span>
+        <span style="font-size:13px;font-weight:800">${fmt(grossSalary)} ${cur}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:12px;color:var(--green)">مصاريف معتمدة ✅</span>
+        <span style="font-size:13px;font-weight:800;color:var(--green)">+ ${fmt(approvedExp)} ${cur}</span>
+      </div>
+      <div style="border-top:1px solid rgba(16,185,129,.2);padding-top:8px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:900">إجمالي مستحق</span>
+        <span style="font-size:16px;font-weight:900;color:var(--green)">${fmt(netSalary)} ${cur}</span>
+      </div>
+    </div>`:''}`;
+  renderEmpAttendance();
   renderEmpExpenses();
 }
 
@@ -2304,7 +2331,13 @@ function exportCSV(){
 // SETTINGS
 // ════════════════════════════════════════
 function renderSettings(){
-  initNotifications();
+  const isEmp=S.role==='employee'||S.role==='viewer';
+  // إخفاء أقسام الإعدادات للموظف — يرى الحساب فقط
+  ['set-company-panel','depts-panel','org-panel','notif-panel','data-panel'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=isEmp?'none':'';
+  });
+  if(isEmp) return;
   // org panel
   const op=document.getElementById('org-panel');
   if(S.role==='admin'&&S.orgCode){
@@ -2323,6 +2356,7 @@ function renderSettings(){
   const dp=document.getElementById('depts-panel');
   if(dp) dp.style.display=S.role==='admin'?'block':'none';
   renderDeptChips();
+  initNotifications();
 }
 
 async function loadPendingMembers(){
@@ -2409,7 +2443,13 @@ function saveCfg(){
 }
 
 const DEFAULT_DEPTS=['إدارة','تشغيل','مبيعات','محاسبة','تقنية','أخرى'];
-function getDepts(){ return S.cfg.depts&&S.cfg.depts.length?S.cfg.depts:[...DEFAULT_DEPTS]; }
+function getDepts(){
+  if(S.cfg.depts&&S.cfg.depts.length){
+    const custom=S.cfg.depts.filter(d=>!DEFAULT_DEPTS.includes(d)).sort((a,b)=>a.localeCompare(b,'ar'));
+    return [...DEFAULT_DEPTS,...custom];
+  }
+  return [...DEFAULT_DEPTS];
+}
 
 function renderDeptChips(){
   const el=document.getElementById('dept-chips');
