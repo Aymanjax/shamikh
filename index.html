@@ -688,6 +688,18 @@ window.onerror=function(msg,src,line,col,err){
       </div>
       <div id="emp-list"></div>
       <div class="empty" id="emp-empty"><span class="eico">👤</span><p>لا يوجد موظفون</p></div>
+      <!-- قسم مصاريف الموظف (يظهر للموظف فقط) -->
+      <div id="emp-expenses-section" style="display:none;margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div>
+            <div style="font-size:14px;font-weight:800;color:var(--accent)">💸 مصاريفي</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">المصاريف التي دفعتها</div>
+          </div>
+          <button class="btn btn-gold btn-sm" onclick="openEmpExpenseModal()">➕ إضافة</button>
+        </div>
+        <div id="emp-exp-list"></div>
+        <div id="emp-exp-empty" style="display:none;text-align:center;padding:20px;color:var(--muted);font-size:13px"><span style="font-size:36px;display:block;margin-bottom:8px">💸</span>لم تضف مصاريف بعد</div>
+      </div>
     </div>
 
     <!-- REPORTS -->
@@ -881,6 +893,12 @@ window.onerror=function(msg,src,line,col,err){
     </div>
     <div id="cash-list"></div>
     <div class="empty" id="cash-empty"><span class="eico">💰</span><p>لا توجد مصروفات</p></div>
+    <!-- طلبات مصاريف الموظفين (للمدير فقط) -->
+    <div id="emp-submissions-section" style="display:none;margin-top:16px;">
+      <div style="font-size:13px;font-weight:800;color:var(--accent);margin-bottom:10px;padding-top:12px;border-top:1px solid var(--border);">📋 مصاريف الموظفين</div>
+      <div id="emp-submissions-list"></div>
+      <div id="emp-submissions-empty" style="display:none;text-align:center;padding:14px;color:var(--muted);font-size:12px">لا توجد طلبات مصاريف من الموظفين</div>
+    </div>
   </div>
 </div>
 
@@ -963,6 +981,32 @@ window.onerror=function(msg,src,line,col,err){
     <div class="modal-acts">
       <button class="msave" onclick="confirmPayment()">✅ تأكيد الدفع</button>
       <button class="mcancel" onclick="closeModal('pay-modal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMPLOYEE EXPENSE MODAL -->
+<div class="modal-bg" id="emp-expense-modal">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <h3>💸 إضافة مصروف</h3>
+    <div class="mf"><label>الوصف</label><input type="text" id="ee-desc" placeholder="مثال: شراء مواد، بدل نقل..."></div>
+    <div class="mf-grid">
+      <div class="mf"><label>المبلغ</label><input type="number" id="ee-amt" placeholder="0.00" min="0" step="0.5"></div>
+      <div class="mf"><label>التاريخ</label><input type="date" id="ee-date"></div>
+    </div>
+    <div class="mf"><label>الفئة</label>
+      <select id="ee-cat" style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;padding:10px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;">
+        <option value="materials">📦 مواد / مشتريات</option>
+        <option value="transport">🚗 بدل نقل</option>
+        <option value="tools">🔧 أدوات</option>
+        <option value="other">📝 أخرى</option>
+      </select>
+    </div>
+    <div class="mf"><label>ملاحظة (اختياري)</label><input type="text" id="ee-note" placeholder="تفاصيل إضافية..."></div>
+    <div class="modal-acts">
+      <button class="msave" onclick="saveEmpExpense()">📤 إرسال للمدير</button>
+      <button class="mcancel" onclick="closeModal('emp-expense-modal')">إلغاء</button>
     </div>
   </div>
 </div>
@@ -1874,6 +1918,9 @@ function renderEmps(){
       </div>`:''}
     </div>`;
   }).join('');
+  // قسم مصاريف الموظف
+  if(isEmp) renderEmpExpenses();
+  else { const s=document.getElementById('emp-expenses-section'); if(s) s.style.display='none'; }
 }
 
 async function genAllCodes(){
@@ -2851,6 +2898,7 @@ async function renderCash(){
       </div>
       <button onclick="deleteCash('${c.id}')" style="padding:6px 10px;border:none;border-radius:8px;background:rgba(239,68,68,.1);color:var(--red);cursor:pointer;font-size:13px;flex-shrink:0">🗑️</button>
     </div>`).join('');
+  renderEmpSubmissions();
 }
 
 // projects tab handled in showPage above
@@ -2968,6 +3016,133 @@ async function doConfirmReset(){
 function goToLogin(){
   document.getElementById('resetPage').style.display = 'none';
   showLogin();
+}
+
+// ════════════════════════════════════════
+// EMPLOYEE EXPENSES
+// ════════════════════════════════════════
+const EMP_EXP_KEY='shm_emp_exp';
+const EE_CAT_ICO={materials:'📦',transport:'🚗',tools:'🔧',other:'📝'};
+const EE_STATUS={pending:'⏳ بانتظار الموافقة',approved:'✅ مقبول',rejected:'❌ مرفوض'};
+const EE_STATUS_CLR={pending:'var(--accent)',approved:'var(--green)',rejected:'var(--red)'};
+
+function empExpPath(){ return S.orgId?`orgs/${S.orgId}/empExpenses`:null; }
+
+function openEmpExpenseModal(){
+  document.getElementById('ee-desc').value='';
+  document.getElementById('ee-amt').value='';
+  document.getElementById('ee-date').value=todayStr();
+  document.getElementById('ee-cat').value='materials';
+  document.getElementById('ee-note').value='';
+  document.getElementById('emp-expense-modal').classList.add('active');
+}
+
+async function saveEmpExpense(){
+  const desc=document.getElementById('ee-desc').value.trim();
+  const amt=parseFloat(document.getElementById('ee-amt').value)||0;
+  if(!desc){ showToast('أدخل وصف المصروف','err'); return; }
+  if(!amt||amt<=0){ showToast('أدخل مبلغاً صحيحاً','err'); return; }
+  const sess=lsGet(LS_KEY)||{};
+  const data={
+    id:'eexp'+Date.now(),
+    empId:S.myEmpId||_uid,
+    empName:sess.name||S.name||'موظف',
+    desc, amt,
+    date:document.getElementById('ee-date').value||todayStr(),
+    cat:document.getElementById('ee-cat').value,
+    note:document.getElementById('ee-note').value.trim(),
+    status:'pending',
+    createdAt:new Date().toISOString()
+  };
+  try{ const a=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]'); a.push(data); localStorage.setItem(EMP_EXP_KEY,JSON.stringify(a)); }catch(e){}
+  const path=empExpPath();
+  if(!GUEST&&_uid&&path) await fsSet(`${path}/${data.id}`,data).catch(()=>{});
+  closeModal('emp-expense-modal');
+  renderEmpExpenses();
+  showToast('✅ تم إرسال المصروف للمدير','ok');
+}
+
+async function renderEmpExpenses(){
+  const section=document.getElementById('emp-expenses-section');
+  if(!section||S.role!=='employee') return;
+  section.style.display='block';
+  let exps=[];
+  const myId=S.myEmpId||_uid;
+  const path=empExpPath();
+  if(!GUEST&&_uid&&path){
+    try{
+      const all=await fsGetAll(path);
+      exps=all.filter(e=>e.empId===myId);
+      if(!exps.length) exps=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(e=>e.empId===myId);
+    }catch(e){ exps=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(e=>e.empId===myId); }
+  } else {
+    exps=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(e=>e.empId===myId);
+  }
+  const list=document.getElementById('emp-exp-list');
+  const empty=document.getElementById('emp-exp-empty');
+  const cur=getCur();
+  if(!exps.length){ list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  const sorted=[...exps].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  list.innerHTML=sorted.map(e=>`
+    <div class="cash-card">
+      <div style="font-size:22px">${EE_CAT_ICO[e.cat]||'📝'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:13px">${e.desc}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${e.date}</div>
+        ${e.note?`<div style="font-size:10px;color:var(--muted)">📝 ${e.note}</div>`:''}
+        <div style="font-size:11px;font-weight:800;color:${EE_STATUS_CLR[e.status]||'var(--muted)'};margin-top:4px">${EE_STATUS[e.status]||e.status}</div>
+      </div>
+      <div style="text-align:left;flex-shrink:0">
+        <div style="font-size:16px;font-weight:900;color:var(--red)">${fmt(e.amt)}</div>
+        <div style="font-size:9px;color:var(--muted)">${cur}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function renderEmpSubmissions(){
+  if(S.role!=='admin') return;
+  const section=document.getElementById('emp-submissions-section');
+  if(!section) return;
+  section.style.display='block';
+  let exps=[];
+  const path=empExpPath();
+  if(!GUEST&&_uid&&path){ try{ exps=await fsGetAll(path); }catch(e){} }
+  const list=document.getElementById('emp-submissions-list');
+  const empty=document.getElementById('emp-submissions-empty');
+  const cur=getCur();
+  if(!exps.length){ list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  const sorted=[...exps].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  list.innerHTML=sorted.map(e=>`
+    <div class="cash-card" style="${e.status==='pending'?'border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.04)':''}">
+      <div style="font-size:22px">${EE_CAT_ICO[e.cat]||'📝'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:13px">${e.desc}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--blue);margin-top:2px">👤 ${e.empName}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:1px">${e.date}${e.note?' · '+e.note:''}</div>
+        ${e.status==='pending'?`<div style="display:flex;gap:6px;margin-top:7px">
+          <button onclick="approveEmpExpense('${e.id}')" style="padding:5px 12px;border:none;border-radius:8px;background:rgba(16,185,129,.15);color:var(--green);font-family:Cairo,sans-serif;font-size:12px;font-weight:800;cursor:pointer">✅ قبول</button>
+          <button onclick="rejectEmpExpense('${e.id}')" style="padding:5px 12px;border:none;border-radius:8px;background:rgba(239,68,68,.1);color:var(--red);font-family:Cairo,sans-serif;font-size:12px;font-weight:800;cursor:pointer">❌ رفض</button>
+        </div>`:`<div style="font-size:11px;font-weight:800;color:${EE_STATUS_CLR[e.status]||'var(--muted)'};margin-top:4px">${EE_STATUS[e.status]||e.status}</div>`}
+      </div>
+      <div style="text-align:left;flex-shrink:0">
+        <div style="font-size:16px;font-weight:900;color:var(--red)">${fmt(e.amt)}</div>
+        <div style="font-size:9px;color:var(--muted)">${cur}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function approveEmpExpense(id){
+  const path=empExpPath();
+  if(path) await fsSet(`${path}/${id}`,{status:'approved'},true).catch(()=>{});
+  showToast('✅ تم قبول المصروف','ok'); renderEmpSubmissions();
+}
+
+async function rejectEmpExpense(id){
+  const path=empExpPath();
+  if(path) await fsSet(`${path}/${id}`,{status:'rejected'},true).catch(()=>{});
+  showToast('تم رفض المصروف'); renderEmpSubmissions();
 }
 
 // ════════════════════════════════════════
