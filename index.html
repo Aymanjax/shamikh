@@ -1526,13 +1526,10 @@ async function loadData(){
     }
     S.attendance={};
     (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
-    // للمدير: اكتب الحضور في orgs/{orgId}/empAttendance/{empId} و في وثيقة الموظف
+    // للمدير: انسخ كل الحضور إلى empAttendance كوثائق مستقلة (نفس نمط المصاريف)
     if(S.role==='admin'&&S.orgId&&(atts||[]).length){
-      const attByEmp={};
-      (atts||[]).forEach(r=>{ if(!attByEmp[r.empId]) attByEmp[r.empId]={}; attByEmp[r.empId]['att_'+r.date]=r.status; });
-      Object.entries(attByEmp).forEach(([empId,fields])=>{
-        fsSet(`orgs/${S.orgId}/empAttendance/${empId}`,fields,{merge:true}).catch(()=>{});
-        fsSet(empDocPath(empId),fields,{merge:true}).catch(()=>{});
+      (atts||[]).forEach(r=>{
+        fsSet(`orgs/${S.orgId}/empAttendance/${r.date}_${r.empId}`,{date:r.date,empId:r.empId,status:r.status}).catch(()=>{});
       });
     }
   }catch(e){ S.attendance={}; }
@@ -1729,39 +1726,19 @@ function changeDay(d){
 function setDay(v){ currentDay=v; updateAttLabel(); renderAtt(); }
 
 async function reloadEmpAtt(){
-  if(GUEST||!_uid) return;
+  if(GUEST||!_uid||!S.myEmpId||!S.orgId) return;
   const myId=S.myEmpId;
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
   const cutoffStr=cutoff.toISOString().split('T')[0];
-  let loaded=false;
-  // محاولة 1: قراءة من مسار المؤسسة
-  if(S.orgId){
-    try{
-      const atts=await fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
-      if(atts&&atts.length){
-        atts.forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
-        loaded=true;
+  try{
+    const docs=await fsQuery(`orgs/${S.orgId}/empAttendance`,[{field:'empId',op:'==',value:myId}]);
+    (docs||[]).forEach(r=>{
+      if(r.date>=cutoffStr){
+        if(!S.attendance[r.date]) S.attendance[r.date]={};
+        S.attendance[r.date][myId]={status:r.status,note:''};
       }
-    }catch(_){}
-  }
-  // محاولة 2 (الأهم): قراءة من وثيقة الموظف — att_{date} مكتوبة من المدير عند حفظ الحضور
-  if(myId&&S.orgAdminUID){
-    try{
-      const empDoc=await fsGet(`users/${S.orgAdminUID}/employees/${myId}`);
-      if(empDoc){
-        Object.entries(empDoc).forEach(([k,v])=>{
-          if(k.startsWith('att_')){
-            const date=k.replace('att_','');
-            if(date>=cutoffStr){
-              if(!S.attendance[date]) S.attendance[date]={};
-              S.attendance[date][myId]={status:v,note:''};
-              loaded=true;
-            }
-          }
-        });
-      }
-    }catch(_){}
-  }
+    });
+  }catch(_){}
 }
 
 function renderAtt(){
@@ -1813,16 +1790,12 @@ async function saveAtt(){
     await Promise.all(entries.map(([empId,data])=>
       fsSet(attDocPath(currentDay,empId),{date:currentDay,empId,status:data.status,note:data.note||''})
     ));
-    // حفظ في orgs/{orgId}/empAttendance/{empId} — نفس مسار المصاريف المضمون للقراءة
+    // نفس نمط المصاريف — وثيقة مستقلة لكل يوم لكل موظف
     if(S.orgId){
       entries.forEach(([empId,data])=>{
-        fsSet(`orgs/${S.orgId}/empAttendance/${empId}`,{['att_'+currentDay]:data.status},{merge:true}).catch(()=>{});
+        fsSet(`orgs/${S.orgId}/empAttendance/${currentDay}_${empId}`,{date:currentDay,empId,status:data.status}).catch(()=>{});
       });
     }
-    // أيضاً في وثيقة الموظف كـ fallback إضافي
-    entries.forEach(([empId,data])=>{
-      fsSet(empDocPath(empId),{['att_'+currentDay]:data.status},{merge:true}).catch(()=>{});
-    });
     showToast('✅ تم حفظ الحضور','ok');
     renderDash();
   }catch(e){ showToast('خطأ: '+e.message,'err'); }
@@ -1998,27 +1971,15 @@ async function renderSelfView(){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
   const cutoffStr=cutoff.toISOString().split('T')[0];
 
-  // مصدر 1 (الأقوى): orgs/{orgId}/empAttendance/{empId} — نفس مسار المصاريف المضمون
+  // قراءة الحضور من empAttendance — نفس نمط المصاريف بالضبط
   const attRecords=[];
   if(S.orgId){
     try{
-      const attDoc=await fsGet(`orgs/${S.orgId}/empAttendance/${myId}`);
-      if(attDoc){
-        Object.entries(attDoc).forEach(([k,v])=>{
-          if(k.startsWith('att_')){ const date=k.replace('att_',''); if(date>=cutoffStr) attRecords.push({date,status:v}); }
-        });
-      }
+      const docs=await fsQuery(`orgs/${S.orgId}/empAttendance`,[{field:'empId',op:'==',value:myId}]);
+      (docs||[]).filter(r=>r.date>=cutoffStr).forEach(r=>attRecords.push({date:r.date,status:r.status}));
     }catch(_){}
   }
-
-  // مصدر 2: att_* في وثيقة الموظف
-  if(!attRecords.length){
-    Object.entries(empDoc).forEach(([k,v])=>{
-      if(k.startsWith('att_')){ const date=k.replace('att_',''); if(date>=cutoffStr&&!attRecords.find(r=>r.date===date)) attRecords.push({date,status:v}); }
-    });
-  }
-
-  // مصدر 3: S.attendance في الذاكرة
+  // fallback: S.attendance في الذاكرة (لو المسار الجديد ما اشتغل)
   if(!attRecords.length){
     for(const ds in S.attendance){
       if(ds<cutoffStr) continue;
