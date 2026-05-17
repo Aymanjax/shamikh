@@ -1546,14 +1546,14 @@ async function loadData(){
     const cutoffStr=cutoff.toISOString().split('T')[0];
     let atts=[];
     try{ atts=await Promise.race([fsQuery(attColPath(),[{field:'date',op:'>=',value:cutoffStr}]),T(6000)]); }catch(_){ atts=[]; }
-    // للمدير: لو مسار المؤسسة فاضي، انقل البيانات من المسار القديم
-    if(S.role==='admin'&&S.orgId&&(!atts||!atts.length)){
+    // للمدير: انقل البيانات القديمة من users/{uid}/attendance إلى مسار المؤسسة دائماً
+    if(S.role==='admin'&&S.orgId){
       try{
         const oldAtts=await Promise.race([fsQuery(`users/${_uid}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]),T(8000)]);
         if(oldAtts&&oldAtts.length){
-          atts=oldAtts;
-          // نقل البيانات القديمة إلى مسار المؤسسة
           oldAtts.forEach(r=>{ fsSet(`orgs/${S.orgId}/attendance/${r.date}_${r.empId}`,{date:r.date,empId:r.empId,status:r.status,note:r.note||''}).catch(()=>{}); });
+          // دمج مع البيانات الموجودة
+          oldAtts.forEach(r=>{ if(!(atts||[]).find(x=>x.date===r.date&&x.empId===r.empId)) atts=(atts||[]).concat([r]); });
         }
       }catch(_){}
     }
@@ -1753,27 +1753,15 @@ function changeDay(d){
 function setDay(v){ currentDay=v; updateAttLabel(); renderAtt(); }
 
 async function reloadEmpAtt(){
-  if(S.role!=='employee'||GUEST||!_uid) return;
-  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
-  const cutoffStr=cutoff.toISOString().split('T')[0];
-  let loaded=false;
-  if(S.orgAdminUID){
-    try{
-      const atts=await fsQuery(`users/${S.orgAdminUID}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
-      if(atts&&atts.length){
-        atts.forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
-        loaded=true;
-      }
-    }catch(_){}
-  }
-  if(!loaded&&S.orgId){
-    try{
-      const atts=await fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
-      if(atts&&atts.length){
-        atts.forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
-      }
-    }catch(_){}
-  }
+  if(GUEST||!_uid||!S.orgId) return;
+  try{
+    const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
+    const cutoffStr=cutoff.toISOString().split('T')[0];
+    const atts=await fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
+    if(atts&&atts.length){
+      atts.forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
+    }
+  }catch(_){}
 }
 
 function renderAtt(){
@@ -1956,8 +1944,9 @@ function renderEmps(){
 async function renderSelfView(){
   const myId=S.myEmpId;
   let e=S.employees.find(x=>x.id===myId)||{name:S.userName,emoji:'👤',color:'#f59e0b',dept:'',rate:0};
+  // جلب أحدث بيانات الحضور مباشرة من مسار المؤسسة
+  await reloadEmpAtt();
   const now=new Date(),y=now.getFullYear(),m=now.getMonth();
-  // قراءة الإحصائيات من S.attendance (محمّل من مسار المؤسسة)
   let pd=0,td=0,ab=0,salary=0;
   for(const ds in S.attendance){
     const d=new Date(ds+'T00:00:00');
