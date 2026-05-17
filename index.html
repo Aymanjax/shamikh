@@ -378,6 +378,8 @@ html,body{height:100%;overflow:hidden;font-family:'Cairo',sans-serif;background:
 .set-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(30,58,95,.4);}
 .set-row:last-child{border-bottom:none;}
 .set-lbl{font-size:13px;font-weight:600;}
+.dept-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:12px;font-weight:700;color:var(--text);margin:3px;}
+.dept-chip .rm{cursor:pointer;color:var(--red);font-size:15px;line-height:1;}
 .sinput{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:'Cairo',sans-serif;font-size:12px;outline:none;}
 .sinput:focus{border-color:var(--accent);}
 .colors{display:flex;gap:8px;}
@@ -729,11 +731,38 @@ window.onerror=function(msg,src,line,col,err){
       <!-- الشركة -->
       <div class="set-panel">
         <h4>🏢 الشركة</h4>
+        <div class="set-row">
+          <span class="set-lbl">اسم المؤسسة</span>
+          <input class="sinput" id="set-orgname" placeholder="اسم شركتك" style="width:140px;text-align:right" onchange="saveCfg()">
+        </div>
         <div class="set-row"><span class="set-lbl">العملة</span>
           <select class="sinput" id="set-cur" onchange="saveCfg()">
-            <option value="د.أ" selected>د.أ</option>
-            <option value="ر.س">ر.س</option>
-            <option value="$">$</option>
+            <optgroup label="🌍 الخليج">
+              <option value="د.أ">🇯🇴 دينار أردني — د.أ</option>
+              <option value="ر.س">🇸🇦 ريال سعودي — ر.س</option>
+              <option value="د.إ">🇦🇪 درهم إماراتي — د.إ</option>
+              <option value="د.ك">🇰🇼 دينار كويتي — د.ك</option>
+              <option value="د.ب">🇧🇭 دينار بحريني — د.ب</option>
+              <option value="ر.ق">🇶🇦 ريال قطري — ر.ق</option>
+              <option value="ر.ع">🇴🇲 ريال عُماني — ر.ع</option>
+            </optgroup>
+            <optgroup label="🌍 عربية أخرى">
+              <option value="ج.م">🇪🇬 جنيه مصري — ج.م</option>
+              <option value="د.ع">🇮🇶 دينار عراقي — د.ع</option>
+              <option value="ل.س">🇸🇾 ليرة سورية — ل.س</option>
+              <option value="ل.ل">🇱🇧 ليرة لبنانية — ل.ل</option>
+              <option value="ر.ي">🇾🇪 ريال يمني — ر.ي</option>
+              <option value="د.ل">🇱🇾 دينار ليبي — د.ل</option>
+              <option value="د.ت">🇹🇳 دينار تونسي — د.ت</option>
+              <option value="د.ج">🇩🇿 دينار جزائري — د.ج</option>
+              <option value="د.م">🇲🇦 درهم مغربي — د.م</option>
+              <option value="ج.س">🇸🇩 جنيه سوداني — ج.س</option>
+            </optgroup>
+            <optgroup label="💵 دولي">
+              <option value="$">🇺🇸 دولار أمريكي — $</option>
+              <option value="€">🇪🇺 يورو — €</option>
+              <option value="£">🇬🇧 جنيه إسترليني — £</option>
+            </optgroup>
           </select></div>
         <div class="set-row"><span class="set-lbl">🎨 لون التطبيق</span>
           <div class="colors">
@@ -743,6 +772,15 @@ window.onerror=function(msg,src,line,col,err){
             <div class="cdot" style="background:#ef4444" onclick="setTheme('#ef4444')"></div>
             <div class="cdot" style="background:#8b5cf6" onclick="setTheme('#8b5cf6')"></div>
           </div></div>
+      </div>
+      <!-- أقسام الموظفين -->
+      <div class="set-panel" id="depts-panel" style="display:none">
+        <h4>🏷️ أقسام الموظفين</h4>
+        <div id="dept-chips" style="display:flex;flex-wrap:wrap;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="new-dept-inp" class="rinput" style="flex:1;font-size:13px;padding:8px 12px" placeholder="أضف قسم جديد... مثال: عامل حداد">
+          <button onclick="addDept()" class="btn btn-gold btn-sm" style="white-space:nowrap">➕ إضافة</button>
+        </div>
       </div>
       <!-- كود الدعوة - للمدير فقط -->
       <div class="set-panel" id="org-panel" style="display:none">
@@ -925,10 +963,7 @@ window.onerror=function(msg,src,line,col,err){
       <div class="mf"><label>الاسم</label><input id="m-name" type="text" placeholder="اسم الموظف"></div>
       <div class="mf"><label>الهاتف</label><input id="m-phone" type="tel" placeholder="07xxxxxxxx"></div>
       <div class="mf"><label>القسم</label>
-        <select id="m-dept">
-          <option>إدارة</option><option>تشغيل</option><option>مبيعات</option>
-          <option>محاسبة</option><option>تقنية</option><option>أخرى</option>
-        </select></div>
+        <select id="m-dept"></select></div>
       <div class="mf"><label>الراتب اليومي</label>
         <input id="m-rate" type="number" placeholder="0" min="0"></div>
     </div>
@@ -1425,6 +1460,8 @@ async function loadProfileAndData(ses){
     }
     // تحميل الموظفين والحضور
     await loadData();
+    // تحميل الإعدادات من Firestore (تحديث اللوكال ستوريج)
+    fsGet(`users/${_uid}/config`).then(c=>{ if(c&&Object.keys(c).length){ S.cfg={...S.cfg,...c}; localStorage.setItem('shamikh_cfg',JSON.stringify(S.cfg)); } }).catch(()=>{});
   }catch(e){
     console.warn('startApp error:',e);
     // دخول بدون بيانات
@@ -1704,7 +1741,12 @@ function openEmpModal(editId){
   const e=isEdit?S.employees.find(x=>x.id===editId):{};
   document.getElementById('m-name').value=e?.name||'';
   document.getElementById('m-phone').value=e?.phone||'';
-  document.getElementById('m-dept').value=e?.dept||'إدارة';
+  // تعبئة قائمة الأقسام من الإعدادات
+  const deptSel=document.getElementById('m-dept');
+  const curDept=e?.dept||'إدارة';
+  const depts=getDepts();
+  const allDepts=depts.includes(curDept)?depts:[...depts,curDept];
+  deptSel.innerHTML=allDepts.map(d=>`<option${d===curDept?' selected':''}>${d}</option>`).join('');
   document.getElementById('m-rate').value=e?.rate||'';
   document.getElementById('m-edit-id').value=editId||'';
   document.getElementById('emp-modal').classList.add('active');
@@ -2125,7 +2167,7 @@ function exportCSV(){
 // SETTINGS
 // ════════════════════════════════════════
 function renderSettings(){
-  initNotifications(); // تحميل إعدادات الإشعارات
+  initNotifications();
   // org panel
   const op=document.getElementById('org-panel');
   if(S.role==='admin'&&S.orgCode){
@@ -2134,6 +2176,16 @@ function renderSettings(){
     loadPendingMembers();
     loadOrgMembers();
   } else { op.style.display='none'; }
+  // اسم المؤسسة
+  const on=document.getElementById('set-orgname');
+  if(on) on.value=S.cfg.orgName||'';
+  // العملة
+  const sc=document.getElementById('set-cur');
+  if(sc) sc.value=S.cfg.cur||'د.أ';
+  // أقسام الموظفين (للمدير فقط)
+  const dp=document.getElementById('depts-panel');
+  if(dp) dp.style.display=S.role==='admin'?'block':'none';
+  renderDeptChips();
 }
 
 async function loadPendingMembers(){
@@ -2212,7 +2264,44 @@ async function refreshOrgCode(){
 
 function saveCfg(){
   S.cfg.cur=document.getElementById('set-cur')?.value||'د.أ';
+  const on=document.getElementById('set-orgname');
+  if(on) S.cfg.orgName=on.value.trim()||'';
   localStorage.setItem('shamikh_cfg',JSON.stringify(S.cfg));
+  // حفظ في Firestore في الخلفية
+  if(_uid&&!GUEST) fsSet(`users/${_uid}/config`,S.cfg,{merge:true}).catch(()=>{});
+}
+
+const DEFAULT_DEPTS=['إدارة','تشغيل','مبيعات','محاسبة','تقنية','أخرى'];
+function getDepts(){ return S.cfg.depts&&S.cfg.depts.length?S.cfg.depts:[...DEFAULT_DEPTS]; }
+
+function renderDeptChips(){
+  const el=document.getElementById('dept-chips');
+  if(!el) return;
+  const depts=getDepts();
+  const locked=new Set(DEFAULT_DEPTS);
+  el.innerHTML=depts.map(d=>`
+    <span class="dept-chip">${d}${!locked.has(d)?`<span class="rm" onclick="removeDept('${d.replace(/'/g,"\\'")}')" title="حذف">×</span>`:''}</span>
+  `).join('');
+}
+
+function addDept(){
+  const inp=document.getElementById('new-dept-inp');
+  const val=(inp?.value||'').trim();
+  if(!val){ showToast('أدخل اسم القسم','err'); return; }
+  if(!S.cfg.depts) S.cfg.depts=[...DEFAULT_DEPTS];
+  if(S.cfg.depts.includes(val)){ showToast('القسم موجود مسبقاً','err'); return; }
+  S.cfg.depts.push(val);
+  inp.value='';
+  saveCfg();
+  renderDeptChips();
+  showToast('✅ تم إضافة القسم','ok');
+}
+
+function removeDept(d){
+  if(!S.cfg.depts) return;
+  S.cfg.depts=S.cfg.depts.filter(x=>x!==d);
+  saveCfg();
+  renderDeptChips();
 }
 
 function setTheme(color){
