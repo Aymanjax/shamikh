@@ -1518,12 +1518,30 @@ async function loadProfileAndData(ses){
     }
     // تحميل الموظفين والحضور
     await loadData();
+    // مزامنة كودات الانضمام تلقائياً في الخلفية (بدون انتظار)
+    if(S.role==='admin' && S.employees.length>0){
+      silentSyncCodes().catch(()=>{});
+    }
   }catch(e){
     console.warn('startApp error:',e);
     // دخول بدون بيانات
     S.role='admin'; S.userName=ses.name||ses.email||'مدير'; S.saveUID=_uid;
   }
   showApp();
+}
+
+async function silentSyncCodes(){
+  if(!_uid||S.role!=='admin'||!S.employees.length) return;
+  const orgCode=S.orgCode||_uid.slice(0,3).toUpperCase();
+  for(const e of S.employees){
+    if(!e.empCode) continue;
+    const lk=orgCode+'-'+e.empCode;
+    await fsSet(`inviteCodes/${lk}`,{
+      empId:e.id, empName:e.name||'', empDept:e.dept||'',
+      empPhone:e.phone||'', empEmoji:e.emoji||'👤',
+      orgId:e.orgId||S.orgId, adminUID:_uid, orgCode
+    }).catch(()=>{});
+  }
 }
 
 async function loadData(){
