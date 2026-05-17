@@ -688,6 +688,12 @@ window.onerror=function(msg,src,line,col,err){
         <div id="emp-exp-list"></div>
         <div id="emp-exp-empty" style="display:none;text-align:center;padding:20px;color:var(--muted);font-size:13px"><span style="font-size:36px;display:block;margin-bottom:8px">💸</span>لم تضف مصاريف بعد</div>
       </div>
+      <!-- سجل الحضور الشخصي (يظهر للموظف فقط) -->
+      <div id="emp-att-section" style="display:none;margin-top:16px;">
+        <div style="font-size:14px;font-weight:800;color:var(--green);margin-bottom:10px">📅 سجل حضوري</div>
+        <div id="emp-att-list"></div>
+        <div id="emp-att-empty" style="display:none;text-align:center;padding:20px;color:var(--muted);font-size:13px"><span style="font-size:36px;display:block;margin-bottom:8px">📅</span>لا توجد سجلات حضور بعد</div>
+      </div>
     </div>
 
     <!-- REPORTS -->
@@ -1498,20 +1504,35 @@ async function loadProfileAndData(ses){
 }
 
 async function loadData(){
-  // تحميل مع timeout
-  const T = ms => new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms));
+  const T=ms=>new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms));
   try{
-    const emps=await Promise.race([fsQuery(empColPath()), T(6000)]);
+    const emps=await Promise.race([fsQuery(empColPath()),T(6000)]);
     S.employees=emps||[];
   }catch(e){ S.employees=[]; }
   try{
     const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
-    const atts=await Promise.race([
-      fsQuery(attColPath(),[{field:'date',op:'>=',value:cutoff.toISOString().split('T')[0]}]),
-      T(6000)
-    ]);
+    const cutoffStr=cutoff.toISOString().split('T')[0];
+    let atts=[];
+    try{ atts=await Promise.race([fsQuery(attColPath(),[{field:'date',op:'>=',value:cutoffStr}]),T(6000)]); }catch(_){ atts=[]; }
+    // للموظفين: لو ما تحمّل من مسار المدير، نجرب مسار المؤسسة
+    if((!atts||!atts.length)&&S.role==='employee'&&S.orgId){
+      try{ atts=await Promise.race([fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]),T(6000)]); }catch(_){ atts=[]; }
+    }
     S.attendance={};
     (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
+    // للمدير: مزامنة الحضور لمسار المؤسسة مرة يومياً حتى يتمكن الموظفون من القراءة
+    if(S.role==='admin'&&S.orgId&&Object.keys(S.attendance).length){
+      const syncKey='shm_att_sync_'+S.orgId+'_'+new Date().toISOString().slice(0,10);
+      if(!localStorage.getItem(syncKey)){
+        localStorage.setItem(syncKey,'1');
+        const writes=[];
+        for(const date in S.attendance) for(const empId in S.attendance[date]){
+          const d=S.attendance[date][empId];
+          if(d.status) writes.push(fsSet(`orgs/${S.orgId}/attendance/${date}_${empId}`,{date,empId,status:d.status,note:d.note||''}).catch(()=>{}));
+        }
+        if(writes.length) Promise.all(writes).catch(()=>{});
+      }
+    }
   }catch(e){ S.attendance={}; }
 }
 
@@ -1538,6 +1559,7 @@ function showAppFast(ses){
 }
 
 function showApp(){
+  if(location.search.includes('reg=')) history.replaceState(null,'',location.pathname);
   document.getElementById('loginPage').classList.remove('active');
   document.getElementById('app').classList.add('active');
   document.getElementById('bnav').style.display='flex';
@@ -1608,7 +1630,7 @@ function showPage(id){
   if(btn){ btn.classList.add('on'); moveInd(btn); }
   closeMore();
   if(id==='dashboard') renderDash();
-  if(id==='attendance') renderAtt();
+  if(id==='attendance'){ if(S.role==='employee') reloadEmpAtt().then(()=>renderAtt()); else renderAtt(); }
   if(id==='employees') renderEmps();
   if(id==='reports') populateRepSel();
   if(id==='settings') renderSettings();
@@ -1704,6 +1726,30 @@ function changeDay(d){
 }
 function setDay(v){ currentDay=v; updateAttLabel(); renderAtt(); }
 
+async function reloadEmpAtt(){
+  if(S.role!=='employee'||GUEST||!_uid) return;
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
+  const cutoffStr=cutoff.toISOString().split('T')[0];
+  let loaded=false;
+  if(S.orgAdminUID){
+    try{
+      const atts=await fsQuery(`users/${S.orgAdminUID}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
+      if(atts&&atts.length){
+        atts.forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
+        loaded=true;
+      }
+    }catch(_){}
+  }
+  if(!loaded&&S.orgId){
+    try{
+      const atts=await fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
+      if(atts&&atts.length){
+        atts.forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
+      }
+    }catch(_){}
+  }
+}
+
 function renderAtt(){
   if(!S.attendance[currentDay]) S.attendance[currentDay]={};
   const rec=S.attendance[currentDay];
@@ -1750,10 +1796,13 @@ async function saveAtt(){
   const entries=Object.entries(rec).filter(([,d])=>d.status);
   if(!entries.length){ showToast('لم تسجل أي حضور بعد'); return; }
   try{
-    // حفظ متوازي - أسرع
     await Promise.all(entries.map(([empId,data])=>
       fsSet(attDocPath(currentDay,empId),{date:currentDay,empId,status:data.status,note:data.note||''})
     ));
+    // نسخة في مسار المؤسسة ليتمكن الموظفون من القراءة
+    if(S.orgId) entries.forEach(([empId,data])=>{
+      fsSet(`orgs/${S.orgId}/attendance/${currentDay}_${empId}`,{date:currentDay,empId,status:data.status,note:data.note||''}).catch(()=>{});
+    });
     showToast('✅ تم حفظ الحضور','ok');
     renderDash();
   }catch(e){ showToast('خطأ: '+e.message,'err'); }
@@ -1870,8 +1919,11 @@ function renderEmps(){
     </div>`;
   }).join('');
   // قسم مصاريف الموظف
-  if(isEmp) renderEmpExpenses();
-  else { const s=document.getElementById('emp-expenses-section'); if(s) s.style.display='none'; }
+  if(isEmp){ renderEmpExpenses(); renderEmpAttendance(); }
+  else {
+    const s=document.getElementById('emp-expenses-section'); if(s) s.style.display='none';
+    const a=document.getElementById('emp-att-section'); if(a) a.style.display='none';
+  }
 }
 
 function shareRegLink(empId){
@@ -2821,7 +2873,7 @@ async function renderCash(){
   const em=document.getElementById('cash-empty');
   const total=CASH.reduce((s,c)=>s+(parseFloat(c.amt)||0),0);
   document.getElementById('cash-total').textContent=fmt(total)+' '+getCur();
-  if(!CASH.length){ el.innerHTML=''; em.style.display='block'; return; }
+  if(!CASH.length){ el.innerHTML=''; em.style.display='block'; renderEmpSubmissions(); return; }
   em.style.display='none';
   const catIcons={tools:'🔧',materials:'📦',transport:'🚗',other:'📝'};
   // ترتيب من الأحدث للأقدم
@@ -3002,6 +3054,54 @@ async function saveEmpExpense(){
   closeModal('emp-expense-modal');
   renderEmpExpenses();
   showToast('✅ تم إرسال المصروف للمدير','ok');
+}
+
+async function renderEmpAttendance(){
+  const section=document.getElementById('emp-att-section');
+  if(!section||S.role!=='employee') return;
+  section.style.display='block';
+  const myId=S.myEmpId;
+  const list=document.getElementById('emp-att-list');
+  const empty=document.getElementById('emp-att-empty');
+  if(!myId){ list.innerHTML=''; empty.style.display='block'; return; }
+  // لو S.attendance فاضي، نحاول نجلب من مسار المدير أو المؤسسة
+  if(!Object.keys(S.attendance).length&&!GUEST&&_uid){
+    const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
+    const cutoffStr=cutoff.toISOString().split('T')[0];
+    if(S.orgAdminUID){
+      try{
+        const atts=await fsQuery(`users/${S.orgAdminUID}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
+        (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
+      }catch(_){}
+    }
+    if(!Object.keys(S.attendance).length&&S.orgId){
+      try{
+        const atts=await fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
+        (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
+      }catch(_){}
+    }
+  }
+  const records=[];
+  for(const ds in S.attendance){
+    const rec=S.attendance[ds][myId];
+    if(rec&&rec.status) records.push({date:ds,status:rec.status,note:rec.note||''});
+  }
+  if(!records.length){ list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  records.sort((a,b)=>b.date.localeCompare(a.date));
+  const ICO={present:'✅',absent:'❌',leave:'🏖️',late:'⏰'};
+  const LBL={present:'حاضر',absent:'غائب',leave:'إجازة',late:'متأخر'};
+  const CLR={present:'var(--green)',absent:'var(--red)',leave:'var(--blue)',late:'var(--accent)'};
+  list.innerHTML=records.map(r=>{
+    const dt=new Date(r.date+'T00:00:00');
+    const dayName=dt.toLocaleDateString('ar-SA',{weekday:'short'});
+    const dateStr=dt.toLocaleDateString('ar-SA',{day:'numeric',month:'short'});
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border-radius:10px;margin-bottom:6px;border:1px solid var(--border)">
+      <div style="font-size:20px">${ICO[r.status]||'📌'}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700">${dayName} ${dateStr}</div>${r.note?`<div style="font-size:10px;color:var(--muted);margin-top:2px">📝 ${r.note}</div>`:''}</div>
+      <div style="font-size:12px;font-weight:800;color:${CLR[r.status]||'var(--muted)'}">${LBL[r.status]||r.status}</div>
+    </div>`;
+  }).join('');
 }
 
 async function renderEmpExpenses(){
