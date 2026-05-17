@@ -1526,11 +1526,14 @@ async function loadData(){
     }
     S.attendance={};
     (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
-    // للمدير: اكتب الحضور في وثائق الموظفين حتى يقدروا يقرأوا بياناتهم
-    if(S.role==='admin'&&(atts||[]).length){
+    // للمدير: اكتب الحضور في orgs/{orgId}/empAttendance/{empId} و في وثيقة الموظف
+    if(S.role==='admin'&&S.orgId&&(atts||[]).length){
       const attByEmp={};
       (atts||[]).forEach(r=>{ if(!attByEmp[r.empId]) attByEmp[r.empId]={}; attByEmp[r.empId]['att_'+r.date]=r.status; });
-      Object.entries(attByEmp).forEach(([empId,fields])=>{ fsSet(empDocPath(empId),fields,{merge:true}).catch(()=>{}); });
+      Object.entries(attByEmp).forEach(([empId,fields])=>{
+        fsSet(`orgs/${S.orgId}/empAttendance/${empId}`,fields,{merge:true}).catch(()=>{});
+        fsSet(empDocPath(empId),fields,{merge:true}).catch(()=>{});
+      });
     }
   }catch(e){ S.attendance={}; }
 }
@@ -1810,7 +1813,13 @@ async function saveAtt(){
     await Promise.all(entries.map(([empId,data])=>
       fsSet(attDocPath(currentDay,empId),{date:currentDay,empId,status:data.status,note:data.note||''})
     ));
-    // حفظ الحضور مباشرة في وثيقة الموظف (قابلة للقراءة من الموظف نفسه)
+    // حفظ في orgs/{orgId}/empAttendance/{empId} — نفس مسار المصاريف المضمون للقراءة
+    if(S.orgId){
+      entries.forEach(([empId,data])=>{
+        fsSet(`orgs/${S.orgId}/empAttendance/${empId}`,{['att_'+currentDay]:data.status},{merge:true}).catch(()=>{});
+      });
+    }
+    // أيضاً في وثيقة الموظف كـ fallback إضافي
     entries.forEach(([empId,data])=>{
       fsSet(empDocPath(empId),{['att_'+currentDay]:data.status},{merge:true}).catch(()=>{});
     });
@@ -1989,21 +1998,27 @@ async function renderSelfView(){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
   const cutoffStr=cutoff.toISOString().split('T')[0];
 
-  // مصدر 1: حقول att_* داخل وثيقة الموظف (الأسرع)
+  // مصدر 1 (الأقوى): orgs/{orgId}/empAttendance/{empId} — نفس مسار المصاريف المضمون
   const attRecords=[];
-  Object.entries(empDoc).forEach(([k,v])=>{
-    if(k.startsWith('att_')){ const date=k.replace('att_',''); if(date>=cutoffStr) attRecords.push({date,status:v}); }
-  });
-
-  // مصدر 2 (fallback): مسار المؤسسة — لو att_* ما كُتبت بعد
-  if(!attRecords.length&&S.orgId){
+  if(S.orgId){
     try{
-      const atts=await fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
-      (atts||[]).filter(r=>r.empId===myId).forEach(r=>attRecords.push({date:r.date,status:r.status}));
+      const attDoc=await fsGet(`orgs/${S.orgId}/empAttendance/${myId}`);
+      if(attDoc){
+        Object.entries(attDoc).forEach(([k,v])=>{
+          if(k.startsWith('att_')){ const date=k.replace('att_',''); if(date>=cutoffStr) attRecords.push({date,status:v}); }
+        });
+      }
     }catch(_){}
   }
 
-  // مصدر 3 (fallback نهائي): S.attendance المحمّل مسبقاً
+  // مصدر 2: att_* في وثيقة الموظف
+  if(!attRecords.length){
+    Object.entries(empDoc).forEach(([k,v])=>{
+      if(k.startsWith('att_')){ const date=k.replace('att_',''); if(date>=cutoffStr&&!attRecords.find(r=>r.date===date)) attRecords.push({date,status:v}); }
+    });
+  }
+
+  // مصدر 3: S.attendance في الذاكرة
   if(!attRecords.length){
     for(const ds in S.attendance){
       if(ds<cutoffStr) continue;
