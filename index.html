@@ -1204,7 +1204,47 @@ function showLogin(){
     if(nav) nav.style.display='none';
     const pp=document.getElementById('pendingPage');
     if(pp){ pp.classList.remove('active'); pp.classList.remove('on'); }
+    // رابط التسجيل المباشر
+    const rp=new URLSearchParams(location.search).get('reg');
+    if(rp) initRegLink(rp);
   }catch(e){ console.warn('showLogin error:',e); }
+}
+
+function initRegLink(encoded){
+  try{
+    const d=JSON.parse(decodeURIComponent(escape(atob(encoded))));
+    switchTab('signup');
+    pickRole('member');
+    // إخفاء حقل الكود (البيانات جاهزة من الرابط)
+    const mcf=document.getElementById('member-code-field');
+    if(mcf) mcf.style.display='none';
+    // عرض بطاقة الموظف
+    document.getElementById('lookup-ok').style.display='block';
+    document.getElementById('lookup-name').textContent=d.name||'';
+    document.getElementById('lookup-dept').textContent=(d.dept||'')+(d.phone?' · '+d.phone:'');
+    document.getElementById('lookup-emoji').textContent=d.emoji||'👤';
+    // تعبئة الاسم وقفله
+    const ni=document.getElementById('su-name');
+    const nf=document.getElementById('su-name-field');
+    if(ni){ ni.value=d.name||''; ni.readOnly=true; }
+    if(nf) nf.style.display='none';
+    // حفظ بيانات الموظف للتسجيل
+    window._lookupResult={
+      emp:{id:d.id,name:d.name,dept:d.dept||'',phone:d.phone||'',emoji:d.emoji||'👤',empCode:d.empCode||'',orgId:d.orgId,adminUID:d.adminUID},
+      adminUID:d.adminUID, orgId:d.orgId,
+      org:{id:d.orgId,adminUID:d.adminUID}
+    };
+    // رسالة ترحيب مؤقتة فوق الفورم
+    const su=document.getElementById('form-signup');
+    if(su&&!document.getElementById('reg-welcome')){
+      const wb=document.createElement('div');
+      wb.id='reg-welcome';
+      wb.style.cssText='text-align:center;padding:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.3);border-radius:12px;margin-bottom:14px;font-size:13px;font-weight:700;color:var(--green)';
+      wb.textContent='🎉 أهلاً '+d.name+'! أنشئ حسابك للانضمام';
+      su.insertBefore(wb,su.firstChild);
+    }
+    setTimeout(()=>document.getElementById('su-email')?.focus(),300);
+  }catch(e){ console.warn('Invalid reg link',e); }
 }
 
 // ════════════════════════════════════════
@@ -1983,6 +2023,7 @@ function renderEmps(){
       </div>
       ${isAdmin?`<div class="emp-acts">
         <button class="ea ea-edit" onclick="openEmpModal('${e.id}')">✏️ تعديل</button>
+        <button class="ea" onclick="shareRegLink('${e.id}')" style="color:var(--blue);border-color:rgba(59,130,246,.3)">🔗 رابط التسجيل</button>
         <button class="ea ea-del" onclick="deleteEmp('${e.id}')">🗑️ حذف</button>
       </div>`:''}
     </div>`;
@@ -2075,11 +2116,27 @@ function showCodesModal(emps){
 }
 
 function copyEmpCode(fullCode,name){
-  const txt=`كود الانضمام لـ ${name}:
-${fullCode}
-
-ادخل هذا الكود في تطبيق شموخ عند التسجيل`;
+  const txt=`كود الانضمام لـ ${name}:\n${fullCode}\n\nادخل هذا الكود في تطبيق شموخ عند التسجيل`;
   navigator.clipboard?.writeText(txt).then(()=>showToast('✅ تم نسخ الكود','ok')).catch(()=>showToast('الكود: '+fullCode,'ok'));
+}
+
+function shareRegLink(empId){
+  const e=S.employees.find(emp=>emp.id===empId);
+  if(!e){ showToast('لم يتم العثور على الموظف','err'); return; }
+  const orgCode=S.orgCode||_uid.slice(0,3).toUpperCase();
+  const d={id:e.id,name:e.name,dept:e.dept||'',phone:e.phone||'',emoji:e.emoji||'👤',empCode:e.empCode||'',orgCode,adminUID:_uid,orgId:S.orgId||('org_'+_uid)};
+  const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+  const url=location.origin+location.pathname+'?reg='+encoded;
+  const text=`رابط تسجيل ${e.name} في شموخ:\n${url}`;
+  if(navigator.share){
+    navigator.share({title:'انضم إلى فريق شموخ',text,url}).catch(()=>{
+      navigator.clipboard?.writeText(text).then(()=>showToast('✅ تم نسخ الرابط','ok')).catch(()=>{});
+    });
+  } else {
+    navigator.clipboard?.writeText(text)
+      .then(()=>showToast('✅ تم نسخ رابط التسجيل','ok'))
+      .catch(()=>showToast('انسخ: '+url,'ok'));
+  }
 }
 
 // ════════════════════════════════════════
