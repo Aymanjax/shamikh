@@ -349,6 +349,18 @@ html,body{height:100%;overflow:hidden;font-family:'Cairo',sans-serif;background:
 .ea{flex:1;padding:8px;border:none;border-radius:8px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
 .ea-edit{background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.3);}
 .ea-del{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25);}
+/* بطاقة الموظف الشخصية */
+.self-hero{background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(16,185,129,.08));border:1.5px solid rgba(245,158,11,.2);border-radius:18px;padding:18px;display:flex;align-items:center;gap:14px;}
+.self-ava{width:60px;height:60px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;border:3px solid rgba(245,158,11,.3);}
+.self-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.self-stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;text-align:center;}
+.self-stat .sv{font-size:20px;font-weight:900;}
+.self-stat .sl{font-size:10px;color:var(--muted);margin-top:2px;}
+.att-row-item{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--card);border-radius:12px;margin-bottom:6px;border:1px solid var(--border);}
+.att-badge{font-size:11px;font-weight:800;padding:4px 10px;border-radius:8px;}
+.exp-item{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;}
+.exp-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.exp-status{display:inline-block;font-size:10px;font-weight:800;padding:3px 8px;border-radius:6px;margin-top:5px;}
 
 /* REPORTS */
 .rep-filter{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;}
@@ -670,29 +682,47 @@ window.onerror=function(msg,src,line,col,err){
 
     <!-- EMPLOYEES -->
     <div class="page" id="pg-employees">
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <input type="text" id="emp-search" class="rinput" style="flex:1" placeholder="🔍 بحث..." oninput="renderEmps()">
-        <button class="btn btn-gold btn-sm" id="add-emp-btn" onclick="openEmpModal()">➕</button>
-      </div>
-      <div id="emp-list"></div>
-      <div class="empty" id="emp-empty"><span class="eico">👤</span><p>لا يوجد موظفون</p></div>
-      <!-- قسم مصاريف الموظف (يظهر للموظف فقط) -->
-      <div id="emp-expenses-section" style="display:none;margin-top:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div>
-            <div style="font-size:14px;font-weight:800;color:var(--accent)">💸 مصاريفي</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">المصاريف التي دفعتها</div>
-          </div>
-          <button class="btn btn-gold btn-sm" onclick="openEmpExpenseModal()">➕ إضافة</button>
+      <!-- عرض المدير -->
+      <div id="admin-emp-view">
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input type="text" id="emp-search" class="rinput" style="flex:1" placeholder="🔍 بحث..." oninput="renderEmps()">
+          <button class="btn btn-gold btn-sm" id="add-emp-btn" onclick="openEmpModal()">➕</button>
         </div>
-        <div id="emp-exp-list"></div>
-        <div id="emp-exp-empty" style="display:none;text-align:center;padding:20px;color:var(--muted);font-size:13px"><span style="font-size:36px;display:block;margin-bottom:8px">💸</span>لم تضف مصاريف بعد</div>
+        <div id="emp-list"></div>
+        <div class="empty" id="emp-empty"><span class="eico">👤</span><p>لا يوجد موظفون</p></div>
       </div>
-      <!-- سجل الحضور الشخصي (يظهر للموظف فقط) -->
-      <div id="emp-att-section" style="display:none;margin-top:16px;">
-        <div style="font-size:14px;font-weight:800;color:var(--green);margin-bottom:10px">📅 سجل حضوري</div>
-        <div id="emp-att-list"></div>
-        <div id="emp-att-empty" style="display:none;text-align:center;padding:20px;color:var(--muted);font-size:13px"><span style="font-size:36px;display:block;margin-bottom:8px">📅</span>لا توجد سجلات حضور بعد</div>
+      <!-- عرض الموظف - صفحة شخصية -->
+      <div id="emp-self-view" style="display:none">
+        <!-- بطاقة الهوية -->
+        <div id="emp-self-card"></div>
+        <!-- سجل الحضور -->
+        <div style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:15px;font-weight:900;color:var(--text)">📅 سجل الحضور</div>
+            <div style="display:flex;gap:6px">
+              <button id="att-filter-month" onclick="setAttFilter('month',this)" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;border:1.5px solid var(--green);background:rgba(16,185,129,.12);color:var(--green);cursor:pointer;font-family:Cairo,sans-serif">هذا الشهر</button>
+              <button id="att-filter-all" onclick="setAttFilter('all',this)" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:Cairo,sans-serif">الكل</button>
+            </div>
+          </div>
+          <div id="emp-att-list"></div>
+          <div id="emp-att-empty" style="display:none;text-align:center;padding:30px 20px;color:var(--muted)">
+            <div style="font-size:40px;margin-bottom:8px">📅</div>
+            <div style="font-size:13px;font-weight:700">لا توجد سجلات حضور بعد</div>
+          </div>
+        </div>
+        <!-- مصاريفي -->
+        <div style="margin-top:20px;margin-bottom:80px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div style="font-size:15px;font-weight:900;color:var(--text)">💸 مصاريفي</div>
+            <button onclick="openEmpExpenseModal()" style="display:flex;align-items:center;gap:5px;padding:7px 14px;border:none;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-family:Cairo,sans-serif;font-size:12px;font-weight:800;cursor:pointer">➕ إضافة</button>
+          </div>
+          <div id="emp-exp-list"></div>
+          <div id="emp-exp-empty" style="display:none;text-align:center;padding:30px 20px;color:var(--muted)">
+            <div style="font-size:40px;margin-bottom:8px">💸</div>
+            <div style="font-size:13px;font-weight:700">لم تضف مصاريف بعد</div>
+            <div style="font-size:11px;margin-top:4px">أضف مصروفًا وسيصل للمدير</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1877,63 +1907,96 @@ async function deleteEmp(id){
   showToast('تم الحذف');
 }
 
+let _attFilter='month';
+function setAttFilter(f,btn){
+  _attFilter=f;
+  document.querySelectorAll('#att-filter-month,#att-filter-all').forEach(b=>{
+    b.style.background='var(--surface)'; b.style.color='var(--muted)'; b.style.borderColor='var(--border)';
+  });
+  btn.style.background='rgba(16,185,129,.12)'; btn.style.color='var(--green)'; btn.style.borderColor='var(--green)';
+  renderEmpAttendance();
+}
+
 function renderEmps(){
-  const q=(document.getElementById('emp-search')?.value||'').toLowerCase();
   const isEmp=S.role==='employee';
-  let list=isEmp&&S.myEmpId?S.employees.filter(e=>e.id===S.myEmpId):S.employees;
+  const adminView=document.getElementById('admin-emp-view');
+  const selfView=document.getElementById('emp-self-view');
+  if(isEmp){
+    if(adminView) adminView.style.display='none';
+    if(selfView) selfView.style.display='block';
+    renderSelfView();
+    return;
+  }
+  if(adminView) adminView.style.display='block';
+  if(selfView) selfView.style.display='none';
+  const q=(document.getElementById('emp-search')?.value||'').toLowerCase();
+  let list=S.employees;
   if(q) list=list.filter(e=>e.name.toLowerCase().includes(q));
   const container=document.getElementById('emp-list');
   const empty=document.getElementById('emp-empty');
   if(!list.length){ container.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
   const now=new Date(),y=now.getFullYear(),m=now.getMonth();
-  const isAdmin=S.role==='admin';
   container.innerHTML=list.map(e=>{
     let pd=0,td=0,absent=0;
-    // للموظف: نقرأ من حقل att داخل بياناته (متاح دائماً)
-    // للمدير: نقرأ من S.attendance
-    const attSrc=isEmp?(e.att||{}):{};
-    if(isEmp){
-      Object.entries(attSrc).forEach(([ds,st])=>{ const d=new Date(ds+'T00:00:00'); if(d.getFullYear()===y&&d.getMonth()===m){ if(st)td++; if(st==='present')pd++; if(st==='absent')absent++; } });
-    } else {
-      for(const ds in S.attendance){ const d=new Date(ds+'T00:00:00'); if(d.getFullYear()===y&&d.getMonth()===m){ const st=(S.attendance[ds][e.id]||{}).status; if(st)td++; if(st==='present')pd++; if(st==='absent')absent++; } }
-    }
+    for(const ds in S.attendance){ const d=new Date(ds+'T00:00:00'); if(d.getFullYear()===y&&d.getMonth()===m){ const st=(S.attendance[ds][e.id]||{}).status; if(st)td++; if(st==='present')pd++; if(st==='absent')absent++; } }
     const pct=td>0?Math.round(pd/td*100):0;
     return `<div class="emp-card">
       <div class="emp-top">
         <div class="emp-ava" style="background:${e.color}">${e.emoji}</div>
         <div style="flex:1;min-width:0">
-          <div class="emp-name">${e.name}${isEmp?'<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--accent);padding:2px 6px;border-radius:6px;margin-right:6px">أنت</span>':''}</div>
+          <div class="emp-name">${e.name}</div>
           <div class="emp-info">${e.dept}${e.phone?' · '+e.phone:''}</div>
         </div>
       </div>
       <div class="emp-stats">
         <div class="emp-stat"><div class="val" style="color:var(--accent)">${fmt(e.rate)}</div><div class="lbl">${getCur()} / يوم</div></div>
         <div class="emp-stat"><div class="val" style="color:var(--green)">${pct}%</div><div class="lbl">التزام هذا الشهر</div></div>
-        ${isEmp?`<div class="emp-stat"><div class="val" style="color:var(--blue)">${pd}</div><div class="lbl">أيام حضور</div></div>
+        <div class="emp-stat"><div class="val" style="color:var(--blue)">${pd}</div><div class="lbl">أيام حضور</div></div>
         <div class="emp-stat"><div class="val" style="color:var(--red)">${absent}</div><div class="lbl">أيام غياب</div></div>
-        <div class="emp-stat" style="grid-column:1/-1">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <div>
-              <div class="val" style="color:var(--green);font-size:20px" id="sal-display">${fmt(pd*e.rate)} ${getCur()}</div>
-              <div class="lbl">راتب هذا الشهر</div>
-            </div>
-          </div>
-        </div>`:''}
       </div>
-      ${isAdmin?`<div class="emp-acts">
+      <div class="emp-acts">
         <button class="ea ea-edit" onclick="openEmpModal('${e.id}')">✏️ تعديل</button>
         <button class="ea" onclick="shareRegLink('${e.id}')" style="color:var(--blue);border-color:rgba(59,130,246,.3)">🔗 رابط التسجيل</button>
         <button class="ea ea-del" onclick="deleteEmp('${e.id}')">🗑️ حذف</button>
-      </div>`:''}
+      </div>
     </div>`;
   }).join('');
-  // قسم مصاريف الموظف
-  if(isEmp){ renderEmpExpenses(); renderEmpAttendance(); }
-  else {
-    const s=document.getElementById('emp-expenses-section'); if(s) s.style.display='none';
-    const a=document.getElementById('emp-att-section'); if(a) a.style.display='none';
+}
+
+async function renderSelfView(){
+  const myId=S.myEmpId;
+  let e=S.employees.find(x=>x.id===myId)||{name:S.userName,emoji:'👤',color:'#f59e0b',dept:'',rate:0};
+  // جلب بيانات محدثة
+  if(!GUEST&&_uid&&myId){
+    try{ const fr=await fsGet(empDocPath(myId)); if(fr){ e={...e,...fr}; const i=S.employees.findIndex(x=>x.id===myId); if(i!==-1) S.employees[i]={...S.employees[i],...fr}; } }catch(_){}
   }
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  const attMap=e.att||{};
+  let pd=0,td=0,ab=0,salary=0;
+  Object.entries(attMap).forEach(([ds,st])=>{
+    const d=new Date(ds+'T00:00:00');
+    if(d.getFullYear()===y&&d.getMonth()===m){ if(st)td++; if(st==='present'){pd++;salary+=parseFloat(e.rate)||0;} if(st==='absent')ab++; }
+  });
+  const pct=td>0?Math.round(pd/td*100):0;
+  const monthName=now.toLocaleDateString('ar-SA',{month:'long'});
+  const card=document.getElementById('emp-self-card');
+  if(card) card.innerHTML=`
+    <div class="self-hero">
+      <div class="self-ava" style="background:${e.color}">${e.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:17px;font-weight:900">${e.name}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${e.dept||''}${e.phone?' · '+e.phone:''}</div>
+        <div style="font-size:11px;color:var(--accent);font-weight:700;margin-top:4px">📅 ${monthName}</div>
+      </div>
+    </div>
+    <div class="self-stats-row">
+      <div class="self-stat"><div class="sv" style="color:var(--green)">${pd}</div><div class="sl">أيام حضور</div></div>
+      <div class="self-stat"><div class="sv" style="color:var(--red)">${ab}</div><div class="sl">أيام غياب</div></div>
+      <div class="self-stat"><div class="sv" style="color:var(--accent);font-size:15px">${fmt(salary)}</div><div class="sl">راتب ${getCur()}</div></div>
+    </div>`;
+  renderEmpAttendance(e);
+  renderEmpExpenses();
 }
 
 function shareRegLink(empId){
@@ -3066,54 +3129,40 @@ async function saveEmpExpense(){
   showToast('✅ تم إرسال المصروف للمدير','ok');
 }
 
-async function renderEmpAttendance(){
-  const section=document.getElementById('emp-att-section');
-  if(!section||S.role!=='employee') return;
-  section.style.display='block';
-  const myId=S.myEmpId;
+function renderEmpAttendance(empObj){
   const list=document.getElementById('emp-att-list');
   const empty=document.getElementById('emp-att-empty');
-  if(!myId){ list.innerHTML=''; empty.style.display='block'; return; }
-  // جلب وثيقة الموظف مباشرة من Firestore (تحتوي على حقل att المحدث)
-  let emp=S.employees.find(e=>e.id===myId)||{};
-  if(!GUEST&&_uid){
-    try{
-      const fresh=await fsGet(empDocPath(myId));
-      if(fresh){ emp={...emp,...fresh}; const idx=S.employees.findIndex(e=>e.id===myId); if(idx!==-1) S.employees[idx]={...S.employees[idx],...fresh}; }
-    }catch(_){}
-  }
-  const attMap=emp?.att||{};
-  const records=Object.entries(attMap).filter(([,s])=>s).map(([date,status])=>({date,status}));
+  if(!list) return;
+  const myId=S.myEmpId;
+  const e=empObj||S.employees.find(x=>x.id===myId)||{};
+  const attMap=e.att||{};
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  let records=Object.entries(attMap).filter(([,s])=>s).map(([date,status])=>({date,status}));
+  if(_attFilter==='month') records=records.filter(r=>{ const d=new Date(r.date+'T00:00:00'); return d.getFullYear()===y&&d.getMonth()===m; });
   if(!records.length){ list.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
   records.sort((a,b)=>b.date.localeCompare(a.date));
   const ICO={present:'✅',absent:'❌',leave:'🏖️',late:'⏰'};
   const LBL={present:'حاضر',absent:'غائب',leave:'إجازة',late:'متأخر'};
+  const BG={present:'rgba(16,185,129,.12)',absent:'rgba(239,68,68,.08)',leave:'rgba(59,130,246,.1)',late:'rgba(245,158,11,.1)'};
   const CLR={present:'var(--green)',absent:'var(--red)',leave:'var(--blue)',late:'var(--accent)'};
   list.innerHTML=records.map(r=>{
     const dt=new Date(r.date+'T00:00:00');
-    const dayName=dt.toLocaleDateString('ar-SA',{weekday:'short'});
-    const dateStr=dt.toLocaleDateString('ar-SA',{day:'numeric',month:'short'});
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border-radius:10px;margin-bottom:6px;border:1px solid var(--border)">
-      <div style="font-size:20px">${ICO[r.status]||'📌'}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:700">${dayName} ${dateStr}</div></div>
-      <div style="font-size:12px;font-weight:800;color:${CLR[r.status]||'var(--muted)'}">${LBL[r.status]||r.status}</div>
+    const dayName=dt.toLocaleDateString('ar-SA',{weekday:'long'});
+    const dateStr=dt.toLocaleDateString('ar-SA',{day:'numeric',month:'long'});
+    return `<div class="att-row-item" style="border-color:${BG[r.status]||'var(--border)'}">
+      <div style="font-size:22px">${ICO[r.status]||'📌'}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700">${dayName}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:1px">${dateStr}</div>
+      </div>
+      <span class="att-badge" style="background:${BG[r.status]||'var(--surface)'};color:${CLR[r.status]||'var(--muted)'}">${LBL[r.status]||r.status}</span>
     </div>`;
   }).join('');
-  // تحديث إحصائيات الشهر الحالي
-  const now=new Date(),y=now.getFullYear(),m=now.getMonth();
-  let pd=0,ab=0;
-  records.forEach(r=>{ const d=new Date(r.date+'T00:00:00'); if(d.getFullYear()===y&&d.getMonth()===m){ if(r.status==='present')pd++; else if(r.status==='absent')ab++; } });
-  const valEl=document.getElementById('att-val-present');
-  const abEl=document.getElementById('att-val-absent');
-  if(valEl) valEl.textContent=pd;
-  if(abEl) abEl.textContent=ab;
 }
 
 async function renderEmpExpenses(){
-  const section=document.getElementById('emp-expenses-section');
-  if(!section||S.role!=='employee') return;
-  section.style.display='block';
+  if(S.role!=='employee') return;
   let exps=[];
   const myId=S.myEmpId||_uid;
   const path=empExpPath();
@@ -3122,7 +3171,7 @@ async function renderEmpExpenses(){
       const all=await fsGetAll(path);
       exps=all.filter(e=>e.empId===myId);
       if(!exps.length) exps=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(e=>e.empId===myId);
-    }catch(e){ exps=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(e=>e.empId===myId); }
+    }catch(_){ exps=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(e=>e.empId===myId); }
   } else {
     exps=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(e=>e.empId===myId);
   }
@@ -3132,18 +3181,20 @@ async function renderEmpExpenses(){
   if(!exps.length){ list.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display='none';
   const sorted=[...exps].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  const SBG={pending:'rgba(245,158,11,.12)',approved:'rgba(16,185,129,.1)',rejected:'rgba(239,68,68,.08)'};
+  const SCLR={pending:'#d97706',approved:'var(--green)',rejected:'var(--red)'};
+  const SLBL={pending:'⏳ بانتظار الموافقة',approved:'✅ تمت الموافقة',rejected:'❌ مرفوض'};
   list.innerHTML=sorted.map(e=>`
-    <div class="cash-card">
-      <div style="font-size:22px">${EE_CAT_ICO[e.cat]||'📝'}</div>
+    <div class="exp-item">
+      <div class="exp-ico" style="background:${SBG[e.status]||'var(--surface)'}">${EE_CAT_ICO[e.cat]||'📝'}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:800;font-size:13px">${e.desc}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">${e.date}</div>
-        ${e.note?`<div style="font-size:10px;color:var(--muted)">📝 ${e.note}</div>`:''}
-        <div style="font-size:11px;font-weight:800;color:${EE_STATUS_CLR[e.status]||'var(--muted)'};margin-top:4px">${EE_STATUS[e.status]||e.status}</div>
+        <div style="font-size:14px;font-weight:800">${e.desc}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">${e.date}${e.note?' · '+e.note:''}</div>
+        <span class="exp-status" style="background:${SBG[e.status]||'var(--surface)'};color:${SCLR[e.status]||'var(--muted)'}">${SLBL[e.status]||e.status}</span>
       </div>
-      <div style="text-align:left;flex-shrink:0">
-        <div style="font-size:16px;font-weight:900;color:var(--red)">${fmt(e.amt)}</div>
-        <div style="font-size:9px;color:var(--muted)">${cur}</div>
+      <div style="text-align:left;flex-shrink:0;padding-top:2px">
+        <div style="font-size:18px;font-weight:900;color:var(--text)">${fmt(e.amt)}</div>
+        <div style="font-size:10px;color:var(--muted);text-align:center">${cur}</div>
       </div>
     </div>`).join('');
 }
