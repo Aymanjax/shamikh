@@ -1891,15 +1891,15 @@ async function deleteEmp(id){
 function renderEmps(){
   const q=(document.getElementById('emp-search')?.value||'').toLowerCase();
   const isEmp=S.role==='employee';
-  // إظهار زر توليد الكودات لو في موظفين بدون كود
+  // إظهار زر الكودات للمدير دائماً (توليد جديد أو مزامنة موجودة)
   const genBar=document.getElementById('gen-codes-bar');
-  if(genBar){
+  if(genBar && S.role==='admin' && S.employees.length>0){
+    genBar.style.display='block';
     const noCode=S.employees.filter(e=>!e.empCode);
-    genBar.style.display=(S.role==='admin'&&noCode.length>0)?'block':'none';
-    if(noCode.length>0){
-      genBar.querySelector('button').textContent=`🔢 توليد كود لـ ${noCode.length} موظف`;
-    }
-  }
+    genBar.querySelector('button').textContent=noCode.length>0
+      ?`🔢 توليد كود لـ ${noCode.length} موظف`
+      :`🔄 مزامنة كودات الانضمام (${S.employees.length} موظف)`;
+  } else if(genBar){ genBar.style.display='none'; }
   let list=isEmp&&S.myEmpId?S.employees.filter(e=>e.id===S.myEmpId):S.employees;
   if(q) list=list.filter(e=>e.name.toLowerCase().includes(q));
   const container=document.getElementById('emp-list');
@@ -1947,38 +1947,46 @@ function renderEmps(){
 }
 
 async function genAllCodes(){
-  const noCode = S.employees.filter(e=>!e.empCode);
-  if(!noCode.length){ showToast('✅ كل الموظفين لديهم كود بالفعل','ok'); return; }
-  if(!confirm(`توليد كود لـ ${noCode.length} موظف؟`)) return;
+  const noCode=S.employees.filter(e=>!e.empCode);
+  const orgCode=S.orgCode||_uid.slice(0,3).toUpperCase();
+  const total=S.employees.length;
+  if(!total){ showToast('لا يوجد موظفون','err'); return; }
+  const msg=noCode.length>0
+    ?`توليد كود لـ ${noCode.length} موظف جديد + مزامنة ${total-noCode.length} موظف موجود؟`
+    ?`مزامنة كودات ${total} موظف في Firebase حتى تعمل عند التسجيل؟`:`مزامنة كودات ${total} موظف في Firebase حتى تعمل عند التسجيل؟`;
+  if(!confirm(msg)) return;
 
+  showToast('⏳ جاري المعالجة...');
   let done=0;
-  for(const e of noCode){
-    const empCode = generateCode(6);
-    const fullCode = generateEmpFullCode(_uid, e.id);
-    e.empCode = empCode;
-    e.fullCode = fullCode;
-    e.adminUID = e.adminUID || _uid;
-    e.orgId = e.orgId || S.orgId || ('org_'+_uid);
+  const newEmps=[];
+  for(const e of S.employees){
     try{
-      await fsSet(empDocPath(e.id), e);
-      // حفظ مفتاح البحث في inviteCodes
-      const lk=(S.orgCode||_uid.slice(0,3).toUpperCase())+'-'+empCode;
+      // توليد كود جديد لمن ليس عنده
+      if(!e.empCode){
+        e.empCode=generateCode(6);
+        e.fullCode=generateEmpFullCode(_uid,e.id);
+        e.adminUID=e.adminUID||_uid;
+        e.orgId=e.orgId||S.orgId||('org_'+_uid);
+        await fsSet(empDocPath(e.id),e);
+        newEmps.push(e);
+      }
+      // مزامنة كود الانضمام في inviteCodes (للكل)
+      const lk=orgCode+'-'+e.empCode;
       await fsSet(`inviteCodes/${lk}`,{
-        empId:e.id, empName:e.name, empDept:e.dept,
+        empId:e.id, empName:e.name, empDept:e.dept||'',
         empPhone:e.phone||'', empEmoji:e.emoji||'👤',
-        orgId:e.orgId, adminUID:_uid, orgCode:S.orgCode||''
-      }).catch(()=>{});
+        orgId:e.orgId||S.orgId, adminUID:_uid, orgCode
+      });
       done++;
-    }catch(err){ console.warn('Error saving emp code:',err); }
+    }catch(err){ console.warn('Error:',err); }
   }
-  // تأكد إن inviteCode mapping محفوظ
-  if(S.orgId && S.orgCode){
-    try{ await fsSet(`inviteCodes/${S.orgCode}`,{orgId:S.orgId,adminUID:_uid,createdAt:new Date().toISOString()}); }catch(e){}
+  // تأكد إن org inviteCode محفوظ
+  if(S.orgId&&S.orgCode){
+    fsSet(`inviteCodes/${S.orgCode}`,{orgId:S.orgId,adminUID:_uid,createdAt:new Date().toISOString()}).catch(()=>{});
   }
   renderEmps();
-  showToast(`✅ تم توليد كود لـ ${done} موظف`,'ok');
-  // أظهر تفاصيل الكودات
-  showCodesModal(noCode);
+  showToast(`✅ تمت المزامنة لـ ${done} موظف`,'ok');
+  if(newEmps.length) showCodesModal(newEmps);
 }
 
 function showCodesModal(emps){
