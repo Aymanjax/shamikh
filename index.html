@@ -1520,21 +1520,16 @@ async function loadData(){
     }
     S.attendance={};
     (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
-    // للمدير: مزامنة الحضور داخل وثائق الموظفين مرة يومياً (الموظف يقرأها بدون أي قيود)
+    // للمدير: مزامنة الحضور داخل وثائق الموظفين في كل تحميل (الموظف يقرأها بدون أي قيود)
     if(S.role==='admin'&&S.employees.length&&Object.keys(S.attendance).length){
-      const syncKey='shm_emp_att_'+new Date().toISOString().slice(0,10);
-      if(!localStorage.getItem(syncKey)){
-        localStorage.setItem(syncKey,'1');
-        // نبني map الحضور لكل موظف
-        const attByEmp={};
-        for(const date in S.attendance) for(const empId in S.attendance[date]){
-          const st=S.attendance[date][empId]?.status;
-          if(st){ if(!attByEmp[empId]) attByEmp[empId]={}; attByEmp[empId][date]=st; }
-        }
-        Object.entries(attByEmp).forEach(([empId,attMap])=>{
-          fsSet(empDocPath(empId),{att:attMap},true).catch(()=>{});
-        });
+      const attByEmp={};
+      for(const date in S.attendance) for(const empId in S.attendance[date]){
+        const st=S.attendance[date][empId]?.status;
+        if(st){ if(!attByEmp[empId]) attByEmp[empId]={}; attByEmp[empId][date]=st; }
       }
+      Object.entries(attByEmp).forEach(([empId,attMap])=>{
+        fsSet(empDocPath(empId),{att:attMap},true).catch(()=>{});
+      });
     }
   }catch(e){ S.attendance={}; }
 }
@@ -3079,8 +3074,14 @@ async function renderEmpAttendance(){
   const list=document.getElementById('emp-att-list');
   const empty=document.getElementById('emp-att-empty');
   if(!myId){ list.innerHTML=''; empty.style.display='block'; return; }
-  // المصدر الأول: حقل att داخل وثيقة الموظف (يُقرأ مع S.employees بدون قيود)
-  const emp=S.employees.find(e=>e.id===myId);
+  // جلب وثيقة الموظف مباشرة من Firestore (تحتوي على حقل att المحدث)
+  let emp=S.employees.find(e=>e.id===myId)||{};
+  if(!GUEST&&_uid){
+    try{
+      const fresh=await fsGet(empDocPath(myId));
+      if(fresh){ emp={...emp,...fresh}; const idx=S.employees.findIndex(e=>e.id===myId); if(idx!==-1) S.employees[idx]={...S.employees[idx],...fresh}; }
+    }catch(_){}
+  }
   const attMap=emp?.att||{};
   const records=Object.entries(attMap).filter(([,s])=>s).map(([date,status])=>({date,status}));
   if(!records.length){ list.innerHTML=''; empty.style.display='block'; return; }
