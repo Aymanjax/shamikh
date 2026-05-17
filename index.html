@@ -1101,7 +1101,7 @@ let S={
   employees:[], attendance:{},
   role:'admin', userName:'', userEmail:'',
   orgId:null, orgCode:null, orgAdminUID:null, saveUID:null, myEmpId:null,
-  cfg:{cur:'د.أ'}
+  cfg:{cur:'د.أ'}, memberUIDs:{}
 };
 let GUEST=false;
 let currentDay=todayStr();
@@ -1323,6 +1323,8 @@ async function doSignUp(){
       await authUpdateName(emp.name);
       await fsSet(profilePath(user.uid),{name:emp.name,email:em,role:emp.role||'employee',orgId:org.id,orgAdminUID:org.adminUID,myEmpId:emp.id,empCode:emp.empCode||'',status:'pending',createdAt:new Date().toISOString()});
       await fsSet(`orgs/${org.id}/pendingMembers/${user.uid}`,{uid:user.uid,name:emp.name,email:em,role:emp.role||'employee',empId:emp.id,status:'pending',requestedAt:new Date().toISOString()});
+      // حفظ UID الموظف لاستخدامه لاحقاً في كتابة الحضور
+      fsSet(`orgs/${org.id}/memberUIDs/${emp.id}`,{uid:user.uid,empId:emp.id}).catch(()=>{});
       // أظهر شاشة الانتظار
       showPending({name:emp.name,email:em,role:emp.role||'employee'});
     }
@@ -1358,7 +1360,7 @@ ${em}`)) return;
 function doSignOut(){
   authSignOut();
   GUEST=false;
-  S={employees:[],attendance:{},role:'admin',userName:'',userEmail:'',orgId:null,orgCode:null,orgAdminUID:null,saveUID:null,myEmpId:null,cfg:{cur:'د.أ'}};
+  S={employees:[],attendance:{},role:'admin',userName:'',userEmail:'',orgId:null,orgCode:null,orgAdminUID:null,saveUID:null,myEmpId:null,cfg:{cur:'د.أ'},memberUIDs:{}};
   document.getElementById('app').classList.remove('active');
   document.getElementById('bnav').style.display='none';
   document.getElementById('pendingPage').classList.remove('active');
@@ -1508,27 +1510,39 @@ async function loadData(){
     const emps=await Promise.race([fsQuery(empColPath()),T(6000)]);
     S.employees=emps||[];
   }catch(e){ S.employees=[]; }
+  // للمدير: تحميل خريطة UIDs الموظفين
+  if(S.role==='admin'&&S.orgId){
+    try{
+      const uidDocs=await fsGetAll(`orgs/${S.orgId}/memberUIDs`);
+      S.memberUIDs={};
+      (uidDocs||[]).forEach(d=>{ if(d.id&&d.uid) S.memberUIDs[d.id]=d.uid; });
+      // أيضاً اقرأ uid من وثائق الموظفين مباشرة
+      S.employees.forEach(e=>{ if(e.uid&&e.id) S.memberUIDs[e.id]=e.uid; });
+    }catch(_){ S.memberUIDs={}; }
+  }
   try{
     const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
     const cutoffStr=cutoff.toISOString().split('T')[0];
     let atts=[];
     try{ atts=await Promise.race([fsQuery(attColPath(),[{field:'date',op:'>=',value:cutoffStr}]),T(6000)]); }catch(_){ atts=[]; }
-    // للمدير: انقل البيانات القديمة من users/{uid}/attendance إلى مسار المؤسسة دائماً
+    // للمدير: انقل البيانات القديمة من users/{uid}/attendance إلى مسار المؤسسة
     if(S.role==='admin'&&S.orgId){
       try{
         const oldAtts=await Promise.race([fsQuery(`users/${_uid}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]),T(8000)]);
         if(oldAtts&&oldAtts.length){
           oldAtts.forEach(r=>{ fsSet(`orgs/${S.orgId}/attendance/${r.date}_${r.empId}`,{date:r.date,empId:r.empId,status:r.status,note:r.note||''}).catch(()=>{}); });
-          // دمج مع البيانات الموجودة
           oldAtts.forEach(r=>{ if(!(atts||[]).find(x=>x.date===r.date&&x.empId===r.empId)) atts=(atts||[]).concat([r]); });
         }
       }catch(_){}
     }
     S.attendance={};
     (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
-    // للمدير: انسخ كل الحضور إلى empAttendance كوثائق مستقلة (نفس نمط المصاريف)
+    // للمدير: اكتب الحضور مباشرة إلى مسار كل موظف الشخصي (مضمون القراءة)
     if(S.role==='admin'&&S.orgId&&(atts||[]).length){
       (atts||[]).forEach(r=>{
+        const empUID=S.memberUIDs[r.empId];
+        if(empUID) fsSet(`users/${empUID}/empAtt/${r.date}`,{date:r.date,empId:r.empId,status:r.status}).catch(()=>{});
+        // أيضاً اكتب إلى empAttendance كنسخة احتياطية
         fsSet(`orgs/${S.orgId}/empAttendance/${r.date}_${r.empId}`,{date:r.date,empId:r.empId,status:r.status}).catch(()=>{});
       });
     }
@@ -1790,12 +1804,12 @@ async function saveAtt(){
     await Promise.all(entries.map(([empId,data])=>
       fsSet(attDocPath(currentDay,empId),{date:currentDay,empId,status:data.status,note:data.note||''})
     ));
-    // نفس نمط المصاريف — وثيقة مستقلة لكل يوم لكل موظف
-    if(S.orgId){
-      entries.forEach(([empId,data])=>{
-        fsSet(`orgs/${S.orgId}/empAttendance/${currentDay}_${empId}`,{date:currentDay,empId,status:data.status}).catch(()=>{});
-      });
-    }
+    // كتابة إلى مسار الموظف الشخصي (مضمون القراءة) وإلى empAttendance كنسخة احتياطية
+    entries.forEach(([empId,data])=>{
+      const empUID=S.memberUIDs?.[empId];
+      if(empUID) fsSet(`users/${empUID}/empAtt/${currentDay}`,{date:currentDay,empId,status:data.status}).catch(()=>{});
+      if(S.orgId) fsSet(`orgs/${S.orgId}/empAttendance/${currentDay}_${empId}`,{date:currentDay,empId,status:data.status}).catch(()=>{});
+    });
     showToast('✅ تم حفظ الحضور','ok');
     renderDash();
   }catch(e){ showToast('خطأ: '+e.message,'err'); }
@@ -1971,15 +1985,20 @@ async function renderSelfView(){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
   const cutoffStr=cutoff.toISOString().split('T')[0];
 
-  // قراءة الحضور من empAttendance — نفس نمط المصاريف بالضبط
+  // المصدر الأساسي: مسار الموظف الشخصي — مضمون القراءة دائماً
   const attRecords=[];
-  if(S.orgId){
+  try{
+    const docs=await fsGetAll(`users/${_uid}/empAtt`);
+    (docs||[]).filter(r=>r.date&&r.date>=cutoffStr&&r.status).forEach(r=>attRecords.push({date:r.date,status:r.status}));
+  }catch(_){}
+  // مصدر ثانوي: empAttendance
+  if(!attRecords.length&&S.orgId){
     try{
       const docs=await fsQuery(`orgs/${S.orgId}/empAttendance`,[{field:'empId',op:'==',value:myId}]);
       (docs||[]).filter(r=>r.date>=cutoffStr).forEach(r=>attRecords.push({date:r.date,status:r.status}));
     }catch(_){}
   }
-  // fallback: S.attendance في الذاكرة (لو المسار الجديد ما اشتغل)
+  // مصدر ثالث: S.attendance في الذاكرة
   if(!attRecords.length){
     for(const ds in S.attendance){
       if(ds<cutoffStr) continue;
@@ -2473,10 +2492,29 @@ async function approveMember(uid,name,email,role){
     const org=await fsGet(`orgs/${S.orgId}`);
     const members={...(org?.members||{}),[uid]:{name,email,role,approvedAt:new Date().toISOString()}};
     await fsSet(`orgs/${S.orgId}`,{members},{merge:true});
+    // قراءة empId من pendingMembers وحفظ uid في وثيقة الموظف
+    try{
+      const pending=await fsGet(`orgs/${S.orgId}/pendingMembers/${uid}`);
+      if(pending?.empId){
+        await fsSet(empDocPath(pending.empId),{uid},{merge:true});
+        await fsSet(`orgs/${S.orgId}/memberUIDs/${pending.empId}`,{uid,empId:pending.empId});
+        S.memberUIDs[pending.empId]=uid;
+        // ترحيل الحضور التاريخي إلى مسار الموظف الشخصي
+        migrateAttToEmployee(pending.empId,uid);
+      }
+    }catch(_){}
     await fsDelete(`orgs/${S.orgId}/pendingMembers/${uid}`);
     showToast('✅ تم قبول '+name,'ok');
     loadPendingMembers(); loadOrgMembers();
   }catch(e){ showToast('خطأ: '+e.message,'err'); }
+}
+
+function migrateAttToEmployee(empId,empUID){
+  // كتابة الحضور التاريخي من الذاكرة إلى مسار الموظف الشخصي
+  for(const date in S.attendance){
+    const st=(S.attendance[date][empId]||{}).status;
+    if(st) fsSet(`users/${empUID}/empAtt/${date}`,{date,empId,status:st}).catch(()=>{});
+  }
 }
 
 async function rejectMember(uid,name){
