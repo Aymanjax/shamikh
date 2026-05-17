@@ -281,11 +281,11 @@ html,body{height:100%;overflow:hidden;font-family:'Cairo',sans-serif;background:
 
 /* PAGES */
 .pages{flex:1;overflow:hidden;position:relative;}
-.page{position:absolute;inset:0;overflow-y:auto;padding:14px;padding-bottom:76px;display:none;-webkit-overflow-scrolling:touch;}
+.page{position:absolute;inset:0;overflow-y:auto;padding:14px;padding-bottom:calc(76px + env(safe-area-inset-bottom, 16px));display:none;-webkit-overflow-scrolling:touch;}
 .page.active{display:block;}
 
 /* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;background:#ffffff;border-top:1px solid var(--border);height:62px;display:flex;z-index:100;box-shadow:0 -2px 16px rgba(0,0,0,.4);}
+.bnav{position:fixed;bottom:0;left:0;right:0;background:#ffffff;border-top:1px solid var(--border);height:calc(62px + env(safe-area-inset-bottom, 0px));padding-bottom:env(safe-area-inset-bottom, 0px);display:flex;z-index:100;box-shadow:0 -2px 16px rgba(0,0,0,.4);}
 .bnav-ind{position:absolute;top:0;height:2px;background:var(--accent);border-radius:2px;transition:left .3s,width .3s;}
 .bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:none;color:var(--muted);font-family:'Cairo',sans-serif;font-size:9px;font-weight:700;cursor:pointer;transition:color .2s;}
 .bni .ico{font-size:20px;transition:transform .2s;}
@@ -378,6 +378,8 @@ html,body{height:100%;overflow:hidden;font-family:'Cairo',sans-serif;background:
 .set-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(30,58,95,.4);}
 .set-row:last-child{border-bottom:none;}
 .set-lbl{font-size:13px;font-weight:600;}
+.dept-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 11px;font-size:12px;font-weight:700;color:var(--text);margin:3px;}
+.dept-chip .rm{cursor:pointer;color:var(--red);font-size:15px;line-height:1;}
 .sinput{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:'Cairo',sans-serif;font-size:12px;outline:none;}
 .sinput:focus{border-color:var(--accent);}
 .colors{display:flex;gap:8px;}
@@ -521,14 +523,9 @@ window.onerror=function(msg,src,line,col,err){
           <input type="password" id="su-admin-code" placeholder="الرمز السري للمدير">
           <div class="hint">الرمز: <b style="color:var(--accent)">shamikh2024</b></div>
         </div>
-        <!-- كود الانضمام للعضو -->
-        <div class="lf" id="member-code-field" style="display:none">
-          <label>🔑 كود الانضمام</label>
-          <input type="text" id="su-full-code" placeholder="XXX-XXXXXX"
-            style="font-size:18px;font-weight:900;letter-spacing:4px;text-align:center;color:var(--accent);text-transform:uppercase;"
-            maxlength="12" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');debounceCodeLookup()">
-          <div class="hint">الكود من المدير — مثال: KMN-AB12CD</div>
-          <div class="lookup-ok" id="lookup-ok">
+        <!-- معلومات الموظف — تُعبأ من رابط التسجيل -->
+        <div id="member-code-field" style="display:none">
+          <div class="lookup-ok" id="lookup-ok" style="display:none">
             <div style="display:flex;align-items:center;gap:10px;">
               <div id="lookup-emoji" style="font-size:28px">👤</div>
               <div>
@@ -538,7 +535,6 @@ window.onerror=function(msg,src,line,col,err){
               </div>
             </div>
           </div>
-          <div class="lookup-err" id="lookup-err">❌ الكود غير صحيح — تواصل مع المدير</div>
         </div>
         <button class="lbtn" id="su-btn" onclick="doSignUp()">✨ إنشاء الحساب</button>
       </div>
@@ -678,16 +674,26 @@ window.onerror=function(msg,src,line,col,err){
         <input type="text" id="emp-search" class="rinput" style="flex:1" placeholder="🔍 بحث..." oninput="renderEmps()">
         <button class="btn btn-gold btn-sm" id="add-emp-btn" onclick="openEmpModal()">➕</button>
       </div>
-      <div id="gen-codes-bar" style="display:none;margin-bottom:12px;">
-        <button class="btn btn-gold" style="width:100%" onclick="genAllCodes()">
-          🔢 توليد كود لكل الموظفين
-        </button>
-        <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:4px">
-          للموظفين الذين ليس لديهم كود بعد
-        </div>
-      </div>
       <div id="emp-list"></div>
       <div class="empty" id="emp-empty"><span class="eico">👤</span><p>لا يوجد موظفون</p></div>
+      <!-- قسم مصاريف الموظف (يظهر للموظف فقط) -->
+      <div id="emp-expenses-section" style="display:none;margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div>
+            <div style="font-size:14px;font-weight:800;color:var(--accent)">💸 مصاريفي</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">المصاريف التي دفعتها</div>
+          </div>
+          <button class="btn btn-gold btn-sm" onclick="openEmpExpenseModal()">➕ إضافة</button>
+        </div>
+        <div id="emp-exp-list"></div>
+        <div id="emp-exp-empty" style="display:none;text-align:center;padding:20px;color:var(--muted);font-size:13px"><span style="font-size:36px;display:block;margin-bottom:8px">💸</span>لم تضف مصاريف بعد</div>
+      </div>
+      <!-- سجل الحضور الشخصي (يظهر للموظف فقط) -->
+      <div id="emp-att-section" style="display:none;margin-top:16px;">
+        <div style="font-size:14px;font-weight:800;color:var(--green);margin-bottom:10px">📅 سجل حضوري</div>
+        <div id="emp-att-list"></div>
+        <div id="emp-att-empty" style="display:none;text-align:center;padding:20px;color:var(--muted);font-size:13px"><span style="font-size:36px;display:block;margin-bottom:8px">📅</span>لا توجد سجلات حضور بعد</div>
+      </div>
     </div>
 
     <!-- REPORTS -->
@@ -731,11 +737,38 @@ window.onerror=function(msg,src,line,col,err){
       <!-- الشركة -->
       <div class="set-panel">
         <h4>🏢 الشركة</h4>
+        <div class="set-row">
+          <span class="set-lbl">اسم المؤسسة</span>
+          <input class="sinput" id="set-orgname" placeholder="اسم شركتك" style="width:140px;text-align:right" onchange="saveCfg()">
+        </div>
         <div class="set-row"><span class="set-lbl">العملة</span>
           <select class="sinput" id="set-cur" onchange="saveCfg()">
-            <option value="د.أ" selected>د.أ</option>
-            <option value="ر.س">ر.س</option>
-            <option value="$">$</option>
+            <optgroup label="🌍 الخليج">
+              <option value="د.أ">🇯🇴 دينار أردني — د.أ</option>
+              <option value="ر.س">🇸🇦 ريال سعودي — ر.س</option>
+              <option value="د.إ">🇦🇪 درهم إماراتي — د.إ</option>
+              <option value="د.ك">🇰🇼 دينار كويتي — د.ك</option>
+              <option value="د.ب">🇧🇭 دينار بحريني — د.ب</option>
+              <option value="ر.ق">🇶🇦 ريال قطري — ر.ق</option>
+              <option value="ر.ع">🇴🇲 ريال عُماني — ر.ع</option>
+            </optgroup>
+            <optgroup label="🌍 عربية أخرى">
+              <option value="ج.م">🇪🇬 جنيه مصري — ج.م</option>
+              <option value="د.ع">🇮🇶 دينار عراقي — د.ع</option>
+              <option value="ل.س">🇸🇾 ليرة سورية — ل.س</option>
+              <option value="ل.ل">🇱🇧 ليرة لبنانية — ل.ل</option>
+              <option value="ر.ي">🇾🇪 ريال يمني — ر.ي</option>
+              <option value="د.ل">🇱🇾 دينار ليبي — د.ل</option>
+              <option value="د.ت">🇹🇳 دينار تونسي — د.ت</option>
+              <option value="د.ج">🇩🇿 دينار جزائري — د.ج</option>
+              <option value="د.م">🇲🇦 درهم مغربي — د.م</option>
+              <option value="ج.س">🇸🇩 جنيه سوداني — ج.س</option>
+            </optgroup>
+            <optgroup label="💵 دولي">
+              <option value="$">🇺🇸 دولار أمريكي — $</option>
+              <option value="€">🇪🇺 يورو — €</option>
+              <option value="£">🇬🇧 جنيه إسترليني — £</option>
+            </optgroup>
           </select></div>
         <div class="set-row"><span class="set-lbl">🎨 لون التطبيق</span>
           <div class="colors">
@@ -745,6 +778,15 @@ window.onerror=function(msg,src,line,col,err){
             <div class="cdot" style="background:#ef4444" onclick="setTheme('#ef4444')"></div>
             <div class="cdot" style="background:#8b5cf6" onclick="setTheme('#8b5cf6')"></div>
           </div></div>
+      </div>
+      <!-- أقسام الموظفين -->
+      <div class="set-panel" id="depts-panel" style="display:none">
+        <h4>🏷️ أقسام الموظفين</h4>
+        <div id="dept-chips" style="display:flex;flex-wrap:wrap;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="new-dept-inp" class="rinput" style="flex:1;font-size:13px;padding:8px 12px" placeholder="أضف قسم جديد... مثال: عامل حداد">
+          <button onclick="addDept()" class="btn btn-gold btn-sm" style="white-space:nowrap">➕ إضافة</button>
+        </div>
       </div>
       <!-- كود الدعوة - للمدير فقط -->
       <div class="set-panel" id="org-panel" style="display:none">
@@ -881,6 +923,12 @@ window.onerror=function(msg,src,line,col,err){
     </div>
     <div id="cash-list"></div>
     <div class="empty" id="cash-empty"><span class="eico">💰</span><p>لا توجد مصروفات</p></div>
+    <!-- طلبات مصاريف الموظفين (للمدير فقط) -->
+    <div id="emp-submissions-section" style="display:none;margin-top:16px;">
+      <div style="font-size:13px;font-weight:800;color:var(--accent);margin-bottom:10px;padding-top:12px;border-top:1px solid var(--border);">📋 مصاريف الموظفين</div>
+      <div id="emp-submissions-list"></div>
+      <div id="emp-submissions-empty" style="display:none;text-align:center;padding:14px;color:var(--muted);font-size:12px">لا توجد طلبات مصاريف من الموظفين</div>
+    </div>
   </div>
 </div>
 
@@ -921,20 +969,9 @@ window.onerror=function(msg,src,line,col,err){
       <div class="mf"><label>الاسم</label><input id="m-name" type="text" placeholder="اسم الموظف"></div>
       <div class="mf"><label>الهاتف</label><input id="m-phone" type="tel" placeholder="07xxxxxxxx"></div>
       <div class="mf"><label>القسم</label>
-        <select id="m-dept">
-          <option>إدارة</option><option>تشغيل</option><option>مبيعات</option>
-          <option>محاسبة</option><option>تقنية</option><option>أخرى</option>
-        </select></div>
+        <select id="m-dept"></select></div>
       <div class="mf"><label>الراتب اليومي</label>
         <input id="m-rate" type="number" placeholder="0" min="0"></div>
-    </div>
-    <div class="mf" id="m-code-wrap" style="display:none">
-      <label>🔢 كود الموظف (انسخه وأعطه للموظف)</label>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <input id="m-code" type="text" readonly
-          style="flex:1;font-size:16px;font-weight:900;letter-spacing:4px;color:var(--accent);text-align:center;background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3);cursor:default;">
-        <button type="button" onclick="copyCode()" class="btn btn-gold btn-sm">📋</button>
-      </div>
     </div>
     <input type="hidden" id="m-edit-id">
     <div class="modal-acts">
@@ -963,6 +1000,32 @@ window.onerror=function(msg,src,line,col,err){
     <div class="modal-acts">
       <button class="msave" onclick="confirmPayment()">✅ تأكيد الدفع</button>
       <button class="mcancel" onclick="closeModal('pay-modal')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- EMPLOYEE EXPENSE MODAL -->
+<div class="modal-bg" id="emp-expense-modal">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <h3>💸 إضافة مصروف</h3>
+    <div class="mf"><label>الوصف</label><input type="text" id="ee-desc" placeholder="مثال: شراء مواد، بدل نقل..."></div>
+    <div class="mf-grid">
+      <div class="mf"><label>المبلغ</label><input type="number" id="ee-amt" placeholder="0.00" min="0" step="0.5"></div>
+      <div class="mf"><label>التاريخ</label><input type="date" id="ee-date"></div>
+    </div>
+    <div class="mf"><label>الفئة</label>
+      <select id="ee-cat" style="width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:9px;padding:10px;color:var(--text);font-family:Cairo,sans-serif;font-size:13px;outline:none;">
+        <option value="materials">📦 مواد / مشتريات</option>
+        <option value="transport">🚗 بدل نقل</option>
+        <option value="tools">🔧 أدوات</option>
+        <option value="other">📝 أخرى</option>
+      </select>
+    </div>
+    <div class="mf"><label>ملاحظة (اختياري)</label><input type="text" id="ee-note" placeholder="تفاصيل إضافية..."></div>
+    <div class="modal-acts">
+      <button class="msave" onclick="saveEmpExpense()">📤 إرسال للمدير</button>
+      <button class="mcancel" onclick="closeModal('emp-expense-modal')">إلغاء</button>
     </div>
   </div>
 </div>
@@ -1160,7 +1223,44 @@ function showLogin(){
     if(nav) nav.style.display='none';
     const pp=document.getElementById('pendingPage');
     if(pp){ pp.classList.remove('active'); pp.classList.remove('on'); }
+    // رابط التسجيل المباشر
+    const rp=new URLSearchParams(location.search).get('reg');
+    if(rp) initRegLink(rp);
   }catch(e){ console.warn('showLogin error:',e); }
+}
+
+function initRegLink(encoded){
+  try{
+    const d=JSON.parse(decodeURIComponent(escape(atob(encoded))));
+    switchTab('signup');
+    pickRole('member');
+    // عرض بطاقة الموظف
+    document.getElementById('lookup-ok').style.display='block';
+    document.getElementById('lookup-name').textContent=d.name||'';
+    document.getElementById('lookup-dept').textContent=(d.dept||'')+(d.phone?' · '+d.phone:'');
+    document.getElementById('lookup-emoji').textContent=d.emoji||'👤';
+    // تعبئة الاسم وقفله
+    const ni=document.getElementById('su-name');
+    const nf=document.getElementById('su-name-field');
+    if(ni){ ni.value=d.name||''; ni.readOnly=true; }
+    if(nf) nf.style.display='none';
+    // حفظ بيانات الموظف للتسجيل
+    window._lookupResult={
+      emp:{id:d.id,name:d.name,dept:d.dept||'',phone:d.phone||'',emoji:d.emoji||'👤',empCode:d.empCode||'',orgId:d.orgId,adminUID:d.adminUID},
+      adminUID:d.adminUID, orgId:d.orgId,
+      org:{id:d.orgId,adminUID:d.adminUID}
+    };
+    // رسالة ترحيب مؤقتة فوق الفورم
+    const su=document.getElementById('form-signup');
+    if(su&&!document.getElementById('reg-welcome')){
+      const wb=document.createElement('div');
+      wb.id='reg-welcome';
+      wb.style.cssText='text-align:center;padding:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.3);border-radius:12px;margin-bottom:14px;font-size:13px;font-weight:700;color:var(--green)';
+      wb.textContent='🎉 أهلاً '+d.name+'! أنشئ حسابك للانضمام';
+      su.insertBefore(wb,su.firstChild);
+    }
+    setTimeout(()=>document.getElementById('su-email')?.focus(),300);
+  }catch(e){ console.warn('Invalid reg link',e); }
 }
 
 // ════════════════════════════════════════
@@ -1214,41 +1314,15 @@ async function doSignUp(){
       const ses=getSession(); if(ses){ses.name=name;localStorage.setItem(LS_KEY,JSON.stringify(ses));}
       await startApp({uid:user.uid,email:em,name});
     } else {
-      // عضو فريق
-      // استخدم النتيجة المحفوظة من البحث
-      let emp, org, adminUID, orgId2, empPart='';
-      if(window._lookupResult){
-        emp=window._lookupResult.emp;
-        adminUID=window._lookupResult.adminUID;
-        org=window._lookupResult.org||{};
-        orgId2=window._lookupResult.orgId||org.id||('org_'+adminUID);
-        org={...org, id:orgId2, adminUID};
-        empPart=emp.empCode||'';
-      } else {
-        // إعادة البحث لو ما في نتيجة محفوظة
-        const fullCode=document.getElementById('su-full-code').value.trim().toUpperCase();
-        if(!fullCode||!fullCode.includes('-')){ showAuthErr('أدخل كود الانضمام'); return; }
-        const dashIdx=fullCode.indexOf('-');
-        const orgPart=fullCode.slice(0,dashIdx);
-        const empPart=fullCode.slice(dashIdx+1);
-        const invR=await fetch(`${FS_URL}/inviteCodes/${orgPart}`);
-        if(!invR.ok){ showAuthErr('كود المؤسسة غير صحيح'); return; }
-        const invD=await invR.json();
-        const inv=jsDoc(invD.fields||{});
-        adminUID=inv.adminUID;
-        orgId2=inv.orgId||'org_'+adminUID;
-        org={id:orgId2, adminUID, inviteCode:orgPart};
-        const empsR=await fetch(`${FS_URL}/users/${adminUID}/employees`);
-        const empsD=await empsR.json();
-        const allEmps=(empsD.documents||[]).map(doc=>({id:doc.name.split('/').pop(),...jsDoc(doc.fields||{})}));
-        emp=allEmps.find(e=>e.empCode===empPart);
-        if(!emp){ showAuthErr('كود الموظف غير صحيح'); return; }
-      }
+      // عضو فريق — يجب فتح رابط التسجيل من المدير
+      if(!window._lookupResult){ showAuthErr('افتح رابط التسجيل الذي أرسله لك المدير'); return; }
+      const emp=window._lookupResult.emp;
+      const adminUID=window._lookupResult.adminUID;
+      const orgId2=window._lookupResult.orgId||('org_'+adminUID);
+      const org={id:orgId2,adminUID};
       const user=await authRegister(em,ps);
       await authUpdateName(emp.name);
-      // حفظ البروفايل
-      await fsSet(profilePath(user.uid),{name:emp.name,email:em,role:emp.role||'employee',orgId:org.id,orgAdminUID:org.adminUID,myEmpId:emp.id,empCode:empPart,status:'pending',createdAt:new Date().toISOString()});
-      // إضافة للقائمة المعلقة
+      await fsSet(profilePath(user.uid),{name:emp.name,email:em,role:emp.role||'employee',orgId:org.id,orgAdminUID:org.adminUID,myEmpId:emp.id,empCode:emp.empCode||'',status:'pending',createdAt:new Date().toISOString()});
       await fsSet(`orgs/${org.id}/pendingMembers/${user.uid}`,{uid:user.uid,name:emp.name,email:em,role:emp.role||'employee',empId:emp.id,status:'pending',requestedAt:new Date().toISOString()});
       // أظهر شاشة الانتظار
       showPending({name:emp.name,email:em,role:emp.role||'employee'});
@@ -1309,73 +1383,7 @@ function pickRole(r){
   }
 }
 
-// ════════════════════════════════════════
-// CODE LOOKUP
-// ════════════════════════════════════════
-let _lookupT=null;
-function debounceCodeLookup(){ clearTimeout(_lookupT); _lookupT=setTimeout(doCodeLookup,700); }
-async function doCodeLookup(){
-  const full=(document.getElementById('su-full-code')?.value||'').trim().toUpperCase();
-  const ok=document.getElementById('lookup-ok');
-  const err=document.getElementById('lookup-err');
-  ok.style.display='none'; err.style.display='none';
-  if(full.length<8) return;
 
-  const codeInput=document.getElementById('su-full-code');
-  if(codeInput) codeInput.style.opacity='0.6';
-
-  try{
-    // الكود: orgPrefix-empCode (مثال: lRe-ABCD12)
-    const dash=full.indexOf('-');
-    if(dash<0){ if(codeInput) codeInput.style.opacity='1'; if(err) err.style.display='block'; return; }
-    const orgPart=full.slice(0,dash);   // أول 3 أحرف من adminUID
-    const empPart=full.slice(dash+1);   // empCode المخزون مع الموظف
-
-    // بحث في Firebase بـ empCode (collectionGroup)
-    const qBody={structuredQuery:{
-      from:[{collectionId:'employees',allDescendants:true}],
-      where:{fieldFilter:{field:{fieldPath:'empCode'},op:'EQUAL',value:{stringValue:empPart}}},
-      limit:10
-    }};
-    const qR=await fetch(
-      `https://firestore.googleapis.com/v1/projects/${FB.projectId}/databases/(default)/documents:runQuery?key=${FB.apiKey}`,
-      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(qBody)}
-    );
-    const qD=await qR.json();
-    console.log('🔍 Query result:', JSON.stringify(qD).slice(0,200));
-    const docs=(Array.isArray(qD)?qD:[]).filter(x=>x.document);
-    console.log('📦 Found docs:', docs.length, 'orgPart:', orgPart);
-    // ابحث عن الموظف الذي adminUID يبدأ بـ orgPart
-    // استخدم أول نتيجة مباشرة - empCode فريد بما يكفي
-    const empDoc=docs[0];
-    if(!empDoc){ if(codeInput) codeInput.style.opacity='1'; if(err) err.style.display='block'; return; }
-    const empId=empDoc.document.name.split('/').pop();
-    const emp={id:empId,...jsDoc(empDoc.document.fields||{})};
-    const adminUID=emp.adminUID||'';
-
-    // ✅ عرض معلومات الموظف
-    document.getElementById('lookup-name').textContent=emp.name||'';
-    document.getElementById('lookup-dept').textContent=(emp.dept||'')+(emp.phone?' · '+emp.phone:'');
-    document.getElementById('lookup-emoji').textContent=emp.emoji||'👤';
-    ok.style.display='block';
-
-    // تعبئة الاسم
-    const nameInput=document.getElementById('su-name');
-    const nameField=document.getElementById('su-name-field');
-    if(nameInput){ nameInput.value=emp.name||''; nameInput.readOnly=true; }
-    if(nameField) nameField.style.display='none';
-
-    const orgId=emp.orgId||('org_'+adminUID);
-    window._lookupResult={emp,adminUID,orgId,org:{id:orgId,adminUID}};
-    if(codeInput) codeInput.style.opacity='1';
-    setTimeout(()=>document.getElementById('su-email')?.focus(),300);
-
-  }catch(e){
-    console.warn('lookup error:',e);
-    if(codeInput) codeInput.style.opacity='1';
-    err.style.display='block';
-  }
-}
 
 // ════════════════════════════════════════
 // PENDING
@@ -1391,16 +1399,30 @@ function showPending(data){
 async function checkPending(){
   if(!_uid){ showToast('خطأ في الاتصال','err'); return; }
   try{
-    const profile=await fsGet(profilePath(_uid));
+    let profile=await fsGet(profilePath(_uid));
     if(!profile){ showToast('لا يوجد بيانات','err'); return; }
+    // لو ما تمت الموافقة بعد — تحقق من قائمة أعضاء المؤسسة مباشرة
+    if(profile.status!=='approved'){
+      const orgId=profile.orgId||('org_'+(profile.orgAdminUID||''));
+      if(orgId&&orgId!=='org_'){
+        try{
+          const org=await fsGet(`orgs/${orgId}`);
+          if(org?.members?.[_uid]){
+            // المدير وافق — الموظف يحدّث بروفايله بنفسه
+            await fsSet(profilePath(_uid),{status:'approved'},{merge:true}).catch(()=>{});
+            profile={...profile,status:'approved'};
+          }
+        }catch(_){}
+      }
+    }
     if(profile.status==='approved'){
       showToast('✅ تمت الموافقة! جاري الدخول...','ok');
       document.getElementById('pendingPage').classList.remove('active');
       setTimeout(()=>startApp(getSession()),1000);
     } else if(profile.status==='rejected'){
-      showToast('❌ تم رفض طلبك','err');
+      showToast('❌ تم رفض طلبك من المدير','err');
     } else {
-      showToast('⏳ لم تتم الموافقة بعد');
+      showToast('⏳ لم تتم الموافقة بعد — تواصل مع المدير');
     }
   }catch(e){ showToast('خطأ: '+e.message,'err'); }
 }
@@ -1428,7 +1450,20 @@ async function loadProfileAndData(ses){
       fsSet(`orgs/${orgId}`,{name:'مؤسسة',adminUID:_uid,adminName:ses.name||ses.email,inviteCode:orgCode,createdAt:new Date().toISOString(),members:{}}).catch(()=>{});
       fsSet(profilePath(_uid),{name:ses.name||ses.email||'',email:ses.email||'',role:'admin',orgId,orgCode,status:'approved',createdAt:new Date().toISOString()}).catch(()=>{});
     }
-    if(profile.status==='pending'){ showPending({name:profile.name,email:profile.email,role:profile.role}); return; }
+    if(profile.status==='pending'){
+      // تحقق من قائمة أعضاء المؤسسة — المدير قد وافق لكن الكتابة على ملف الموظف فشلت
+      try{
+        const orgId=profile.orgId||('org_'+(profile.orgAdminUID||''));
+        if(orgId&&orgId!=='org_'){
+          const org=await fsGet(`orgs/${orgId}`);
+          if(org?.members?.[_uid]){
+            await fsSet(profilePath(_uid),{status:'approved'},{merge:true}).catch(()=>{});
+            profile={...profile,status:'approved'};
+          }
+        }
+      }catch(_){}
+      if(profile.status==='pending'){ showPending({name:profile.name,email:profile.email,role:profile.role}); return; }
+    }
     if(profile.status==='rejected'){ showLogin(); showToast('طلبك مرفوض','err'); return; }
     S.role=profile.role||'admin';
     S.userName=profile.name||ses.name||ses.email||'';
@@ -1458,6 +1493,8 @@ async function loadProfileAndData(ses){
     }
     // تحميل الموظفين والحضور
     await loadData();
+    // تحميل الإعدادات من Firestore (تحديث اللوكال ستوريج)
+    fsGet(`users/${_uid}/config`).then(c=>{ if(c&&Object.keys(c).length){ S.cfg={...S.cfg,...c}; localStorage.setItem('shamikh_cfg',JSON.stringify(S.cfg)); } }).catch(()=>{});
   }catch(e){
     console.warn('startApp error:',e);
     // دخول بدون بيانات
@@ -1475,10 +1512,23 @@ async function loadData(){
   }catch(e){ S.employees=[]; }
   try{
     const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
-    const atts=await Promise.race([
-      fsQuery(attColPath(),[{field:'date',op:'>=',value:cutoff.toISOString().split('T')[0]}]),
-      T(6000)
-    ]);
+    const cutoffStr=cutoff.toISOString().split('T')[0];
+    let atts=null;
+    try{
+      atts=await Promise.race([
+        fsQuery(attColPath(),[{field:'date',op:'>=',value:cutoffStr}]),
+        T(6000)
+      ]);
+    }catch(_){ atts=[]; }
+    // للموظفين: إذا فشلت القراءة من مسار المدير، نقرأ من مسار المؤسسة
+    if((!atts||!atts.length)&&(S.role==='employee')&&S.orgId){
+      try{
+        atts=await Promise.race([
+          fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]),
+          T(6000)
+        ]);
+      }catch(_){ atts=[]; }
+    }
     S.attendance={};
     (atts||[]).forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
   }catch(e){ S.attendance={}; }
@@ -1723,6 +1773,12 @@ async function saveAtt(){
     await Promise.all(entries.map(([empId,data])=>
       fsSet(attDocPath(currentDay,empId),{date:currentDay,empId,status:data.status,note:data.note||''})
     ));
+    // نسخة مرآة في مسار المؤسسة ليتمكن الموظفون من القراءة
+    if(S.orgId){
+      entries.forEach(([empId,data])=>{
+        fsSet(`orgs/${S.orgId}/attendance/${currentDay}_${empId}`,{date:currentDay,empId,status:data.status,note:data.note||''}).catch(()=>{});
+      });
+    }
     showToast('✅ تم حفظ الحضور','ok');
     renderDash();
   }catch(e){ showToast('خطأ: '+e.message,'err'); }
@@ -1737,34 +1793,15 @@ function openEmpModal(editId){
   const e=isEdit?S.employees.find(x=>x.id===editId):{};
   document.getElementById('m-name').value=e?.name||'';
   document.getElementById('m-phone').value=e?.phone||'';
-  document.getElementById('m-dept').value=e?.dept||'إدارة';
+  // تعبئة قائمة الأقسام من الإعدادات
+  const deptSel=document.getElementById('m-dept');
+  const curDept=e?.dept||'إدارة';
+  const depts=getDepts();
+  const allDepts=depts.includes(curDept)?depts:[...depts,curDept];
+  deptSel.innerHTML=allDepts.map(d=>`<option${d===curDept?' selected':''}>${d}</option>`).join('');
   document.getElementById('m-rate').value=e?.rate||'';
   document.getElementById('m-edit-id').value=editId||'';
-  // عرض كود الموظف في التعديل
-  const codeWrap=document.getElementById('m-code-wrap');
-  const codeInp=document.getElementById('m-code');
-  if(isEdit){
-    if(e?.empCode){
-      codeInp.value=e.fullCode||(S.orgCode||'???')+'-'+e.empCode;
-      codeWrap.style.display='block';
-    } else {
-      // ولّد كود جديد للموظف القديم
-      const newCode=generateCode(6);
-      e.empCode=newCode;
-      const fc=generateEmpFullCode(_uid,e.id); e.fullCode=fc; codeInp.value=fc; fsSet(empDocPath(e.id),e).catch(console.warn);
-      codeWrap.style.display='block';
-      // احفظه تلقائياً
-      fsSet(empDocPath(e.id),e).catch(console.warn);
-    }
-  } else { codeWrap.style.display='none'; }
   document.getElementById('emp-modal').classList.add('active');
-}
-
-function copyCode(){
-  const val=document.getElementById('m-code').value;
-  const name=document.getElementById('m-name').value||'الموظف';
-  const txt=`كود الانضمام لـ ${name}:\n${val}\n\nادخل هذا الكود عند التسجيل في تطبيق شموخ`;
-  navigator.clipboard?.writeText(txt).then(()=>showToast('✅ تم النسخ','ok')).catch(()=>showToast('الكود: '+val,'ok'));
 }
 
 async function saveEmp(){
@@ -1789,24 +1826,16 @@ async function saveEmp(){
   } else {
     const ci=S.employees.length%COLORS.length;
     const empCode=generateCode(6);
-    const empId = 'e'+Date.now();
-    const fullCode = generateEmpFullCode(_uid, empId); // كود مشفر للتسجيل
+    const empId='e'+Date.now();
     const emp={
       id:empId,...data,
       color:COLORS[ci],emoji:EMOJIS[ci],
-      empCode, fullCode,
+      empCode,
       orgId:S.orgId||('org_'+_uid),
       adminUID:_uid
     };
     S.employees.push(emp);
     await fsSet(empDocPath(emp.id),emp);
-    // أظهر الكود
-    document.getElementById('m-code').value=(S.orgCode||'???')+'-'+empCode;
-    document.getElementById('m-code-wrap').style.display='block';
-    document.getElementById('emp-modal-title').textContent='✅ تم الحفظ — انسخ الكود';
-    renderEmps();
-    showToast('✅ تم إضافة الموظف','ok');
-    return; // لا تغلق الـ modal حتى ينسخ الكود
   }
   closeModal('emp-modal');
   renderEmps();
@@ -1824,15 +1853,6 @@ async function deleteEmp(id){
 function renderEmps(){
   const q=(document.getElementById('emp-search')?.value||'').toLowerCase();
   const isEmp=S.role==='employee';
-  // إظهار زر توليد الكودات لو في موظفين بدون كود
-  const genBar=document.getElementById('gen-codes-bar');
-  if(genBar){
-    const noCode=S.employees.filter(e=>!e.empCode);
-    genBar.style.display=(S.role==='admin'&&noCode.length>0)?'block':'none';
-    if(noCode.length>0){
-      genBar.querySelector('button').textContent=`🔢 توليد كود لـ ${noCode.length} موظف`;
-    }
-  }
   let list=isEmp&&S.myEmpId?S.employees.filter(e=>e.id===S.myEmpId):S.employees;
   if(q) list=list.filter(e=>e.name.toLowerCase().includes(q));
   const container=document.getElementById('emp-list');
@@ -1851,7 +1871,6 @@ function renderEmps(){
         <div style="flex:1;min-width:0">
           <div class="emp-name">${e.name}${isEmp?'<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--accent);padding:2px 6px;border-radius:6px;margin-right:6px">أنت</span>':''}</div>
           <div class="emp-info">${e.dept}${e.phone?' · '+e.phone:''}</div>
-          ${isAdmin&&e.empCode?`<div class="emp-code" onclick="copyEmpCode('${e.empCode}','${e.name}')"><span>${S.orgCode||'?'}-${e.empCode}</span><span style="font-size:10px;color:var(--muted)">📋</span></div>`:''}
         </div>
       </div>
       <div class="emp-stats">
@@ -1870,85 +1889,36 @@ function renderEmps(){
       </div>
       ${isAdmin?`<div class="emp-acts">
         <button class="ea ea-edit" onclick="openEmpModal('${e.id}')">✏️ تعديل</button>
+        <button class="ea" onclick="shareRegLink('${e.id}')" style="color:var(--blue);border-color:rgba(59,130,246,.3)">🔗 رابط التسجيل</button>
         <button class="ea ea-del" onclick="deleteEmp('${e.id}')">🗑️ حذف</button>
       </div>`:''}
     </div>`;
   }).join('');
-}
-
-async function genAllCodes(){
-  const noCode = S.employees.filter(e=>!e.empCode);
-  if(!noCode.length){ showToast('✅ كل الموظفين لديهم كود بالفعل','ok'); return; }
-  if(!confirm(`توليد كود لـ ${noCode.length} موظف؟`)) return;
-
-  let done=0;
-  for(const e of noCode){
-    const empCode = generateCode(6);
-    const fullCode = generateEmpFullCode(_uid, e.id);
-    e.empCode = empCode;
-    e.fullCode = fullCode;
-    e.adminUID = e.adminUID || _uid;
-    e.orgId = e.orgId || S.orgId || ('org_'+_uid);
-    try{
-      await fsSet(empDocPath(e.id), e);
-      done++;
-    }catch(err){ console.warn('Error saving emp code:',err); }
+  // قسم مصاريف الموظف وسجل الحضور
+  if(isEmp){ renderEmpExpenses(); renderEmpAttendance(); }
+  else {
+    const s=document.getElementById('emp-expenses-section'); if(s) s.style.display='none';
+    const a=document.getElementById('emp-att-section'); if(a) a.style.display='none';
   }
-  // تأكد إن inviteCode mapping محفوظ
-  if(S.orgId && S.orgCode){
-    try{ await fsSet(`inviteCodes/${S.orgCode}`,{orgId:S.orgId,adminUID:_uid,createdAt:new Date().toISOString()}); }catch(e){}
+}
+
+function shareRegLink(empId){
+  const e=S.employees.find(emp=>emp.id===empId);
+  if(!e){ showToast('لم يتم العثور على الموظف','err'); return; }
+  const orgCode=S.orgCode||_uid.slice(0,3).toUpperCase();
+  const d={id:e.id,name:e.name,dept:e.dept||'',phone:e.phone||'',emoji:e.emoji||'👤',empCode:e.empCode||'',orgCode,adminUID:_uid,orgId:S.orgId||('org_'+_uid)};
+  const encoded=btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+  const url=location.origin+location.pathname+'?reg='+encodeURIComponent(encoded);
+  const text=`رابط تسجيل ${e.name} في شموخ:\n${url}`;
+  if(navigator.share){
+    navigator.share({title:'انضم إلى فريق شموخ',text,url}).catch(()=>{
+      navigator.clipboard?.writeText(text).then(()=>showToast('✅ تم نسخ الرابط','ok')).catch(()=>{});
+    });
+  } else {
+    navigator.clipboard?.writeText(text)
+      .then(()=>showToast('✅ تم نسخ رابط التسجيل','ok'))
+      .catch(()=>showToast('انسخ: '+url,'ok'));
   }
-  renderEmps();
-  showToast(`✅ تم توليد كود لـ ${done} موظف`,'ok');
-  // أظهر تفاصيل الكودات
-  showCodesModal(noCode);
-}
-
-function showCodesModal(emps){
-  // إنشاء modal مؤقت يعرض الكودات
-  const existing = document.getElementById('codes-modal-temp');
-  if(existing) existing.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'codes-modal-temp';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:flex;align-items:flex-end;justify-content:center;padding:0;';
-  modal.innerHTML = `
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:22px;width:100%;max-height:80vh;overflow-y:auto;">
-      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;"></div>
-      <div style="font-size:16px;font-weight:800;color:var(--accent);margin-bottom:16px;">🔢 كودات الموظفين الجديدة</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">انسخ كل كود وأرسله للموظف المقابل</div>
-      ${emps.map(e=>`
-        <div style="background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:36px;height:36px;border-radius:9px;background:${e.color};display:flex;align-items:center;justify-content:center;font-size:16px;">${e.emoji}</div>
-            <div>
-              <div style="font-weight:700;font-size:13px">${e.name}</div>
-              <div style="font-size:11px;color:var(--muted)">${e.dept}</div>
-            </div>
-          </div>
-          <div style="text-align:left">
-            <div style="font-size:14px;font-weight:900;color:var(--accent);letter-spacing:2px">${S.orgCode||'?'}-${e.empCode}</div>
-            <button onclick="copyEmpCode('${e.empCode}','${e.name}')" 
-              style="font-size:10px;padding:3px 8px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:6px;color:var(--accent);font-family:Cairo,sans-serif;cursor:pointer;margin-top:3px;font-weight:700;">
-              📋 نسخ
-            </button>
-          </div>
-        </div>`).join('')}
-      <button onclick="document.getElementById('codes-modal-temp').remove()" 
-        style="width:100%;padding:13px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:Cairo,sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;">
-        ✔️ تم
-      </button>
-    </div>`;
-  document.body.appendChild(modal);
-  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
-}
-
-function copyEmpCode(fullCode,name){
-  const txt=`كود الانضمام لـ ${name}:
-${fullCode}
-
-ادخل هذا الكود في تطبيق شموخ عند التسجيل`;
-  navigator.clipboard?.writeText(txt).then(()=>showToast('✅ تم نسخ الكود','ok')).catch(()=>showToast('الكود: '+fullCode,'ok'));
 }
 
 // ════════════════════════════════════════
@@ -1987,19 +1957,28 @@ async function genReport(){
   const list=document.getElementById('rep-list');
   if(!emps.length){ empty.style.display='block'; list.innerHTML=''; return; }
 
-  // جلب بيانات الحضور من Firebase للفترة المطلوبة
+  // جلب بيانات الحضور والمدفوعات من Firebase
   showToast('⏳ جاري تحميل البيانات...');
+  let periodPayments=[];
   try{
-    const atts=await fsQuery(attColPath(),[
-      {field:'date',op:'>=',value:from},
-      {field:'date',op:'<=',value:to}
+    const [atts,fbPays]=await Promise.all([
+      fsQuery(attColPath(),[{field:'date',op:'>=',value:from},{field:'date',op:'<=',value:to}]),
+      (!GUEST&&_uid)?fsGetAll(`users/${_uid}/weeklyPayments`):Promise.resolve([])
     ]);
-    // دمج مع البيانات المحلية
     atts.forEach(r=>{
       if(!S.attendance[r.date]) S.attendance[r.date]={};
       S.attendance[r.date][r.empId]={status:r.status,note:r.note||''};
     });
-  }catch(e){ console.warn('Could not fetch attendance from server, using local data'); }
+    const allPays=fbPays.length?fbPays:JSON.parse(localStorage.getItem('shm_payments')||'[]');
+    periodPayments=allPays.filter(p=>p.date>=from&&p.date<=to);
+  }catch(e){
+    console.warn('Could not fetch from server, using local data');
+    const allPays=JSON.parse(localStorage.getItem('shm_payments')||'[]');
+    periodPayments=allPays.filter(p=>p.date>=from&&p.date<=to);
+  }
+
+  const PAY_LABEL={full:'كامل',partial:'جزئي',advance:'سلفة'};
+  _lastPeriodPayments=periodPayments; // للاستخدام في الطباعة
 
   empty.style.display='none';
   list.innerHTML=emps.map(e=>{
@@ -2012,13 +1991,55 @@ async function genReport(){
       else if(st==='absent') a++;
     });
     const tot=p+a, pct=tot>0?Math.round(p/tot*100):0, salary=p*e.rate;
+    const empPays=periodPayments.filter(pp=>pp.empId===e.id);
+    const totalPaid=empPays.reduce((s,pp)=>s+(parseFloat(pp.amount)||0),0);
+    const diff=salary-totalPaid; // موجب=متبقي، سالب=زيادة دفع
+    const fullyPaid=salary>0&&diff<=0;
+    const overPaid=diff<0;
+
+    const payHistHTML=empPays.length?`
+      <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+        ${empPays.map(pp=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:4px;">
+          <span style="color:var(--muted)">${pp.date} · <span style="background:rgba(59,130,246,.12);color:var(--blue);padding:1px 6px;border-radius:6px;font-weight:700">${PAY_LABEL[pp.type]||pp.type}</span>${pp.note?' · '+pp.note:''}</span>
+          <span style="font-weight:900;color:var(--blue)">${fmt(pp.amount)} ${cur}</span>
+        </div>`).join('')}
+      </div>`:'';
+
+    const remainingColor=overPaid?'var(--purple)':diff>0?'var(--red)':'var(--green)';
+    const remainingBg=overPaid?'rgba(139,92,246,.08)':diff>0?'rgba(239,68,68,.08)':'rgba(16,185,129,.08)';
+    const remainingLabel=overPaid?'زادت دفعة':diff>0?'المتبقي':'مكتمل';
+    const remainingVal=overPaid?'+ '+fmt(-diff):fmt(Math.max(0,diff));
+
+    const payStatsHTML=salary>0?`
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;">
+        <div style="background:rgba(16,185,129,.08);border-radius:9px;padding:8px;text-align:center;">
+          <div style="font-size:14px;font-weight:900;color:var(--green)">${fmt(salary)}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">المستحق</div>
+        </div>
+        <div style="background:rgba(59,130,246,.08);border-radius:9px;padding:8px;text-align:center;">
+          <div style="font-size:14px;font-weight:900;color:var(--blue)">${fmt(totalPaid)}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">المدفوع</div>
+        </div>
+        <div style="background:${remainingBg};border-radius:9px;padding:8px;text-align:center;">
+          <div style="font-size:14px;font-weight:900;color:${remainingColor}">${remainingVal}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">${remainingLabel}</div>
+        </div>
+      </div>
+      ${payHistHTML}`:'';
+
+    const btnRemaining=Math.max(0,diff);
     return `<div class="rep-card">
       <div class="rep-top">
         <div style="display:flex;align-items:center;gap:10px;">
           <div style="width:42px;height:42px;border-radius:11px;background:${e.color};display:flex;align-items:center;justify-content:center;font-size:19px">${e.emoji}</div>
           <div><div style="font-weight:800;font-size:14px">${e.name}</div><div style="font-size:11px;color:var(--muted)">${e.dept}</div></div>
         </div>
-        <div style="text-align:left"><div class="rep-salary">${fmt(salary)}</div><div style="font-size:10px;color:var(--muted)">${cur} مستحق</div></div>
+        <div style="text-align:left">
+          <div class="rep-salary">${fmt(salary)}</div>
+          <div style="font-size:10px;color:var(--muted)">${cur} مستحق</div>
+          ${fullyPaid&&!overPaid?'<div style="font-size:10px;font-weight:800;color:var(--green)">✅ مكتمل الدفع</div>':''}
+          ${overPaid?`<div style="font-size:10px;font-weight:800;color:var(--purple)">⚠️ زادت دفعة ${fmt(-diff)} ${cur}</div>`:''}
+        </div>
       </div>
       <div class="rep-boxes">
         <div class="rbox p"><div class="rbox-num">${p}</div><div class="rbox-lbl">✅ حاضر</div></div>
@@ -2026,7 +2047,8 @@ async function genReport(){
         <div class="rbox r"><div class="rbox-num">${pct}%</div><div class="rbox-lbl">📊 الالتزام</div></div>
       </div>
       <div class="prog"><div class="prog-fill" style="width:${pct}%"></div></div>
-      ${S.role==='admin'?`<div style="margin-top:10px"><button data-empid="${e.id}" data-salary="${salary}" data-from="${from}" data-to="${to}" onclick="openPayModal(this)" style="width:100%;padding:11px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:10px;color:#fff;font-family:Cairo,sans-serif;font-size:14px;font-weight:800;cursor:pointer">💰 دفع الراتب الأسبوعي</button></div>`:''}
+      ${payStatsHTML}
+      ${S.role==='admin'?`<div style="margin-top:10px"><button data-empid="${e.id}" data-salary="${salary}" data-paid="${totalPaid}" data-remaining="${btnRemaining}" data-from="${from}" data-to="${to}" onclick="openPayModal(this)" style="width:100%;padding:11px;background:${fullyPaid?'rgba(16,185,129,.15)':'linear-gradient(135deg,#10b981,#059669)'};border:${fullyPaid?'2px solid var(--green)':'none'};border-radius:10px;color:${fullyPaid?'var(--green)':'#fff'};font-family:Cairo,sans-serif;font-size:14px;font-weight:800;cursor:pointer">${fullyPaid?'✅ تسجيل دفعة إضافية':'💰 دفع الراتب الأسبوعي'}</button></div>`:''}
     </div>`;
   }).join('');
 }
@@ -2114,6 +2136,49 @@ function printReport(){
           </tr>
         </tfoot>
       </table>
+      ${(()=>{
+        const PAY_LBL={full:'كامل',partial:'جزئي',advance:'سلفة'};
+        const empPays=_lastPeriodPayments.filter(pp=>pp.empId===e.id);
+        if(!empPays.length) return '';
+        const totalPaid=empPays.reduce((s,pp)=>s+(parseFloat(pp.amount)||0),0);
+        const salary=p*rate;
+        const diff=salary-totalPaid;
+        const overPaid=diff<0;
+        const payRows=empPays.map(pp=>`<tr>
+          <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;color:#64748b">${pp.date}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;text-align:center">
+            <span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">${PAY_LBL[pp.type]||pp.type}</span>
+          </td>
+          <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:11px">${pp.note||'—'}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #e2e8f0;text-align:left;color:#2563eb;font-weight:700">${fmt(pp.amount)} ${cur}</td>
+        </tr>`).join('');
+        return `<div style="margin-top:14px;background:#f0fdf4;border-radius:10px;padding:12px;">
+          <div style="font-size:13px;font-weight:900;color:#065f46;margin-bottom:10px;">💰 سجل المدفوعات</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead><tr style="background:#dcfce7;">
+              <th style="padding:6px 10px;text-align:right;font-weight:800;color:#065f46;border-bottom:1px solid #bbf7d0;">التاريخ</th>
+              <th style="padding:6px 10px;text-align:center;font-weight:800;color:#065f46;border-bottom:1px solid #bbf7d0;">النوع</th>
+              <th style="padding:6px 10px;text-align:right;font-weight:800;color:#065f46;border-bottom:1px solid #bbf7d0;">ملاحظة</th>
+              <th style="padding:6px 10px;text-align:left;font-weight:800;color:#065f46;border-bottom:1px solid #bbf7d0;">المبلغ</th>
+            </tr></thead>
+            <tbody>${payRows}</tbody>
+          </table>
+          <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+            <div style="background:#dcfce7;border-radius:8px;padding:8px;">
+              <div style="font-size:15px;font-weight:900;color:#059669">${fmt(salary)}</div>
+              <div style="font-size:10px;color:#065f46">المستحق</div>
+            </div>
+            <div style="background:#dbeafe;border-radius:8px;padding:8px;">
+              <div style="font-size:15px;font-weight:900;color:#2563eb">${fmt(totalPaid)}</div>
+              <div style="font-size:10px;color:#1e3a8a">المدفوع</div>
+            </div>
+            <div style="background:${overPaid?'#ede9fe':diff>0?'#fee2e2':'#dcfce7'};border-radius:8px;padding:8px;">
+              <div style="font-size:15px;font-weight:900;color:${overPaid?'#7c3aed':diff>0?'#dc2626':'#059669'}">${overPaid?'+ '+fmt(-diff):fmt(Math.max(0,diff))}</div>
+              <div style="font-size:10px;color:${overPaid?'#4c1d95':diff>0?'#7f1d1d':'#065f46'}">${overPaid?'زادت دفعة':diff>0?'المتبقي':'مكتمل ✅'}</div>
+            </div>
+          </div>
+        </div>`;
+      })()}
     </div>`;
   });
   const win=window.open('','_blank');
@@ -2157,7 +2222,7 @@ function exportCSV(){
 // SETTINGS
 // ════════════════════════════════════════
 function renderSettings(){
-  initNotifications(); // تحميل إعدادات الإشعارات
+  initNotifications();
   // org panel
   const op=document.getElementById('org-panel');
   if(S.role==='admin'&&S.orgCode){
@@ -2166,6 +2231,16 @@ function renderSettings(){
     loadPendingMembers();
     loadOrgMembers();
   } else { op.style.display='none'; }
+  // اسم المؤسسة
+  const on=document.getElementById('set-orgname');
+  if(on) on.value=S.cfg.orgName||'';
+  // العملة
+  const sc=document.getElementById('set-cur');
+  if(sc) sc.value=S.cfg.cur||'د.أ';
+  // أقسام الموظفين (للمدير فقط)
+  const dp=document.getElementById('depts-panel');
+  if(dp) dp.style.display=S.role==='admin'?'block':'none';
+  renderDeptChips();
 }
 
 async function loadPendingMembers(){
@@ -2244,7 +2319,44 @@ async function refreshOrgCode(){
 
 function saveCfg(){
   S.cfg.cur=document.getElementById('set-cur')?.value||'د.أ';
+  const on=document.getElementById('set-orgname');
+  if(on) S.cfg.orgName=on.value.trim()||'';
   localStorage.setItem('shamikh_cfg',JSON.stringify(S.cfg));
+  // حفظ في Firestore في الخلفية
+  if(_uid&&!GUEST) fsSet(`users/${_uid}/config`,S.cfg,{merge:true}).catch(()=>{});
+}
+
+const DEFAULT_DEPTS=['إدارة','تشغيل','مبيعات','محاسبة','تقنية','أخرى'];
+function getDepts(){ return S.cfg.depts&&S.cfg.depts.length?S.cfg.depts:[...DEFAULT_DEPTS]; }
+
+function renderDeptChips(){
+  const el=document.getElementById('dept-chips');
+  if(!el) return;
+  const depts=getDepts();
+  const locked=new Set(DEFAULT_DEPTS);
+  el.innerHTML=depts.map(d=>`
+    <span class="dept-chip">${d}${!locked.has(d)?`<span class="rm" onclick="removeDept('${d.replace(/'/g,"\\'")}')" title="حذف">×</span>`:''}</span>
+  `).join('');
+}
+
+function addDept(){
+  const inp=document.getElementById('new-dept-inp');
+  const val=(inp?.value||'').trim();
+  if(!val){ showToast('أدخل اسم القسم','err'); return; }
+  if(!S.cfg.depts) S.cfg.depts=[...DEFAULT_DEPTS];
+  if(S.cfg.depts.includes(val)){ showToast('القسم موجود مسبقاً','err'); return; }
+  S.cfg.depts.push(val);
+  inp.value='';
+  saveCfg();
+  renderDeptChips();
+  showToast('✅ تم إضافة القسم','ok');
+}
+
+function removeDept(d){
+  if(!S.cfg.depts) return;
+  S.cfg.depts=S.cfg.depts.filter(x=>x!==d);
+  saveCfg();
+  renderDeptChips();
 }
 
 function setTheme(color){
@@ -2481,7 +2593,7 @@ document.addEventListener('visibilitychange',()=>{
 // ══════════════════════════════════════════
 // PROJECTS — العهدة والحاسبة والنثرية
 // ══════════════════════════════════════════
-let ASSETS=[], CASH=[];
+let ASSETS=[], CASH=[], _lastPeriodPayments=[];
 
 function switchPTab(tab){
   if(GUEST){ showToast('غير متاح في وضع الضيف','err'); return; }
@@ -2756,6 +2868,7 @@ async function renderCash(){
       </div>
       <button onclick="deleteCash('${c.id}')" style="padding:6px 10px;border:none;border-radius:8px;background:rgba(239,68,68,.1);color:var(--red);cursor:pointer;font-size:13px;flex-shrink:0">🗑️</button>
     </div>`).join('');
+  renderEmpSubmissions();
 }
 
 // projects tab handled in showPage above
@@ -2876,6 +2989,167 @@ function goToLogin(){
 }
 
 // ════════════════════════════════════════
+// EMPLOYEE EXPENSES
+// ════════════════════════════════════════
+const EMP_EXP_KEY='shm_emp_exp';
+const EE_CAT_ICO={materials:'📦',transport:'🚗',tools:'🔧',other:'📝'};
+const EE_STATUS={pending:'⏳ بانتظار الموافقة',approved:'✅ مقبول',rejected:'❌ مرفوض'};
+const EE_STATUS_CLR={pending:'var(--accent)',approved:'var(--green)',rejected:'var(--red)'};
+
+function empExpPath(){ return S.orgId?`orgs/${S.orgId}/empExpenses`:null; }
+
+function openEmpExpenseModal(){
+  document.getElementById('ee-desc').value='';
+  document.getElementById('ee-amt').value='';
+  document.getElementById('ee-date').value=todayStr();
+  document.getElementById('ee-cat').value='materials';
+  document.getElementById('ee-note').value='';
+  document.getElementById('emp-expense-modal').classList.add('active');
+}
+
+async function saveEmpExpense(){
+  const desc=document.getElementById('ee-desc').value.trim();
+  const amt=parseFloat(document.getElementById('ee-amt').value)||0;
+  if(!desc){ showToast('أدخل وصف المصروف','err'); return; }
+  if(!amt||amt<=0){ showToast('أدخل مبلغاً صحيحاً','err'); return; }
+  const sess=lsGet(LS_KEY)||{};
+  const data={
+    id:'eexp'+Date.now(),
+    empId:S.myEmpId||_uid,
+    empName:sess.name||S.name||'موظف',
+    desc, amt,
+    date:document.getElementById('ee-date').value||todayStr(),
+    cat:document.getElementById('ee-cat').value,
+    note:document.getElementById('ee-note').value.trim(),
+    status:'pending',
+    createdAt:new Date().toISOString()
+  };
+  try{ const a=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]'); a.push(data); localStorage.setItem(EMP_EXP_KEY,JSON.stringify(a)); }catch(e){}
+  const path=empExpPath();
+  if(!GUEST&&_uid&&path) await fsSet(`${path}/${data.id}`,data).catch(()=>{});
+  closeModal('emp-expense-modal');
+  renderEmpExpenses();
+  showToast('✅ تم إرسال المصروف للمدير','ok');
+}
+
+async function renderEmpExpenses(){
+  const section=document.getElementById('emp-expenses-section');
+  if(!section||S.role!=='employee') return;
+  section.style.display='block';
+  let exps=[];
+  const myId=S.myEmpId||_uid;
+  const path=empExpPath();
+  if(!GUEST&&_uid&&path){
+    try{
+      const all=await fsGetAll(path);
+      exps=all.filter(e=>e.empId===myId);
+      if(!exps.length) exps=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(e=>e.empId===myId);
+    }catch(e){ exps=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(e=>e.empId===myId); }
+  } else {
+    exps=JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(e=>e.empId===myId);
+  }
+  const list=document.getElementById('emp-exp-list');
+  const empty=document.getElementById('emp-exp-empty');
+  const cur=getCur();
+  if(!exps.length){ list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  const sorted=[...exps].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  list.innerHTML=sorted.map(e=>`
+    <div class="cash-card">
+      <div style="font-size:22px">${EE_CAT_ICO[e.cat]||'📝'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:13px">${e.desc}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${e.date}</div>
+        ${e.note?`<div style="font-size:10px;color:var(--muted)">📝 ${e.note}</div>`:''}
+        <div style="font-size:11px;font-weight:800;color:${EE_STATUS_CLR[e.status]||'var(--muted)'};margin-top:4px">${EE_STATUS[e.status]||e.status}</div>
+      </div>
+      <div style="text-align:left;flex-shrink:0">
+        <div style="font-size:16px;font-weight:900;color:var(--red)">${fmt(e.amt)}</div>
+        <div style="font-size:9px;color:var(--muted)">${cur}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderEmpAttendance(){
+  const section=document.getElementById('emp-att-section');
+  if(!section||S.role!=='employee') return;
+  section.style.display='block';
+  const myId=S.myEmpId;
+  const list=document.getElementById('emp-att-list');
+  const empty=document.getElementById('emp-att-empty');
+  // جمع كل التواريخ التي يوجد فيها سجل للموظف
+  const records=[];
+  for(const ds in S.attendance){
+    const rec=S.attendance[ds][myId];
+    if(rec&&rec.status) records.push({date:ds,status:rec.status,note:rec.note||''});
+  }
+  if(!records.length){ list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  records.sort((a,b)=>b.date.localeCompare(a.date));
+  const STATUS_ICO={present:'✅',absent:'❌',leave:'🏖️',late:'⏰'};
+  const STATUS_LBL={present:'حاضر',absent:'غائب',leave:'إجازة',late:'متأخر'};
+  const STATUS_CLR={present:'var(--green)',absent:'var(--red)',leave:'var(--blue)',late:'var(--accent)'};
+  list.innerHTML=records.map(r=>{
+    const dt=new Date(r.date+'T00:00:00');
+    const dayName=dt.toLocaleDateString('ar-SA',{weekday:'short'});
+    const dateStr=dt.toLocaleDateString('ar-SA',{day:'numeric',month:'short'});
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border-radius:10px;margin-bottom:6px;border:1px solid var(--border)">
+      <div style="font-size:22px">${STATUS_ICO[r.status]||'📌'}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700">${dayName} ${dateStr}</div>
+        ${r.note?`<div style="font-size:10px;color:var(--muted);margin-top:2px">📝 ${r.note}</div>`:''}
+      </div>
+      <div style="font-size:12px;font-weight:800;color:${STATUS_CLR[r.status]||'var(--muted)'}">${STATUS_LBL[r.status]||r.status}</div>
+    </div>`;
+  }).join('');
+}
+
+async function renderEmpSubmissions(){
+  if(S.role!=='admin') return;
+  const section=document.getElementById('emp-submissions-section');
+  if(!section) return;
+  section.style.display='block';
+  let exps=[];
+  const path=empExpPath();
+  if(!GUEST&&_uid&&path){ try{ exps=await fsGetAll(path); }catch(e){} }
+  const list=document.getElementById('emp-submissions-list');
+  const empty=document.getElementById('emp-submissions-empty');
+  const cur=getCur();
+  if(!exps.length){ list.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  const sorted=[...exps].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  list.innerHTML=sorted.map(e=>`
+    <div class="cash-card" style="${e.status==='pending'?'border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.04)':''}">
+      <div style="font-size:22px">${EE_CAT_ICO[e.cat]||'📝'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:13px">${e.desc}</div>
+        <div style="font-size:11px;font-weight:700;color:var(--blue);margin-top:2px">👤 ${e.empName}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:1px">${e.date}${e.note?' · '+e.note:''}</div>
+        ${e.status==='pending'?`<div style="display:flex;gap:6px;margin-top:7px">
+          <button onclick="approveEmpExpense('${e.id}')" style="padding:5px 12px;border:none;border-radius:8px;background:rgba(16,185,129,.15);color:var(--green);font-family:Cairo,sans-serif;font-size:12px;font-weight:800;cursor:pointer">✅ قبول</button>
+          <button onclick="rejectEmpExpense('${e.id}')" style="padding:5px 12px;border:none;border-radius:8px;background:rgba(239,68,68,.1);color:var(--red);font-family:Cairo,sans-serif;font-size:12px;font-weight:800;cursor:pointer">❌ رفض</button>
+        </div>`:`<div style="font-size:11px;font-weight:800;color:${EE_STATUS_CLR[e.status]||'var(--muted)'};margin-top:4px">${EE_STATUS[e.status]||e.status}</div>`}
+      </div>
+      <div style="text-align:left;flex-shrink:0">
+        <div style="font-size:16px;font-weight:900;color:var(--red)">${fmt(e.amt)}</div>
+        <div style="font-size:9px;color:var(--muted)">${cur}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function approveEmpExpense(id){
+  const path=empExpPath();
+  if(path) await fsSet(`${path}/${id}`,{status:'approved'},true).catch(()=>{});
+  showToast('✅ تم قبول المصروف','ok'); renderEmpSubmissions();
+}
+
+async function rejectEmpExpense(id){
+  const path=empExpPath();
+  if(path) await fsSet(`${path}/${id}`,{status:'rejected'},true).catch(()=>{});
+  showToast('تم رفض المصروف'); renderEmpSubmissions();
+}
+
+// ════════════════════════════════════════
 // WEEKLY PAYMENT
 // ════════════════════════════════════════
 let _payCtx = {};
@@ -2883,13 +3157,23 @@ let _payCtx = {};
 function openPayModal(btn) {
   const empId = btn.dataset.empid;
   const salary = parseFloat(btn.dataset.salary) || 0;
+  const paid = parseFloat(btn.dataset.paid) || 0;
+  const remaining = parseFloat(btn.dataset.remaining) ?? salary;
   const from = btn.dataset.from;
   const to = btn.dataset.to;
   const emp = S.employees.find(e => e.id === empId);
   const empName = emp?.name || '';
-  _payCtx = { empId, empName, salary, from, to, type: null, amount: salary };
+  const cur = getCur();
+  _payCtx = { empId, empName, salary, paid, remaining, from, to, type: null, amount: remaining };
   document.getElementById('pay-title').textContent = `💰 دفع — ${empName}`;
-  document.getElementById('pay-salary-info').textContent = `الراتب المستحق: ${fmt(salary)} ${getCur()}`;
+  const infoEl = document.getElementById('pay-salary-info');
+  infoEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;">
+      <div><div style="font-size:16px;font-weight:900;color:var(--green)">${fmt(salary)}</div><div style="font-size:10px;color:var(--muted)">المستحق</div></div>
+      <div><div style="font-size:16px;font-weight:900;color:var(--blue)">${fmt(paid)}</div><div style="font-size:10px;color:var(--muted)">المدفوع</div></div>
+      <div><div style="font-size:16px;font-weight:900;color:${remaining>0?'var(--red)':'var(--green)'}">${fmt(remaining)}</div><div style="font-size:10px;color:var(--muted)">المتبقي</div></div>
+    </div>`;
+  document.getElementById('ptype-full').textContent = `💵 دفع كامل المتبقي — ${fmt(remaining)} ${cur}`;
   document.getElementById('pay-amount-wrap').style.display = 'none';
   document.getElementById('pay-custom-amt').value = '';
   document.getElementById('pay-note-input').value = '';
@@ -2909,7 +3193,7 @@ function selectPayType(type) {
     if(t === type){ b.style.background='var(--accent)'; b.style.color='#0a0f1a'; b.style.borderColor='var(--accent)'; }
     else { b.style.background='var(--surface)'; b.style.color='var(--text)'; b.style.borderColor='var(--border)'; }
   });
-  if(type === 'full'){ document.getElementById('pay-amount-wrap').style.display='none'; _payCtx.amount=_payCtx.salary; }
+  if(type === 'full'){ document.getElementById('pay-amount-wrap').style.display='none'; _payCtx.amount=_payCtx.remaining; }
   else { document.getElementById('pay-amount-wrap').style.display='block'; document.getElementById('pay-custom-amt').value=''; }
 }
 
