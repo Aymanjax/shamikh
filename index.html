@@ -1369,33 +1369,51 @@ async function doCodeLookup(){
   if(codeInput) codeInput.style.opacity='0.6';
 
   try{
-    // الكود: orgPrefix-empCode (مثال: lRe-ABCD12)
     const dash=full.indexOf('-');
     if(dash<0){ if(codeInput) codeInput.style.opacity='1'; if(err) err.style.display='block'; return; }
-    const orgPart=full.slice(0,dash);   // أول 3 أحرف من adminUID
-    const empPart=full.slice(dash+1);   // empCode المخزون مع الموظف
 
-    // بحث في Firebase بـ empCode (collectionGroup)
-    const qBody={structuredQuery:{
-      from:[{collectionId:'employees',allDescendants:true}],
-      where:{fieldFilter:{field:{fieldPath:'empCode'},op:'EQUAL',value:{stringValue:empPart}}},
-      limit:10
-    }};
-    const qR=await fetch(
-      `https://firestore.googleapis.com/v1/projects/${FB.projectId}/databases/(default)/documents:runQuery?key=${FB.apiKey}`,
-      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(qBody)}
-    );
-    const qD=await qR.json();
-    console.log('🔍 Query result:', JSON.stringify(qD).slice(0,200));
-    const docs=(Array.isArray(qD)?qD:[]).filter(x=>x.document);
-    console.log('📦 Found docs:', docs.length, 'orgPart:', orgPart);
-    // ابحث عن الموظف الذي adminUID يبدأ بـ orgPart
-    // استخدم أول نتيجة مباشرة - empCode فريد بما يكفي
-    const empDoc=docs[0];
-    if(!empDoc){ if(codeInput) codeInput.style.opacity='1'; if(err) err.style.display='block'; return; }
-    const empId=empDoc.document.name.split('/').pop();
-    const emp={id:empId,...jsDoc(empDoc.document.fields||{})};
-    const adminUID=emp.adminUID||'';
+    // ── الطريقة الأولى: قراءة مباشرة من inviteCodes/{fullCode} ──
+    let emp=null, adminUID='', orgId='';
+    const invR=await fetch(`${FS_URL}/inviteCodes/${encodeURIComponent(full)}?key=${FB.apiKey}`);
+    if(invR.ok){
+      const invD=await invR.json();
+      const inv=jsDoc(invD.fields||{});
+      if(inv.empId){
+        adminUID=inv.adminUID||'';
+        orgId=inv.orgId||('org_'+adminUID);
+        emp={
+          id:inv.empId, name:inv.empName||'', dept:inv.empDept||'',
+          phone:inv.empPhone||'', emoji:inv.empEmoji||'👤',
+          empCode:full.slice(dash+1), orgId, adminUID
+        };
+      }
+    }
+
+    // ── الطريقة الثانية (احتياطية): collectionGroup query ──
+    if(!emp){
+      const empPart=full.slice(dash+1);
+      const qBody={structuredQuery:{
+        from:[{collectionId:'employees',allDescendants:true}],
+        where:{fieldFilter:{field:{fieldPath:'empCode'},op:'EQUAL',value:{stringValue:empPart}}},
+        limit:5
+      }};
+      try{
+        const qR=await fetch(
+          `https://firestore.googleapis.com/v1/projects/${FB.projectId}/databases/(default)/documents:runQuery?key=${FB.apiKey}`,
+          {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(qBody)}
+        );
+        const qD=await qR.json();
+        const docs=(Array.isArray(qD)?qD:[]).filter(x=>x.document);
+        if(docs[0]){
+          const empId=docs[0].document.name.split('/').pop();
+          emp={id:empId,...jsDoc(docs[0].document.fields||{})};
+          adminUID=emp.adminUID||'';
+          orgId=emp.orgId||('org_'+adminUID);
+        }
+      }catch(_){}
+    }
+
+    if(!emp){ if(codeInput) codeInput.style.opacity='1'; if(err) err.style.display='block'; return; }
 
     // ✅ عرض معلومات الموظف
     document.getElementById('lookup-name').textContent=emp.name||'';
@@ -1403,13 +1421,11 @@ async function doCodeLookup(){
     document.getElementById('lookup-emoji').textContent=emp.emoji||'👤';
     ok.style.display='block';
 
-    // تعبئة الاسم
     const nameInput=document.getElementById('su-name');
     const nameField=document.getElementById('su-name-field');
     if(nameInput){ nameInput.value=emp.name||''; nameInput.readOnly=true; }
     if(nameField) nameField.style.display='none';
 
-    const orgId=emp.orgId||('org_'+adminUID);
     window._lookupResult={emp,adminUID,orgId,org:{id:orgId,adminUID}};
     if(codeInput) codeInput.style.opacity='1';
     setTimeout(()=>document.getElementById('su-email')?.focus(),300);
@@ -1844,6 +1860,13 @@ async function saveEmp(){
     };
     S.employees.push(emp);
     await fsSet(empDocPath(emp.id),emp);
+    // حفظ مفتاح البحث في inviteCodes للتسجيل بدون auth
+    const lookupKey=(S.orgCode||_uid.slice(0,3).toUpperCase())+'-'+empCode;
+    fsSet(`inviteCodes/${lookupKey}`,{
+      empId:emp.id, empName:emp.name, empDept:emp.dept,
+      empPhone:emp.phone||'', empEmoji:emp.emoji,
+      orgId:emp.orgId, adminUID:_uid, orgCode:S.orgCode||''
+    }).catch(()=>{});
     // أظهر الكود
     document.getElementById('m-code').value=(S.orgCode||'???')+'-'+empCode;
     document.getElementById('m-code-wrap').style.display='block';
@@ -1938,6 +1961,13 @@ async function genAllCodes(){
     e.orgId = e.orgId || S.orgId || ('org_'+_uid);
     try{
       await fsSet(empDocPath(e.id), e);
+      // حفظ مفتاح البحث في inviteCodes
+      const lk=(S.orgCode||_uid.slice(0,3).toUpperCase())+'-'+empCode;
+      await fsSet(`inviteCodes/${lk}`,{
+        empId:e.id, empName:e.name, empDept:e.dept,
+        empPhone:e.phone||'', empEmoji:e.emoji||'👤',
+        orgId:e.orgId, adminUID:_uid, orgCode:S.orgCode||''
+      }).catch(()=>{});
       done++;
     }catch(err){ console.warn('Error saving emp code:',err); }
   }
