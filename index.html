@@ -1804,17 +1804,22 @@ function openEmpModal(editId){
   const codeWrap=document.getElementById('m-code-wrap');
   const codeInp=document.getElementById('m-code');
   if(isEdit){
+    const orgCode=S.orgCode||_uid.slice(0,3).toUpperCase();
     if(e?.empCode){
-      codeInp.value=e.fullCode||(S.orgCode||'???')+'-'+e.empCode;
+      // اعرض الكود الصحيح بالصيغة orgCode-empCode
+      codeInp.value=orgCode+'-'+e.empCode;
       codeWrap.style.display='block';
     } else {
       // ولّد كود جديد للموظف القديم
       const newCode=generateCode(6);
       e.empCode=newCode;
-      const fc=generateEmpFullCode(_uid,e.id); e.fullCode=fc; codeInp.value=fc; fsSet(empDocPath(e.id),e).catch(console.warn);
+      e.adminUID=e.adminUID||_uid;
+      e.orgId=e.orgId||S.orgId||('org_'+_uid);
+      codeInp.value=orgCode+'-'+newCode;
       codeWrap.style.display='block';
-      // احفظه تلقائياً
-      fsSet(empDocPath(e.id),e).catch(console.warn);
+      const lk=orgCode+'-'+newCode;
+      fsSet(empDocPath(e.id),e).catch(()=>{});
+      fsSet(`inviteCodes/${lk}`,{empId:e.id,empName:e.name,empDept:e.dept||'',empPhone:e.phone||'',empEmoji:e.emoji||'👤',orgId:e.orgId,adminUID:_uid,orgCode}).catch(()=>{});
     }
   } else { codeWrap.style.display='none'; }
   document.getElementById('emp-modal').classList.add('active');
