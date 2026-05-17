@@ -1572,6 +1572,8 @@ function showAppFast(ses){
 }
 
 function showApp(){
+  // تنظيف رابط التسجيل من الـURL بعد تسجيل الدخول
+  if(location.search.includes('reg=')) history.replaceState(null,'',location.pathname);
   document.getElementById('loginPage').classList.remove('active');
   document.getElementById('app').classList.add('active');
   document.getElementById('bnav').style.display='flex';
@@ -1642,7 +1644,7 @@ function showPage(id){
   if(btn){ btn.classList.add('on'); moveInd(btn); }
   closeMore();
   if(id==='dashboard') renderDash();
-  if(id==='attendance') renderAtt();
+  if(id==='attendance'){ if(S.role==='employee') reloadEmpAtt().then(()=>renderAtt()); else renderAtt(); }
   if(id==='employees') renderEmps();
   if(id==='reports') populateRepSel();
   if(id==='settings') renderSettings();
@@ -1737,6 +1739,32 @@ function changeDay(d){
   renderAtt();
 }
 function setDay(v){ currentDay=v; updateAttLabel(); renderAtt(); }
+
+async function reloadEmpAtt(){
+  if(S.role!=='employee'||GUEST||!_uid) return;
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
+  const cutoffStr=cutoff.toISOString().split('T')[0];
+  let loaded=false;
+  // محاولة 1: مسار المدير مباشرة
+  if(S.orgAdminUID){
+    try{
+      const atts=await fsQuery(`users/${S.orgAdminUID}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
+      if(atts&&atts.length){
+        atts.forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
+        loaded=true;
+      }
+    }catch(_){}
+  }
+  // محاولة 2: مسار المؤسسة
+  if(!loaded&&S.orgId){
+    try{
+      const atts=await fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
+      if(atts&&atts.length){
+        atts.forEach(r=>{ if(!S.attendance[r.date]) S.attendance[r.date]={}; S.attendance[r.date][r.empId]={status:r.status,note:r.note||''}; });
+      }
+    }catch(_){}
+  }
+}
 
 function renderAtt(){
   if(!S.attendance[currentDay]) S.attendance[currentDay]={};
