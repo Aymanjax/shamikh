@@ -1981,18 +1981,37 @@ async function renderSelfView(){
     return;
   }
 
-  // قراءة وثيقة الموظف مباشرة — مضمونة القراءة
+  // قراءة وثيقة الموظف — مضمونة القراءة
   let empDoc=null;
   try{ empDoc=await fsGet(`users/${adminUID}/employees/${myId}`); }catch(_){}
   if(!empDoc) empDoc=S.employees.find(x=>x.id===myId)||{};
 
-  // استخراج الحضور من حقول att_*
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
   const cutoffStr=cutoff.toISOString().split('T')[0];
+
+  // مصدر 1: حقول att_* داخل وثيقة الموظف (الأسرع)
   const attRecords=[];
   Object.entries(empDoc).forEach(([k,v])=>{
     if(k.startsWith('att_')){ const date=k.replace('att_',''); if(date>=cutoffStr) attRecords.push({date,status:v}); }
   });
+
+  // مصدر 2 (fallback): مسار المؤسسة — لو att_* ما كُتبت بعد
+  if(!attRecords.length&&S.orgId){
+    try{
+      const atts=await fsQuery(`orgs/${S.orgId}/attendance`,[{field:'date',op:'>=',value:cutoffStr}]);
+      (atts||[]).filter(r=>r.empId===myId).forEach(r=>attRecords.push({date:r.date,status:r.status}));
+    }catch(_){}
+  }
+
+  // مصدر 3 (fallback نهائي): S.attendance المحمّل مسبقاً
+  if(!attRecords.length){
+    for(const ds in S.attendance){
+      if(ds<cutoffStr) continue;
+      const st=(S.attendance[ds][myId]||{}).status;
+      if(st) attRecords.push({date:ds,status:st});
+    }
+  }
+
   attRecords.sort((a,b)=>b.date.localeCompare(a.date));
 
   // إحصائيات الشهر الحالي
@@ -2000,20 +2019,23 @@ async function renderSelfView(){
   let pd=0,ab=0,grossSalary=0;
   attRecords.forEach(r=>{ const d=new Date(r.date+'T00:00:00'); if(d.getFullYear()===y&&d.getMonth()===m){ if(r.status==='present'){pd++;grossSalary+=parseFloat(empDoc.rate)||0;} if(r.status==='absent')ab++; } });
 
-  // المصاريف المعتمدة
+  // المصاريف — نبحث بـ myEmpId وبـ _uid (لأن بعض المصاريف حُفظت قبل ربط الحساب)
   let approvedExp=0;
   let allExps=[];
   const expPath=empExpPath();
   if(!GUEST&&_uid&&expPath){
-    try{
-      allExps=await fsGetAll(expPath);
-      allExps.filter(x=>x.empId===myId&&x.status==='approved').forEach(x=>{
-        const xd=new Date((x.date||'')+'T00:00:00');
-        if(xd.getFullYear()===y&&xd.getMonth()===m) approvedExp+=parseFloat(x.amt)||0;
-      });
-    }catch(_){}
+    try{ allExps=await fsGetAll(expPath); }catch(_){}
   }
-  const myExps=[...allExps.filter(x=>x.empId===myId),...JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(x=>x.empId===myId&&!allExps.find(a=>a.id===x.id))].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  const empIds=new Set([myId,_uid].filter(Boolean));
+  const myExps=[
+    ...allExps.filter(x=>empIds.has(x.empId)),
+    ...JSON.parse(localStorage.getItem(EMP_EXP_KEY)||'[]').filter(x=>empIds.has(x.empId)&&!allExps.find(a=>a.id===x.id))
+  ].sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  myExps.filter(x=>x.status==='approved').forEach(x=>{
+    const xd=new Date((x.date||'')+'T00:00:00');
+    if(xd.getFullYear()===y&&xd.getMonth()===m) approvedExp+=parseFloat(x.amt)||0;
+  });
+
   const netSalary=grossSalary+approvedExp;
   const cur=getCur();
   const monthName=now.toLocaleDateString('ar-SA',{month:'long'});
@@ -2025,7 +2047,6 @@ async function renderSelfView(){
   const SLBL={pending:'⏳ بانتظار الموافقة',approved:'✅ مقبول',rejected:'❌ مرفوض'};
 
   view.innerHTML=`
-    <!-- بطاقة الهوية والإحصائيات -->
     <div class="self-hero">
       <div class="self-ava" style="background:${color}">${emoji}</div>
       <div style="flex:1;min-width:0">
@@ -2045,8 +2066,6 @@ async function renderSelfView(){
       <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;color:var(--green)">+ مصاريف معتمدة</span><span style="font-size:13px;font-weight:800;color:var(--green)">${fmt(approvedExp)} ${cur}</span></div>
       <div style="border-top:1px solid rgba(16,185,129,.2);padding-top:8px;display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:900">إجمالي مستحق</span><span style="font-size:16px;font-weight:900;color:var(--green)">${fmt(netSalary)} ${cur}</span></div>
     </div>`:''}
-
-    <!-- سجل الحضور -->
     <div style="margin-top:18px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div style="font-size:15px;font-weight:900;color:var(--text)">📅 سجل الحضور</div>
@@ -2057,8 +2076,6 @@ async function renderSelfView(){
       </div>
       <div id="sv-att-list"></div>
     </div>
-
-    <!-- مصاريفي -->
     <div style="margin-top:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div style="font-size:15px;font-weight:900;color:var(--text)">💸 مصاريفي</div>
