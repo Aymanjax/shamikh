@@ -1474,6 +1474,10 @@ async function loadProfileAndData(ses){
     S.orgAdminUID=profile.orgAdminUID||null;
     S.myEmpId=profile.myEmpId||null;
     S.saveUID=S.role==='admin'?_uid:(S.orgAdminUID||_uid);
+    // الموظف يسجل UID نفسه فوراً — يمكّن المدير من كتابة الحضور لمساره الشخصي لاحقاً
+    if((S.role==='employee')&&S.orgId&&S.myEmpId&&_uid){
+      fsSet(`orgs/${S.orgId}/memberUIDs/${S.myEmpId}`,{uid:_uid,empId:S.myEmpId}).catch(()=>{});
+    }
 
     // لو المدير ما عنده orgCode أو orgId - ولّد له تلقائياً
     if(S.role==='admin' && (!S.orgCode || !S.orgId)){
@@ -1985,25 +1989,33 @@ async function renderSelfView(){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
   const cutoffStr=cutoff.toISOString().split('T')[0];
 
-  // المصدر الأساسي: مسار الموظف الشخصي — مضمون القراءة دائماً
+  // مصدر 1: مسار الموظف الشخصي — مضمون القراءة دائماً
+  const seen=new Set();
   const attRecords=[];
+  function pushAtt(date,status){ if(date>=cutoffStr&&status&&!seen.has(date)){ seen.add(date); attRecords.push({date,status}); } }
   try{
     const docs=await fsGetAll(`users/${_uid}/empAtt`);
-    (docs||[]).filter(r=>r.date&&r.date>=cutoffStr&&r.status).forEach(r=>attRecords.push({date:r.date,status:r.status}));
+    (docs||[]).forEach(r=>pushAtt(r.date,r.status));
   }catch(_){}
-  // مصدر ثانوي: empAttendance
+  // مصدر 2: مجموعة الحضور الرئيسية (نفس صلاحيات empExpenses)
+  if(S.orgId){
+    try{
+      const docs=await fsQuery(`orgs/${S.orgId}/attendance`,[{field:'empId',op:'==',value:myId}]);
+      (docs||[]).forEach(r=>pushAtt(r.date,r.status));
+    }catch(_){}
+  }
+  // مصدر 3: empAttendance
   if(!attRecords.length&&S.orgId){
     try{
       const docs=await fsQuery(`orgs/${S.orgId}/empAttendance`,[{field:'empId',op:'==',value:myId}]);
-      (docs||[]).filter(r=>r.date>=cutoffStr).forEach(r=>attRecords.push({date:r.date,status:r.status}));
+      (docs||[]).forEach(r=>pushAtt(r.date,r.status));
     }catch(_){}
   }
-  // مصدر ثالث: S.attendance في الذاكرة
+  // مصدر 4: S.attendance في الذاكرة
   if(!attRecords.length){
     for(const ds in S.attendance){
-      if(ds<cutoffStr) continue;
       const st=(S.attendance[ds][myId]||{}).status;
-      if(st) attRecords.push({date:ds,status:st});
+      if(st) pushAtt(ds,st);
     }
   }
 
