@@ -3271,7 +3271,8 @@ async function saveEmpExpense(){
   const path=empExpPath();
   if(!GUEST&&_uid&&path) await fsSet(`${path}/${data.id}`,data).catch(()=>{});
   closeModal('emp-expense-modal');
-  renderEmpExpenses();
+  // إعادة تحميل صفحة الموظف إن كانت مفتوحة
+  if(document.getElementById('emp-self-view')?.style.display!=='none') renderSelfView();
   showToast('✅ تم إرسال المصروف للمدير','ok');
 }
 
