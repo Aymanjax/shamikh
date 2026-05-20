@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شموخ — حاسبة الأسعار الذكية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Tajawal:wght@300;400;500;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ─── DESIGN TOKENS ─────────────────────────────────────── */
+    :root {
+      /* Light Mode - Cream & Gold luxury */
+      --bg-deep: #faf7f1;
+      --bg-base: #ffffff;
+      --bg-elevated: #f5f0e6;
+      --bg-card: #fdfbf5;
+      --bg-card-hover: #f0e9d8;
+
+      --gold-primary: #b8902a;
+      --gold-light: #d4af37;
+      --gold-pale: #f4e4a8;
+      --gold-deep: #8b6f1f;
+      --gold-glow: rgba(184, 144, 42, 0.12);
+
+      --text-primary: #2a2418;
+      --text-secondary: #6b5d42;
+      --text-muted: #a08e6e;
+
+      --border-subtle: rgba(184, 144, 42, 0.18);
+      --border-strong: rgba(184, 144, 42, 0.4);
+
+      --success: #15803d;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --info: #1e40af;
+
+      --shadow-gold: 0 8px 32px rgba(184, 144, 42, 0.15);
+      --shadow-deep: 0 16px 48px rgba(75, 60, 30, 0.12);
+
+      --font-display: 'Reem Kufi', sans-serif;
+      --font-body: 'Tajawal', sans-serif;
+      --font-numeric: 'Cormorant Garamond', serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* Decorative geometric pattern background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 10%, var(--gold-glow) 0%, transparent 40%),
+        radial-gradient(circle at 80% 90%, var(--gold-glow) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cpath d='M40 0L80 40L40 80L0 40Z' fill='none' stroke='%23d4af37' stroke-width='0.5' stroke-opacity='0.08'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ─── HEADER ────────────────────────────────────────────── */
+    header {
+      padding: 2rem 0 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      justify-content: space-between;
+    }
+
+    .brand-mark {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-deep));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-gold);
+      position: relative;
+    }
+
+    .logo-icon::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border: 1.5px solid rgba(255, 255, 255, 0.4);
+      border-radius: 4px;
+    }
+
+    .logo-text {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--gold-light);
+      letter-spacing: 0.02em;
+    }
+
+    .header-tagline {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      display: none;
+    }
+
+    @media (min-width: 768px) {
+      .header-tagline { display: block; }
+    }
+
+    /* ─── HERO ──────────────────────────────────────────────── */
+    .hero {
+      padding: 4rem 0 3rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-eyebrow {
+      display: inline-block;
+      font-family: var(--font-numeric);
+      font-style: italic;
+      color: var(--gold-primary);
+      font-size: 1rem;
+      letter-spacing: 0.15em;
+      margin-bottom: 1rem;
+      position: relative;
+      padding: 0 2rem;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 1.5rem;
+      height: 1px;
+      background: var(--gold-primary);
+    }
+    .hero-eyebrow::before { right: -0.5rem; }
+    .hero-eyebrow::after { left: -0.5rem; }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.25rem, 6vw, 4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--gold-pale) 0%, var(--gold-primary) 50%, var(--gold-deep) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      max-width: 580px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ─── STEP INDICATOR ────────────────────────────────────── */
+    .steps-bar {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .step-dot {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border-subtle);
+      border-radius: 100px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: all 0.4s ease;
+    }
+
+    .step-dot.active {
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+      background: var(--gold-glow);
+    }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-numeric);
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .step-dot.active .step-num {
+      background: var(--gold-primary);
+      color: var(--bg-deep);
+    }
+
+    /* ─── MAIN GRID ─────────────────────────────────────────── */
+    .calc-grid {
+      display: grid;
+      gap: 2rem;
+      grid-template-columns: 1fr;
+      padding-bottom: 6rem;
+    }
+
+    @media (min-width: 1024px) {
+      .calc-grid {
+        grid-template-columns: 1fr 400px;
+        align-items: start;
+      }
+    }
+
+    /* ─── SECTION CARD ──────────────────────────────────────── */
+    .section {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 80px;
+      height: 80px;
+      background: radial-gradient(circle at top right, var(--gold-glow), transparent 70%);
+      pointer-events: none;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .section-num {
+      font-family: var(--font-numeric);
+      font-size: 2rem;
+      font-style: italic;
+      color: var(--gold-primary);
+      line-height: 1;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-right: auto;
+    }
+
+    /* ─── OPTION CARDS ──────────────────────────────────────── */
+    .options-grid {
+      display: grid;
+      gap: 0.75rem;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+
+    .option-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1.25rem 1rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .option-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent, var(--gold-glow));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .option-card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+    }
+
+    .option-card:hover::before { opacity: 1; }
+
+    .option-card.selected {
+      border-color: var(--gold-primary);
+      background: linear-gradient(135deg, var(--bg-card-hover), var(--bg-elevated));
+      box-shadow: var(--shadow-gold);
+    }
+
+    .option-card.selected::after {
+      content: '✓';
+      position: absolute;
+      top: 0.5rem;
+      left: 0.5rem;
+      width: 22px;
+      height: 22px;
+      background: var(--gold-primary);
+      color: var(--bg-deep);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .opt-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .opt-name {
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+      color: var(--text-primary);
+    }
+
+    .opt-price {
+      font-family: var(--font-numeric);
+      font-size: 0.95rem;
+      color: var(--gold-light);
+      font-style: italic;
+    }
+
+    .opt-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* ─── INPUTS ────────────────────────────────────────────── */
+    .input-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .input-label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .input-label .required {
+      color: var(--gold-primary);
+      margin-right: 4px;
+    }
+
+    .input-field {
+      width: 100%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 0.875rem 1rem;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .input-field:focus {
+      outline: none;
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 0 3px var(--gold-glow);
+    }
+
+    .input-field::placeholder { color: var(--text-muted); }
+
+    /* Area slider */
+    .area-control {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .area-display {
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      padding: 0.875rem 1.25rem;
+      min-width: 110px;
+      text-align: center;
+    }
+
+    .area-value {
+      font-family: var(--font-numeric);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--gold-light);
+      display: block;
+      line-height: 1;
+    }
+
+    .area-unit {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: var(--bg-elevated);
+      border-radius: 3px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-deep));
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: var(--shadow-gold);
+      border: 2px solid var(--bg-deep);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      background: var(--gold-primary);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid var(--bg-deep);
+    }
+
+    /* Select styling */
+    select.input-field {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%23d4af37' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: left 1rem center;
+      padding-left: 2.5rem;
+    }
+
+    /* Toggle switch */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .toggle-row:hover { border-color: var(--border-strong); }
+
+    .toggle-info { flex: 1; }
+
+    .toggle-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.15rem;
+    }
+
+    .toggle-price {
+      font-family: var(--font-numeric);
+      font-size: 0.85rem;
+      color: var(--gold-light);
+      font-style: italic;
+    }
+
+    .toggle {
+      width: 48px;
+      height: 26px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 13px;
+      position: relative;
+      transition: all 0.3s;
+      flex-shrink: 0;
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: var(--text-secondary);
+      border-radius: 50%;
+      top: 3px;
+      right: 3px;
+      transition: all 0.3s;
+    }
+
+    .toggle.on {
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-deep));
+      border-color: var(--gold-primary);
+    }
+
+    .toggle.on::after {
+      right: calc(100% - 21px);
+      background: white;
+    }
+
+    /* ─── RESULT PANEL ──────────────────────────────────────── */
+    .result-panel {
+      background: linear-gradient(160deg, var(--bg-card) 0%, var(--bg-base) 100%);
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      padding: 2rem;
+      position: sticky;
+      top: 1rem;
+      box-shadow: var(--shadow-deep);
+      overflow: hidden;
+    }
+
+    .result-panel::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, var(--gold-glow) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .result-eyebrow {
+      font-family: var(--font-numeric);
+      font-style: italic;
+      color: var(--gold-primary);
+      font-size: 0.95rem;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+      position: relative;
+    }
+
+    .result-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      color: var(--text-primary);
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .total-display {
+      text-align: center;
+      padding: 1.5rem 0;
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .total-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      margin-bottom: 0.25rem;
+    }
+
+    .total-value {
+      font-family: var(--font-numeric);
+      font-size: 3.25rem;
+      font-weight: 600;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--gold-pale), var(--gold-primary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+    }
+
+    .total-currency {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+      letter-spacing: 0.15em;
+    }
+
+    .breakdown {
+      position: relative;
+    }
+
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.65rem 0;
+      font-size: 0.9rem;
+      border-bottom: 1px dashed var(--border-subtle);
+    }
+
+    .breakdown-row:last-child { border: none; }
+
+    .breakdown-label {
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .breakdown-label small {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .breakdown-value {
+      font-family: var(--font-numeric);
+      font-weight: 600;
+      color: var(--gold-light);
+      font-size: 1rem;
+    }
+
+    /* Materials chips */
+    .materials-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-subtle);
+      position: relative;
+    }
+
+    .material-chip {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .chip-count {
+      font-family: var(--font-numeric);
+      color: var(--gold-light);
+      font-weight: 700;
+    }
+
+    /* CTA */
+    .cta-button {
+      display: block;
+      width: 100%;
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-primary) 50%, var(--gold-deep) 100%);
+      color: var(--bg-deep);
+      border: none;
+      padding: 1.1rem;
+      border-radius: 12px;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 1.5rem;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
+    }
+
+    .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(212, 175, 55, 0.5);
+    }
+
+    .cta-button:active { transform: translateY(0); }
+
+    .cta-sub {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.75rem;
+    }
+
+    /* Empty state */
+    .empty-result {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-muted);
+      position: relative;
+    }
+
+    .empty-result-icon {
+      font-size: 3rem;
+      opacity: 0.3;
+      margin-bottom: 1rem;
+    }
+
+    /* ─── FOOTER ────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 2rem 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    footer .logo-text {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+      display: inline-block;
+    }
+
+    /* Animation */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section { animation: fadeUp 0.6s ease both; }
+    .section:nth-child(1) { animation-delay: 0.1s; }
+    .section:nth-child(2) { animation-delay: 0.2s; }
+    .section:nth-child(3) { animation-delay: 0.3s; }
+    .section:nth-child(4) { animation-delay: 0.4s; }
+
+    /* Mobile sticky bar */
+    @media (max-width: 1023px) {
+      .result-panel {
+        position: static;
+      }
+    }
+
+    /* Smooth number transition */
+    .total-value, .breakdown-value, .chip-count {
+      transition: color 0.3s;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container">
+      <div class="brand">
+        <div class="brand-mark">
+          <div class="logo-icon"></div>
+          <div>
+            <div class="logo-text">شُمُوخ</div>
+          </div>
+        </div>
+        <div class="header-tagline">قرميد · أكواخ · مقاولات</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section class="hero">
+      <div class="hero-eyebrow">Smart Estimator</div>
+      <h1 class="hero-title">حاسبة الأسعار الذكية</h1>
+      <p class="hero-sub">احسب تكلفة مشروعك بدقة خلال دقيقة — اختر النوع، حدّد المساحة، وستحصل على تقدير فوري شامل المواد والتركيب</p>
+    </section>
+
+    <div class="steps-bar">
+      <div class="step-dot active" data-step="1">
+        <span class="step-num">١</span>
+        <span>الخدمة</span>
+      </div>
+      <div class="step-dot" data-step="2">
+        <span class="step-num">٢</span>
+        <span>النوع</span>
+      </div>
+      <div class="step-dot" data-step="3">
+        <span class="step-num">٣</span>
+        <span>المواصفات</span>
+      </div>
+      <div class="step-dot" data-step="4">
+        <span class="step-num">٤</span>
+        <span>الإضافات</span>
+      </div>
+    </div>
+
+    <div class="calc-grid">
+
+      <!-- Inputs Side -->
+      <div class="calc-inputs">
+
+        <!-- Step 1: Service -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-num">01</div>
+            <div class="section-title">اختر نوع الخدمة</div>
+            <div class="section-desc">الفئة الرئيسية</div>
+          </div>
+          <div class="options-grid" id="services-grid"></div>
+        </div>
+
+        <!-- Step 2: Variant -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-num">02</div>
+            <div class="section-title">اختر النوع</div>
+            <div class="section-desc">جودة المواد</div>
+          </div>
+          <div class="options-grid" id="variants-grid"></div>
+        </div>
+
+        <!-- Step 3: Specs -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-num">03</div>
+            <div class="section-title">المواصفات</div>
+            <div class="section-desc">المساحة والموقع</div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label"><span class="required">*</span> المساحة الإجمالية</label>
+            <div class="area-control">
+              <input type="range" id="area-slider" min="20" max="500" value="120" step="5">
+              <div class="area-display">
+                <span class="area-value" id="area-display">120</span>
+                <span class="area-unit">متر مربع</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label"><span class="required">*</span> نوع الهيكل</label>
+            <div class="options-grid" id="structure-grid"></div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label"><span class="required">*</span> المدينة</label>
+            <select id="city-select" class="input-field">
+              <option value="عمّان" data-mod="1.0">عمّان</option>
+              <option value="إربد" data-mod="0.95">إربد</option>
+              <option value="الزرقاء" data-mod="0.95">الزرقاء</option>
+              <option value="العقبة" data-mod="1.1">العقبة</option>
+              <option value="الرياض" data-mod="1.15">الرياض</option>
+              <option value="جدة" data-mod="1.15">جدة</option>
+              <option value="دبي" data-mod="1.25">دبي</option>
+              <option value="أبوظبي" data-mod="1.25">أبوظبي</option>
+              <option value="الكويت" data-mod="1.2">الكويت</option>
+              <option value="الدوحة" data-mod="1.2">الدوحة</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Step 4: Extras -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-num">04</div>
+            <div class="section-title">إضافات اختيارية</div>
+            <div class="section-desc">رفع جودة المشروع</div>
+          </div>
+          <div id="extras-list"></div>
+        </div>
+
+      </div>
+
+      <!-- Result Side -->
+      <aside>
+        <div class="result-panel">
+          <div class="result-eyebrow">Total Estimate</div>
+          <div class="result-title">التقدير الإجمالي</div>
+
+          <div id="result-content">
+            <div class="empty-result">
+              <div class="empty-result-icon">⏳</div>
+              <div>اختر الخدمة والنوع لبدء الحساب</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="logo-text">شُمُوخ</div>
+      <div>© ٢٠٢٦ — جميع الحقوق محفوظة · صُمم بفخامة للأردن والخليج</div>
+    </div>
+  </footer>
+
+  <script>
+    // ─── DATA (محاكاة لقاعدة البيانات) ────────────────────────
+    const SERVICES = [
+      { id: 'clay', name: 'قرميد فخاري', icon: '🏛️', laborPerM2: 8 },
+      { id: 'shingle', name: 'قرميد شنجل', icon: '🏠', laborPerM2: 6 },
+      { id: 'cabin', name: 'أكواخ خشبية', icon: '🛖', laborPerM2: 25 },
+      { id: 'hangar', name: 'هناجر معدنية', icon: '🏭', laborPerM2: 12 }
+    ];
+
+    const VARIANTS = {
+      clay: [
+        { id: 'portuguese', name: 'برتغالي', price: 4.5, perM2: 12, desc: 'فاخر · أحمر كلاسيكي' },
+        { id: 'italian', name: 'إيطالي', price: 5.85, perM2: 12, desc: 'فاخر جداً · بني فحمي' },
+        { id: 'turkish', name: 'تركي', price: 3.8, perM2: 12, desc: 'اقتصادي · جودة عالية' },
+        { id: 'spanish', name: 'إسباني', price: 6.75, perM2: 12, desc: 'بريميوم · ألوان متعددة' }
+      ],
+      shingle: [
+        { id: 'asphalt', name: 'إسفلتي', price: 18, perM2: 1, desc: 'كندي · ضمان 25 سنة' },
+        { id: 'fiber', name: 'فايبر جلاس', price: 22, perM2: 1, desc: 'أمريكي · مقاوم للحريق' },
+        { id: 'wood', name: 'خشبي طبيعي', price: 35, perM2: 1, desc: 'أرز · مظهر تقليدي' }
+      ],
+      cabin: [
+        { id: 'pine', name: 'صنوبر', price: 280, perM2: 1, desc: 'اقتصادي · جودة جيدة' },
+        { id: 'swedish', name: 'سويدي', price: 420, perM2: 1, desc: 'فاخر · معالج' },
+        { id: 'oak', name: 'بلوط', price: 580, perM2: 1, desc: 'بريميوم · ضمان 30 سنة' }
+      ],
+      hangar: [
+        { id: 'galvanized', name: 'مجلفن', price: 95, perM2: 1, desc: 'مقاوم للصدأ' },
+        { id: 'sandwich', name: 'ساندويتش بانل', price: 145, perM2: 1, desc: 'عازل حراري' }
+      ]
+    };
+
+    const STRUCTURES = [
+      { id: 'metal', name: 'حديد', icon: '🔩', cost: 15, desc: 'الأكثر شيوعاً' },
+      { id: 'wood', name: 'خشب', icon: '🪵', cost: 12, desc: 'مظهر دافئ' },
+      { id: 'concrete', name: 'خرسانة', icon: '🧱', cost: 20, desc: 'الأقوى' }
+    ];
+
+    const EXTRAS = [
+      { id: 'insulation', name: 'عزل مائي حراري', desc: 'حماية كاملة من تسرب المياه', price: 7, unit: 'per_m2' },
+      { id: 'led', name: 'إضاءة LED تحت القرميد', desc: 'مظهر فاخر في الليل', price: 500, unit: 'fixed' },
+      { id: 'gutter', name: 'ميزاب مطر مخفي', desc: 'تصريف أنيق ومخفي', price: 300, unit: 'fixed' },
+      { id: 'warranty', name: 'ضمان ممتد 5 سنوات', desc: 'بدلاً من سنة افتراضي', price: 8, unit: 'percent' }
+    ];
+
+    // ─── STATE ────────────────────────────────────────────────
+    const state = {
+      service: null,
+      variant: null,
+      area: 120,
+      structure: null,
+      city: 'عمّان',
+      cityMod: 1.0,
+      extras: new Set()
+    };
+
+    // ─── RENDER FUNCTIONS ─────────────────────────────────────
+    function renderServices() {
+      const grid = document.getElementById('services-grid');
+      grid.innerHTML = SERVICES.map(s => `
+        <div class="option-card" data-id="${s.id}" onclick="selectService('${s.id}')">
+          <span class="opt-icon">${s.icon}</span>
+          <div class="opt-name">${s.name}</div>
+          <div class="opt-desc">من ${s.laborPerM2 + 20} د.أ/م²</div>
+        </div>
+      `).join('');
+    }
+
+    function renderVariants() {
+      const grid = document.getElementById('variants-grid');
+      if (!state.service) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:2rem">اختر نوع الخدمة أولاً</div>';
+        return;
+      }
+      const variants = VARIANTS[state.service] || [];
+      grid.innerHTML = variants.map(v => `
+        <div class="option-card ${state.variant?.id === v.id ? 'selected' : ''}" onclick="selectVariant('${v.id}')">
+          <div class="opt-name">${v.name}</div>
+          <div class="opt-price">${v.price} د.أ ${v.perM2 > 1 ? '/ حبة' : '/ م²'}</div>
+          <div class="opt-desc">${v.desc}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderStructures() {
+      const grid = document.getElementById('structure-grid');
+      grid.innerHTML = STRUCTURES.map(s => `
+        <div class="option-card ${state.structure?.id === s.id ? 'selected' : ''}" onclick="selectStructure('${s.id}')">
+          <span class="opt-icon">${s.icon}</span>
+          <div class="opt-name">${s.name}</div>
+          <div class="opt-price">${s.cost} د.أ/م²</div>
+          <div class="opt-desc">${s.desc}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderExtras() {
+      const list = document.getElementById('extras-list');
+      list.innerHTML = EXTRAS.map(e => `
+        <div class="toggle-row" onclick="toggleExtra('${e.id}')">
+          <div class="toggle-info">
+            <div class="toggle-title">${e.name}</div>
+            <div class="opt-desc">${e.desc}</div>
+            <div class="toggle-price">
+              ${e.unit === 'per_m2' ? `+${e.price} د.أ/م²` : ''}
+              ${e.unit === 'fixed' ? `+${e.price} د.أ` : ''}
+              ${e.unit === 'percent' ? `+${e.price}%` : ''}
+            </div>
+          </div>
+          <div class="toggle ${state.extras.has(e.id) ? 'on' : ''}"></div>
+        </div>
+      `).join('');
+    }
+
+    // ─── SELECTIONS ────────────────────────────────────────────
+    window.selectService = (id) => {
+      state.service = id;
+      state.variant = null;
+      document.querySelectorAll('#services-grid .option-card').forEach(c => {
+        c.classList.toggle('selected', c.dataset.id === id);
+      });
+      updateSteps();
+      renderVariants();
+      calculate();
+    };
+
+    window.selectVariant = (id) => {
+      const variants = VARIANTS[state.service];
+      state.variant = variants.find(v => v.id === id);
+      renderVariants();
+      updateSteps();
+      calculate();
+    };
+
+    window.selectStructure = (id) => {
+      state.structure = STRUCTURES.find(s => s.id === id);
+      renderStructures();
+      updateSteps();
+      calculate();
+    };
+
+    window.toggleExtra = (id) => {
+      if (state.extras.has(id)) state.extras.delete(id);
+      else state.extras.add(id);
+      renderExtras();
+      calculate();
+    };
+
+    // ─── STEPS BAR ────────────────────────────────────────────
+    function updateSteps() {
+      const dots = document.querySelectorAll('.step-dot');
+      dots[0].classList.toggle('active', !!state.service);
+      dots[1].classList.toggle('active', !!state.variant);
+      dots[2].classList.toggle('active', !!state.structure);
+      dots[3].classList.toggle('active', state.extras.size > 0);
+    }
+
+    // ─── CALCULATION ──────────────────────────────────────────
+    function calculate() {
+      const result = document.getElementById('result-content');
+
+      if (!state.service || !state.variant || !state.structure) {
+        result.innerHTML = `
+          <div class="empty-result">
+            <div class="empty-result-icon">⚖️</div>
+            <div>أكمل الخطوات الأساسية لعرض التقدير</div>
+          </div>
+        `;
+        return;
+      }
+
+      const service = SERVICES.find(s => s.id === state.service);
+      const v = state.variant;
+      const area = state.area;
+      const mod = state.cityMod;
+
+      // 1. Material cost
+      let materialCost, materialCount, materialUnit;
+      if (v.perM2 > 1) {
+        materialCount = Math.ceil(area * v.perM2);
+        materialCost = materialCount * v.price;
+        materialUnit = 'حبة';
+      } else {
+        materialCount = area;
+        materialCost = area * v.price;
+        materialUnit = 'م²';
+      }
+
+      // 2. Structure
+      const structureCost = area * state.structure.cost;
+
+      // 3. Labor
+      const laborCost = area * service.laborPerM2;
+
+      // 4. Extras
+      let extrasCost = 0;
+      const extrasUsed = [];
+      const subtotal = materialCost + structureCost + laborCost;
+
+      state.extras.forEach(eid => {
+        const e = EXTRAS.find(x => x.id === eid);
+        let cost = 0;
+        if (e.unit === 'per_m2') cost = area * e.price;
+        else if (e.unit === 'fixed') cost = e.price;
+        else if (e.unit === 'percent') cost = subtotal * (e.price / 100);
+        extrasCost += cost;
+        extrasUsed.push({ name: e.name, cost });
+      });
+
+      // 5. Extras
+      const transport = 50 + (area * 0.5);
+      const screws = area * 0.5;
+      const setupFee = 100;
+      const additionals = transport + screws + setupFee;
+
+      // 6. Total with city modifier
+      const total = (subtotal + extrasCost + additionals) * mod;
+
+      result.innerHTML = `
+        <div class="total-display">
+          <div class="total-label">التكلفة التقديرية</div>
+          <div class="total-value" id="total-num">${total.toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+          <div class="total-currency">دينار أردني · شامل</div>
+        </div>
+
+        <div class="breakdown">
+          <div class="breakdown-row">
+            <div class="breakdown-label">
+              ${v.name}
+              <small>(${materialCount.toLocaleString()} ${materialUnit})</small>
+            </div>
+            <div class="breakdown-value">${Math.round(materialCost).toLocaleString()}</div>
+          </div>
+          <div class="breakdown-row">
+            <div class="breakdown-label">
+              هيكل ${state.structure.name}
+              <small>(${area} م²)</small>
+            </div>
+            <div class="breakdown-value">${Math.round(structureCost).toLocaleString()}</div>
+          </div>
+          <div class="breakdown-row">
+            <div class="breakdown-label">
+              التركيب والعمالة
+              <small>(${service.laborPerM2} د.أ/م²)</small>
+            </div>
+            <div class="breakdown-value">${Math.round(laborCost).toLocaleString()}</div>
+          </div>
+          ${extrasUsed.map(e => `
+            <div class="breakdown-row">
+              <div class="breakdown-label">${e.name}</div>
+              <div class="breakdown-value">${Math.round(e.cost).toLocaleString()}</div>
+            </div>
+          `).join('')}
+          <div class="breakdown-row">
+            <div class="breakdown-label">
+              نقل + براغي + تجهيز
+              <small>(تكاليف ثابتة)</small>
+            </div>
+            <div class="breakdown-value">${Math.round(additionals).toLocaleString()}</div>
+          </div>
+          ${mod !== 1.0 ? `
+            <div class="breakdown-row">
+              <div class="breakdown-label">معامل المدينة (${state.city})</div>
+              <div class="breakdown-value">×${mod.toFixed(2)}</div>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="materials-list">
+          <div class="material-chip">
+            <span class="chip-count">${materialCount.toLocaleString()}</span>
+            <span>${materialUnit} ${v.name}</span>
+          </div>
+          <div class="material-chip">
+            <span class="chip-count">${area}</span>
+            <span>م² هيكل ${state.structure.name}</span>
+          </div>
+          <div class="material-chip">
+            <span class="chip-count">${Math.round(area * 0.5)}</span>
+            <span>كغ براغي</span>
+          </div>
+        </div>
+
+        <button class="cta-button" onclick="sendRequest()">
+          📩 طلب تسعيرة رسمية
+        </button>
+        <div class="cta-sub">سيتواصل معك مقاول معتمد خلال ساعة</div>
+      `;
+    }
+
+    window.sendRequest = () => {
+      const total = document.getElementById('total-num').textContent;
+      const msg = `مرحباً شموخ 👋\n\nأريد تسعيرة لمشروع:\n` +
+        `▫️ الخدمة: ${SERVICES.find(s=>s.id===state.service).name}\n` +
+        `▫️ النوع: ${state.variant.name}\n` +
+        `▫️ المساحة: ${state.area} م²\n` +
+        `▫️ الهيكل: ${state.structure.name}\n` +
+        `▫️ المدينة: ${state.city}\n` +
+        `▫️ التقدير: ${total} د.أ\n\n` +
+        `أرجو التواصل معي.`;
+      const url = `https://wa.me/962790000000?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
+    };
+
+    // ─── EVENTS ────────────────────────────────────────────────
+    document.getElementById('area-slider').addEventListener('input', (e) => {
+      state.area = parseInt(e.target.value);
+      document.getElementById('area-display').textContent = state.area;
+      calculate();
+    });
+
+    document.getElementById('city-select').addEventListener('change', (e) => {
+      const opt = e.target.options[e.target.selectedIndex];
+      state.city = e.target.value;
+      state.cityMod = parseFloat(opt.dataset.mod);
+      calculate();
+    });
+
+    // ─── INIT ──────────────────────────────────────────────────
+    renderServices();
+    renderVariants();
+    renderStructures();
+    renderExtras();
+  </script>
+
+</body>
+</html>

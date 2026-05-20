@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شُمُوخ — فخامة البناء، أصالة الحرفة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Tajawal:wght@300;400;500;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ─── DESIGN TOKENS ─────────────────────────────────────── */
+    :root {
+      /* Light Mode - Cream & Gold luxury */
+      --bg-deep: #faf7f1;
+      --bg-base: #ffffff;
+      --bg-elevated: #f5f0e6;
+      --bg-card: #fdfbf5;
+      --bg-card-hover: #f0e9d8;
+
+      --gold-primary: #b8902a;
+      --gold-light: #d4af37;
+      --gold-pale: #f4e4a8;
+      --gold-deep: #8b6f1f;
+      --gold-glow: rgba(184, 144, 42, 0.12);
+
+      --text-primary: #2a2418;
+      --text-secondary: #6b5d42;
+      --text-muted: #a08e6e;
+
+      --border-subtle: rgba(184, 144, 42, 0.18);
+      --border-strong: rgba(184, 144, 42, 0.4);
+
+      --success: #15803d;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --info: #1e40af;
+
+      --shadow-gold: 0 8px 32px rgba(184, 144, 42, 0.15);
+      --shadow-deep: 0 16px 48px rgba(75, 60, 30, 0.12);
+
+      --font-display: 'Reem Kufi', sans-serif;
+      --font-body: 'Tajawal', sans-serif;
+      --font-numeric: 'Cormorant Garamond', serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Geometric pattern */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cpath d='M40 0L80 40L40 80L0 40Z' fill='none' stroke='%23d4af37' stroke-width='0.5' stroke-opacity='0.07'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ─── NAVBAR ─────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 253, 245, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-deep));
+      border-radius: 8px;
+      box-shadow: var(--shadow-gold);
+      position: relative;
+    }
+
+    .logo-icon::after {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border: 1.5px solid rgba(255, 255, 255, 0.5);
+      border-radius: 4px;
+    }
+
+    .logo-text {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--gold-light);
+      letter-spacing: 0.02em;
+    }
+
+    .nav-links {
+      display: none;
+      gap: 2rem;
+    }
+
+    @media (min-width: 900px) {
+      .nav-links { display: flex; }
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: color 0.2s;
+      position: relative;
+    }
+
+    .nav-links a:hover { color: var(--gold-light); }
+
+    .nav-cta {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-deep));
+      color: var(--bg-deep);
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+      box-shadow: var(--shadow-gold);
+    }
+
+    .nav-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 28px rgba(212, 175, 55, 0.35);
+    }
+
+    /* ─── HERO ───────────────────────────────────────────────── */
+    .hero {
+      padding: 4rem 0 6rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 20%;
+      right: -20%;
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, var(--gold-glow) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 3rem;
+      align-items: center;
+    }
+
+    @media (min-width: 1024px) {
+      .hero-grid {
+        grid-template-columns: 1.2fr 1fr;
+      }
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      padding: 0.5rem 1.25rem;
+      border-radius: 100px;
+      color: var(--gold-primary);
+      font-family: var(--font-numeric);
+      font-style: italic;
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--gold-primary);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 6.5vw, 5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    .hero-title .highlight {
+      background: linear-gradient(135deg, var(--gold-pale) 0%, var(--gold-primary) 50%, var(--gold-deep) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: inline-block;
+    }
+
+    .hero-title em {
+      font-family: var(--font-numeric);
+      font-style: italic;
+      font-weight: 400;
+      color: var(--text-secondary);
+      font-size: 0.7em;
+      display: block;
+      margin-top: 0.5rem;
+    }
+
+    .hero-desc {
+      color: var(--text-secondary);
+      font-size: 1.15rem;
+      line-height: 1.8;
+      max-width: 540px;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-cta-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-primary) 50%, var(--gold-deep) 100%);
+      color: var(--bg-deep);
+      padding: 1.1rem 2rem;
+      border-radius: 12px;
+      text-decoration: none;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.05rem;
+      transition: all 0.3s;
+      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.35);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(212, 175, 55, 0.5);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-primary);
+      padding: 1.1rem 2rem;
+      border-radius: 12px;
+      text-decoration: none;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1.05rem;
+      border: 1px solid var(--border-strong);
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg-elevated);
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+    }
+
+    /* Hero visual (decorative) */
+    .hero-visual {
+      position: relative;
+      aspect-ratio: 4/5;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .hero-card {
+      position: absolute;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-deep);
+    }
+
+    .hero-card-1 {
+      top: 0;
+      right: 0;
+      width: 70%;
+      height: 60%;
+      background:
+        linear-gradient(135deg, transparent 30%, rgba(10, 9, 8, 0.9) 100%),
+        repeating-linear-gradient(45deg, #5c3a1a, #5c3a1a 8px, #6e4a25 8px, #6e4a25 16px);
+      display: flex;
+      align-items: flex-end;
+      padding: 1.5rem;
+    }
+
+    .hero-card-2 {
+      bottom: 0;
+      left: 0;
+      width: 65%;
+      height: 55%;
+      background:
+        linear-gradient(135deg, transparent 30%, rgba(10, 9, 8, 0.9) 100%),
+        repeating-linear-gradient(-45deg, #2d2017, #2d2017 4px, #3a2b1f 4px, #3a2b1f 8px);
+      display: flex;
+      align-items: flex-end;
+      padding: 1.5rem;
+    }
+
+    .hero-card-3 {
+      top: 35%;
+      left: 25%;
+      width: 45%;
+      height: 30%;
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-deep));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bg-deep);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.3rem;
+      text-align: center;
+      transform: rotate(-3deg);
+    }
+
+    .hero-card .card-label {
+      color: var(--gold-light);
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .hero-card .card-sub {
+      font-family: var(--font-numeric);
+      font-style: italic;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    /* ─── STATS BAR ──────────────────────────────────────────── */
+    .stats-bar {
+      padding: 3rem 0;
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-base);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+      text-align: center;
+    }
+
+    @media (min-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .stat {
+      position: relative;
+    }
+
+    .stat:not(:last-child)::after {
+      content: '';
+      display: none;
+      position: absolute;
+      left: 0;
+      top: 20%;
+      bottom: 20%;
+      width: 1px;
+      background: var(--border-subtle);
+    }
+
+    @media (min-width: 768px) {
+      .stat:not(:last-child)::after { display: block; }
+    }
+
+    .stat-num {
+      font-family: var(--font-numeric);
+      font-size: 3.5rem;
+      font-weight: 600;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--gold-pale), var(--gold-primary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* ─── SECTION HEADER ─────────────────────────────────────── */
+    section {
+      padding: 6rem 0;
+      position: relative;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 4rem;
+      max-width: 700px;
+      margin-inline: auto;
+    }
+
+    .section-eyebrow {
+      font-family: var(--font-numeric);
+      font-style: italic;
+      color: var(--gold-primary);
+      font-size: 1rem;
+      letter-spacing: 0.15em;
+      margin-bottom: 1rem;
+      display: inline-block;
+      position: relative;
+      padding: 0 2rem;
+    }
+
+    .section-eyebrow::before,
+    .section-eyebrow::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 1.5rem;
+      height: 1px;
+      background: var(--gold-primary);
+    }
+    .section-eyebrow::before { right: -0.5rem; }
+    .section-eyebrow::after { left: -0.5rem; }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 700;
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+
+    .section-desc {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+
+    /* ─── SERVICES (Bento) ───────────────────────────────────── */
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .services-grid {
+        grid-template-columns: repeat(4, 1fr);
+        grid-auto-rows: 200px;
+        gap: 1.25rem;
+      }
+      .services-grid > *:nth-child(1) { grid-column: span 2; grid-row: span 2; }
+      .services-grid > *:nth-child(2) { grid-column: span 2; }
+      .services-grid > *:nth-child(6) { grid-column: span 2; }
+    }
+
+    .service-card {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 180px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .service-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 60%, var(--gold-glow));
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .service-card::after {
+      content: '';
+      position: absolute;
+      top: -50px;
+      left: -50px;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, var(--gold-glow) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .service-card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-4px);
+    }
+
+    .service-card:hover::before,
+    .service-card:hover::after { opacity: 1; }
+
+    .service-card.featured {
+      background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-base) 100%);
+      border-color: var(--border-strong);
+    }
+
+    .service-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .service-card.featured .service-icon { font-size: 3.5rem; }
+
+    .service-name {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .service-card.featured .service-name { font-size: 1.5rem; }
+
+    .service-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      position: relative;
+      z-index: 1;
+      line-height: 1.5;
+    }
+
+    .service-card.featured .service-desc {
+      font-size: 0.95rem;
+      max-width: 80%;
+    }
+
+    .service-link {
+      color: var(--gold-light);
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: auto;
+      position: relative;
+      z-index: 1;
+      transition: gap 0.3s;
+    }
+
+    .service-card:hover .service-link { gap: 0.7rem; }
+
+    /* ─── PROJECTS ───────────────────────────────────────────── */
+    .projects-section {
+      background: var(--bg-base);
+    }
+
+    .projects-filter {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 0.5rem 1.25rem;
+      border-radius: 100px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      transition: all 0.3s;
+    }
+
+    .filter-btn:hover { color: var(--text-primary); }
+
+    .filter-btn.active {
+      background: var(--gold-glow);
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+    }
+
+    .projects-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .projects-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (min-width: 1024px) {
+      .projects-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .project-card {
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      aspect-ratio: 4/5;
+      border: 1px solid var(--border-subtle);
+      transition: all 0.4s;
+    }
+
+    .project-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-strong);
+    }
+
+    .project-image {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* Generated visual backgrounds (placeholders for real images) */
+    .proj-1 .project-image {
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.15) 0%, rgba(253, 251, 245, 0.95) 100%),
+        repeating-linear-gradient(45deg, #6b3a1a, #6b3a1a 12px, #7c4520 12px, #7c4520 24px),
+        #6b3a1a;
+    }
+
+    .proj-2 .project-image {
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.15) 0%, rgba(253, 251, 245, 0.95) 100%),
+        repeating-linear-gradient(0deg, #3d2817, #3d2817 8px, #4d3220 8px, #4d3220 16px);
+    }
+
+    .proj-3 .project-image {
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.15) 0%, rgba(253, 251, 245, 0.95) 100%),
+        radial-gradient(ellipse at top, #8b6f1f, transparent 60%),
+        linear-gradient(180deg, #2a1f15, #1a1410);
+    }
+
+    .proj-4 .project-image {
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.15) 0%, rgba(253, 251, 245, 0.95) 100%),
+        repeating-linear-gradient(-45deg, #5c3a1a, #5c3a1a 6px, #6e4a25 6px, #6e4a25 12px);
+    }
+
+    .proj-5 .project-image {
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.15) 0%, rgba(253, 251, 245, 0.95) 100%),
+        linear-gradient(180deg, #4a3520 0%, #2a1f15 100%),
+        radial-gradient(circle at top right, #d4af37 0%, transparent 30%);
+    }
+
+    .proj-6 .project-image {
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.15) 0%, rgba(253, 251, 245, 0.95) 100%),
+        repeating-linear-gradient(90deg, #2d2017, #2d2017 20px, #3a2b1f 20px, #3a2b1f 40px);
+    }
+
+    .project-content {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 1.5rem;
+      z-index: 1;
+    }
+
+    .project-tag {
+      display: inline-block;
+      background: var(--gold-glow);
+      border: 1px solid var(--gold-primary);
+      color: var(--gold-light);
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .project-title {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      line-height: 1.3;
+    }
+
+    .project-meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .project-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .project-num {
+      position: absolute;
+      top: 1.25rem;
+      left: 1.25rem;
+      font-family: var(--font-numeric);
+      font-style: italic;
+      font-size: 1.5rem;
+      color: var(--gold-light);
+      opacity: 0.7;
+      z-index: 1;
+    }
+
+    /* ─── VIDEOS (TikTok-style) ──────────────────────────────── */
+    .videos-row {
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+      padding: 1rem 0 2rem;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gold-deep) var(--bg-elevated);
+    }
+
+    .videos-row::-webkit-scrollbar { height: 6px; }
+    .videos-row::-webkit-scrollbar-track { background: var(--bg-elevated); border-radius: 3px; }
+    .videos-row::-webkit-scrollbar-thumb { background: var(--gold-deep); border-radius: 3px; }
+
+    .video-card {
+      flex-shrink: 0;
+      width: 220px;
+      aspect-ratio: 9/16;
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      scroll-snap-align: start;
+      border: 1px solid var(--border-subtle);
+      transition: all 0.3s;
+    }
+
+    .video-card:hover { transform: scale(1.02); border-color: var(--gold-primary); }
+
+    .video-bg {
+      position: absolute;
+      inset: 0;
+    }
+
+    .vid-1 { background: linear-gradient(180deg, #5c3a1a 0%, #2a1f15 100%); }
+    .vid-2 { background: linear-gradient(180deg, #6e4a25 0%, #1a1410 100%); }
+    .vid-3 { background: linear-gradient(180deg, #8b6f1f 0%, #2a1f15 100%); }
+    .vid-4 { background: linear-gradient(180deg, #3d2817 0%, #d4af37 200%); }
+    .vid-5 { background: linear-gradient(180deg, #4a3520 0%, #1a1410 100%); }
+
+    .video-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 50%, rgba(253, 251, 245, 0.95));
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 1rem;
+    }
+
+    .video-play {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(212, 175, 55, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bg-deep);
+      font-size: 1.2rem;
+      box-shadow: 0 8px 24px rgba(75, 60, 30, 0.3);
+      transition: all 0.3s;
+    }
+
+    .video-card:hover .video-play {
+      background: var(--gold-primary);
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .video-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+      line-height: 1.4;
+    }
+
+    .video-meta {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .video-views {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: rgba(10, 9, 8, 0.7);
+      backdrop-filter: blur(8px);
+      padding: 0.25rem 0.65rem;
+      border-radius: 100px;
+      font-size: 0.7rem;
+      font-family: var(--font-numeric);
+      color: var(--gold-light);
+    }
+
+    /* ─── TESTIMONIALS ───────────────────────────────────────── */
+    .testimonials {
+      background: var(--bg-base);
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .testimonials-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .testimonial {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 2rem;
+      position: relative;
+    }
+
+    .testimonial::before {
+      content: '"';
+      position: absolute;
+      top: 0.5rem;
+      right: 1.5rem;
+      font-family: var(--font-numeric);
+      font-size: 5rem;
+      color: var(--gold-primary);
+      opacity: 0.3;
+      line-height: 1;
+    }
+
+    .testimonial-stars {
+      color: var(--gold-primary);
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .testimonial-text {
+      color: var(--text-primary);
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .author-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-deep));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bg-deep);
+      font-weight: 700;
+      font-family: var(--font-display);
+    }
+
+    .author-info { flex: 1; }
+    .author-name { font-weight: 600; font-size: 0.95rem; }
+    .author-role { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* ─── CTA SECTION ────────────────────────────────────────── */
+    .cta-section {
+      padding: 5rem 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at center, var(--gold-glow) 0%, transparent 60%),
+        linear-gradient(180deg, transparent, var(--bg-base));
+      pointer-events: none;
+    }
+
+    .cta-content {
+      position: relative;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .cta-title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      line-height: 1.15;
+    }
+
+    .cta-desc {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    /* ─── FOOTER ─────────────────────────────────────────────── */
+    footer {
+      background: var(--bg-base);
+      border-top: 1px solid var(--border-subtle);
+      padding: 4rem 0 2rem;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    @media (min-width: 768px) {
+      .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; }
+    }
+
+    .footer-brand .logo-text { font-size: 2rem; margin-bottom: 1rem; display: inline-block; }
+
+    .footer-tagline {
+      color: var(--text-secondary);
+      line-height: 1.7;
+      max-width: 350px;
+    }
+
+    .footer-col h4 {
+      font-family: var(--font-display);
+      color: var(--gold-light);
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+
+    .footer-col ul { list-style: none; }
+    .footer-col li { margin-bottom: 0.6rem; }
+    .footer-col a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .footer-col a:hover { color: var(--gold-light); }
+
+    .footer-bottom {
+      padding-top: 2rem;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .social-icons {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .social-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold-light);
+      text-decoration: none;
+      transition: all 0.3s;
+    }
+
+    .social-icon:hover {
+      background: var(--gold-primary);
+      color: var(--bg-deep);
+      transform: translateY(-2px);
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate { animation: fadeUp 0.8s ease both; }
+
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <div class="brand">
+        <div class="logo-icon"></div>
+        <div class="logo-text">شُمُوخ</div>
+      </div>
+      <div class="nav-links">
+        <a href="#services">الخدمات</a>
+        <a href="#projects">أعمالنا</a>
+        <a href="#videos">فيديوهات</a>
+        <a href="#about">من نحن</a>
+        <a href="#contact">تواصل</a>
+      </div>
+      <a href="#calculator" class="nav-cta">احسب التكلفة</a>
+    </div>
+  </nav>
+
+  <!-- ─── HERO ─────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div class="hero-content animate">
+          <div class="hero-eyebrow">منذ ٢٠١٥ · ٥٠٠+ مشروع منجز</div>
+          <h1 class="hero-title">
+            نَبني <span class="highlight">الفخامة</span><br>
+            بِحِرفةِ الأصيل
+            <em>Building luxury, crafting heritage.</em>
+          </h1>
+          <p class="hero-desc">
+            من القرميد الفخاري إلى الأكواخ السياحية والمظلات الفاخرة — شموخ تجمع بين أصالة الحرفة العربية وأحدث تقنيات التنفيذ، لتُسلّمك مشروعاً يليق بك.
+          </p>
+          <div class="hero-cta-group">
+            <a href="#calculator" class="btn-primary">
+              احسب تكلفة مشروعك
+              <span>←</span>
+            </a>
+            <a href="#projects" class="btn-ghost">
+              شاهد أعمالنا
+            </a>
+          </div>
+        </div>
+
+        <div class="hero-visual animate" style="animation-delay: 0.3s">
+          <div class="hero-card hero-card-1">
+            <div>
+              <div class="card-label">قرميد برتغالي</div>
+              <div class="card-sub">Portuguese Tiles</div>
+            </div>
+          </div>
+          <div class="hero-card hero-card-3">
+            ٥٠٠+<br>مشروع
+          </div>
+          <div class="hero-card hero-card-2">
+            <div>
+              <div class="card-label">أكواخ خشبية</div>
+              <div class="card-sub">Wooden Cabins</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── STATS ────────────────────────────────────────────── -->
+  <section class="stats-bar">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-num">٥٠٠+</div>
+          <div class="stat-label">مشروع منجز</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">١٢٠</div>
+          <div class="stat-label">مقاول معتمد</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">١٠</div>
+          <div class="stat-label">دول نخدمها</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">٤.٩</div>
+          <div class="stat-label">تقييم العملاء</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SERVICES ─────────────────────────────────────────── -->
+  <section id="services">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Our Services</div>
+        <h2 class="section-title">خدماتنا المتكاملة</h2>
+        <p class="section-desc">من فكرة المشروع إلى التسليم — نوفر كل ما تحتاجه تحت سقف واحد بأعلى معايير الجودة</p>
+      </div>
+
+      <div class="services-grid">
+        <a href="#" class="service-card featured">
+          <div>
+            <div class="service-icon">🏛️</div>
+            <div class="service-name">قرميد فخاري</div>
+            <div class="service-desc">قرميد برتغالي، إيطالي، تركي، وإسباني بأعلى جودة عالمية. ضمان حتى 10 سنوات وتركيب احترافي</div>
+          </div>
+          <div class="service-link">اعرف المزيد <span>←</span></div>
+        </a>
+
+        <a href="#" class="service-card">
+          <div>
+            <div class="service-icon">🏠</div>
+            <div class="service-name">قرميد شنجل</div>
+            <div class="service-desc">إسفلتي وفايبرجلاس</div>
+          </div>
+          <div class="service-link">التفاصيل <span>←</span></div>
+        </a>
+
+        <a href="#" class="service-card">
+          <div>
+            <div class="service-icon">🛖</div>
+            <div class="service-name">أكواخ خشبية</div>
+            <div class="service-desc">تنفيذ كامل من الصفر</div>
+          </div>
+          <div class="service-link">التفاصيل <span>←</span></div>
+        </a>
+
+        <a href="#" class="service-card">
+          <div>
+            <div class="service-icon">🏭</div>
+            <div class="service-name">هناجر</div>
+            <div class="service-desc">معدنية مجلفنة</div>
+          </div>
+          <div class="service-link">التفاصيل <span>←</span></div>
+        </a>
+
+        <a href="#" class="service-card">
+          <div>
+            <div class="service-icon">🌿</div>
+            <div class="service-name">جلسات خارجية</div>
+            <div class="service-desc">مظلات ودواوين عربية</div>
+          </div>
+          <div class="service-link">التفاصيل <span>←</span></div>
+        </a>
+
+        <a href="#" class="service-card">
+          <div>
+            <div class="service-icon">🛡️</div>
+            <div class="service-name">عزل حراري ومائي</div>
+            <div class="service-desc">حماية كاملة لمشروعك من تقلبات الطقس وتسرب المياه — مواد ألمانية وإيطالية</div>
+          </div>
+          <div class="service-link">اعرف المزيد <span>←</span></div>
+        </a>
+
+        <a href="#" class="service-card">
+          <div>
+            <div class="service-icon">⚒️</div>
+            <div class="service-name">حدادة فنية</div>
+            <div class="service-desc">أبواب ودرابزين</div>
+          </div>
+          <div class="service-link">التفاصيل <span>←</span></div>
+        </a>
+
+        <a href="#" class="service-card">
+          <div>
+            <div class="service-icon">✨</div>
+            <div class="service-name">ديكور خارجي</div>
+            <div class="service-desc">واجهات حجرية ولمسات</div>
+          </div>
+          <div class="service-link">التفاصيل <span>←</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── PROJECTS ─────────────────────────────────────────── -->
+  <section id="projects" class="projects-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Portfolio</div>
+        <h2 class="section-title">معرض أعمالنا</h2>
+        <p class="section-desc">أكثر من ٥٠٠ مشروع منجز في الأردن والخليج — كل مشروع يحكي قصة فخامة وإتقان</p>
+      </div>
+
+      <div class="projects-filter">
+        <button class="filter-btn active">الكل</button>
+        <button class="filter-btn">أكواخ</button>
+        <button class="filter-btn">قرميد</button>
+        <button class="filter-btn">جلسات</button>
+        <button class="filter-btn">مظلات</button>
+      </div>
+
+      <div class="projects-grid">
+        <div class="project-card proj-1">
+          <div class="project-image"></div>
+          <div class="project-num">01</div>
+          <div class="project-content">
+            <span class="project-tag">قرميد فخاري</span>
+            <h3 class="project-title">فيلا الصبيحي · عبدون</h3>
+            <div class="project-meta">
+              <span>📐 ٢٤٠ م²</span>
+              <span>⏱️ ٢١ يوم</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="project-card proj-2">
+          <div class="project-image"></div>
+          <div class="project-num">02</div>
+          <div class="project-content">
+            <span class="project-tag">كوخ خشبي</span>
+            <h3 class="project-title">كوخ سياحي · عجلون</h3>
+            <div class="project-meta">
+              <span>📐 ٤٩ م²</span>
+              <span>⏱️ ٣٠ يوم</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="project-card proj-3">
+          <div class="project-image"></div>
+          <div class="project-num">03</div>
+          <div class="project-content">
+            <span class="project-tag">جلسة عربية</span>
+            <h3 class="project-title">استراحة الفايز · البحر الميت</h3>
+            <div class="project-meta">
+              <span>📐 ١٠٠ م²</span>
+              <span>⏱️ ١٤ يوم</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="project-card proj-4">
+          <div class="project-image"></div>
+          <div class="project-num">04</div>
+          <div class="project-content">
+            <span class="project-tag">قرميد برتغالي</span>
+            <h3 class="project-title">مزرعة الحرفوش · الرمثا</h3>
+            <div class="project-meta">
+              <span>📐 ٣٢٠ م²</span>
+              <span>⏱️ ٢٨ يوم</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="project-card proj-5">
+          <div class="project-image"></div>
+          <div class="project-num">05</div>
+          <div class="project-content">
+            <span class="project-tag">مظلة فاخرة</span>
+            <h3 class="project-title">شاليه الراشد · العقبة</h3>
+            <div class="project-meta">
+              <span>📐 ٨٠ م²</span>
+              <span>⏱️ ١٠ أيام</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="project-card proj-6">
+          <div class="project-image"></div>
+          <div class="project-num">06</div>
+          <div class="project-content">
+            <span class="project-tag">أكواخ متعددة</span>
+            <h3 class="project-title">منتجع الواحة · الرياض</h3>
+            <div class="project-meta">
+              <span>📐 ٦٠٠ م²</span>
+              <span>⏱️ ٦٠ يوم</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── VIDEOS ───────────────────────────────────────────── -->
+  <section id="videos">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Watch & Learn</div>
+        <h2 class="section-title">فيديوهات ميدانية</h2>
+        <p class="section-desc">شاهد تنفيذ مشاريعنا خطوة بخطوة — قبل وبعد، نصائح، وأخطاء شائعة</p>
+      </div>
+
+      <div class="videos-row">
+        <div class="video-card">
+          <div class="video-bg vid-1"></div>
+          <div class="video-views">١٢.٥ك 👁️</div>
+          <div class="video-play">▶</div>
+          <div class="video-overlay">
+            <div class="video-title">تركيب قرميد برتغالي في ٦٠ ثانية</div>
+            <div class="video-meta"><span>⏱️ ٠:٤٥</span><span>🔥 رائج</span></div>
+          </div>
+        </div>
+
+        <div class="video-card">
+          <div class="video-bg vid-2"></div>
+          <div class="video-views">٨.٢ك 👁️</div>
+          <div class="video-play">▶</div>
+          <div class="video-overlay">
+            <div class="video-title">كوخ ٧×٧ من الصفر</div>
+            <div class="video-meta"><span>⏱️ ١:٢٠</span></div>
+          </div>
+        </div>
+
+        <div class="video-card">
+          <div class="video-bg vid-3"></div>
+          <div class="video-views">١٥.٣ك 👁️</div>
+          <div class="video-play">▶</div>
+          <div class="video-overlay">
+            <div class="video-title">قبل وبعد — استراحة عجلون</div>
+            <div class="video-meta"><span>⏱️ ٠:٥٠</span><span>⭐</span></div>
+          </div>
+        </div>
+
+        <div class="video-card">
+          <div class="video-bg vid-4"></div>
+          <div class="video-views">٦.١ك 👁️</div>
+          <div class="video-play">▶</div>
+          <div class="video-overlay">
+            <div class="video-title">٥ أخطاء بتركيب القرميد</div>
+            <div class="video-meta"><span>⏱️ ١:٠٠</span></div>
+          </div>
+        </div>
+
+        <div class="video-card">
+          <div class="video-bg vid-5"></div>
+          <div class="video-views">٩.٧ك 👁️</div>
+          <div class="video-play">▶</div>
+          <div class="video-overlay">
+            <div class="video-title">العزل المائي خطوة بخطوة</div>
+            <div class="video-meta"><span>⏱️ ١:٣٠</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TESTIMONIALS ─────────────────────────────────────── -->
+  <section class="testimonials">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Client Voices</div>
+        <h2 class="section-title">ماذا يقول عملاؤنا</h2>
+      </div>
+
+      <div class="testimonials-grid">
+        <div class="testimonial">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-text">شغل احترافي والتزام بالوقت. القرميد البرتغالي اللي ركّبوه طلع أحلى من الصور بكثير. أنصح فيهم بقوة.</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">أ</div>
+            <div class="author-info">
+              <div class="author-name">أحمد الصبيحي</div>
+              <div class="author-role">عبدون، عمّان</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-text">الحاسبة الذكية وفّرت عليّ وقت كبير. التقدير طلع دقيق ٩٥٪ والمقاول وصل بنفس اليوم. تجربة فاخرة فعلاً.</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">س</div>
+            <div class="author-info">
+              <div class="author-name">سعد الراشد</div>
+              <div class="author-role">الرياض، السعودية</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial">
+          <div class="testimonial-stars">★★★★★</div>
+          <p class="testimonial-text">بنوا لي كوخ خشبي بمزرعتي بعجلون. الإتقان والجودة فوق المتوقع. تابعوني حتى بعد التسليم.</p>
+          <div class="testimonial-author">
+            <div class="author-avatar">م</div>
+            <div class="author-info">
+              <div class="author-name">مالك الزعبي</div>
+              <div class="author-role">عجلون، الأردن</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CTA ──────────────────────────────────────────────── -->
+  <section class="cta-section" id="calculator">
+    <div class="container">
+      <div class="cta-content">
+        <div class="section-eyebrow">Get Started</div>
+        <h2 class="cta-title">جاهز لبناء مشروعك القادم؟</h2>
+        <p class="cta-desc">احسب التكلفة مجاناً خلال دقيقة، أو تواصل معنا للحصول على استشارة مخصصة</p>
+        <div class="hero-cta-group" style="justify-content: center;">
+          <a href="#" class="btn-primary">
+            افتح الحاسبة الذكية
+            <span>←</span>
+          </a>
+          <a href="https://wa.me/962790000000" class="btn-ghost">
+            <span>💬</span> تواصل واتساب
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ───────────────────────────────────────────── -->
+  <footer id="contact">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand" style="margin-bottom: 1rem">
+            <div class="logo-icon"></div>
+            <div class="logo-text">شُمُوخ</div>
+          </div>
+          <p class="footer-tagline">منصة المقاولات والقرميد الأولى في الأردن والخليج. نبني الفخامة بحرفة الأصيل منذ ٢٠١٥.</p>
+        </div>
+
+        <div class="footer-col">
+          <h4>الخدمات</h4>
+          <ul>
+            <li><a href="#">قرميد فخاري</a></li>
+            <li><a href="#">قرميد شنجل</a></li>
+            <li><a href="#">أكواخ خشبية</a></li>
+            <li><a href="#">هناجر معدنية</a></li>
+            <li><a href="#">عزل حراري</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>الشركة</h4>
+          <ul>
+            <li><a href="#">من نحن</a></li>
+            <li><a href="#">معرض الأعمال</a></li>
+            <li><a href="#">المقاولون</a></li>
+            <li><a href="#">المتجر</a></li>
+            <li><a href="#">المدونة</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>تواصل</h4>
+          <ul>
+            <li><a href="#">📞 +962 7 9000 0000</a></li>
+            <li><a href="#">📧 info@shamoukh.jo</a></li>
+            <li><a href="#">📍 عمّان، الأردن</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>© ٢٠٢٦ شُمُوخ — جميع الحقوق محفوظة</div>
+        <div class="social-icons">
+          <a href="#" class="social-icon">📷</a>
+          <a href="#" class="social-icon">📘</a>
+          <a href="#" class="social-icon">🐦</a>
+          <a href="#" class="social-icon">▶</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Filter buttons (visual only for demo)
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // Reveal on scroll
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('animate');
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('section').forEach(s => observer.observe(s));
+  </script>
+
+</body>
+</html>

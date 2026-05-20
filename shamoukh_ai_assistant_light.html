@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>شموخ — مساعد البناء الذكي</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Tajawal:wght@300;400;500;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Light Mode - Cream & Gold luxury */
+      --bg-deep: #faf7f1;
+      --bg-base: #ffffff;
+      --bg-elevated: #f5f0e6;
+      --bg-card: #fdfbf5;
+      --bg-card-hover: #f0e9d8;
+
+      --gold-primary: #b8902a;
+      --gold-light: #d4af37;
+      --gold-pale: #f4e4a8;
+      --gold-deep: #8b6f1f;
+      --gold-glow: rgba(184, 144, 42, 0.12);
+
+      --text-primary: #2a2418;
+      --text-secondary: #6b5d42;
+      --text-muted: #a08e6e;
+
+      --border-subtle: rgba(184, 144, 42, 0.18);
+      --border-strong: rgba(184, 144, 42, 0.4);
+
+      --success: #15803d;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --info: #1e40af;
+
+      --shadow-gold: 0 8px 32px rgba(184, 144, 42, 0.15);
+      --shadow-deep: 0 16px 48px rgba(75, 60, 30, 0.12);
+
+      --font-display: 'Reem Kufi', sans-serif;
+      --font-body: 'Tajawal', sans-serif;
+      --font-numeric: 'Cormorant Garamond', serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Decorative background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 10% 20%, var(--gold-glow) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, var(--gold-glow) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 1rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── HEADER ─────────────────────────────────────────────── */
+    header {
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(255, 253, 245, 0.85);
+      backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .back-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: color 0.2s;
+    }
+
+    .back-link:hover { color: var(--gold-light); }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .ai-badge {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-deep));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-gold);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ai-badge::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 30%, rgba(255, 255, 255, 0.4));
+    }
+
+    .ai-badge-inner {
+      font-family: var(--font-display);
+      color: var(--bg-deep);
+      font-weight: 800;
+      font-size: 0.9rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header-info {
+      line-height: 1.2;
+    }
+
+    .header-name {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--gold-light);
+    }
+
+    .header-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .new-chat-btn {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--gold-light);
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: all 0.2s;
+    }
+
+    .new-chat-btn:hover {
+      border-color: var(--gold-primary);
+      transform: rotate(90deg);
+    }
+
+    /* ─── CHAT AREA ──────────────────────────────────────────── */
+    .chat-area {
+      flex: 1;
+      padding: 2rem 0;
+      overflow-y: auto;
+    }
+
+    /* ─── WELCOME ────────────────────────────────────────────── */
+    .welcome {
+      text-align: center;
+      padding: 2rem 0 1rem;
+    }
+
+    .welcome-eyebrow {
+      font-family: var(--font-numeric);
+      font-style: italic;
+      color: var(--gold-primary);
+      font-size: 1rem;
+      letter-spacing: 0.15em;
+      margin-bottom: 0.75rem;
+    }
+
+    .welcome-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      background: linear-gradient(135deg, var(--gold-pale), var(--gold-primary), var(--gold-deep));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .welcome-sub {
+      color: var(--text-secondary);
+      max-width: 540px;
+      margin: 0 auto 2rem;
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    .quick-prompts {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 640px) {
+      .quick-prompts { grid-template-columns: 1fr 1fr; }
+    }
+
+    .quick-prompt {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      text-align: right;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .quick-prompt:hover {
+      border-color: var(--gold-primary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-gold);
+    }
+
+    .quick-prompt-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--gold-glow);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .quick-prompt-text {
+      flex: 1;
+    }
+
+    .quick-prompt-title {
+      font-weight: 600;
+      font-size: 0.92rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .quick-prompt-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* ─── MESSAGES ───────────────────────────────────────────── */
+    .messages {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .message {
+      display: flex;
+      gap: 0.75rem;
+      animation: slideIn 0.4s ease both;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-family: var(--font-display);
+    }
+
+    .message.user { justify-content: flex-start; }
+
+    .message.user .msg-avatar {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      order: 2;
+    }
+
+    .message.user .msg-content {
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-deep));
+      color: var(--bg-deep);
+      padding: 0.85rem 1.15rem;
+      border-radius: 16px 16px 4px 16px;
+      max-width: 80%;
+      font-weight: 500;
+    }
+
+    .message.ai .msg-avatar {
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-deep));
+      color: var(--bg-deep);
+      box-shadow: var(--shadow-gold);
+    }
+
+    .message.ai .msg-content {
+      flex: 1;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      padding: 1.25rem;
+      border-radius: 4px 16px 16px 16px;
+      max-width: 100%;
+    }
+
+    .msg-content p {
+      margin-bottom: 0.75rem;
+    }
+    .msg-content p:last-child { margin-bottom: 0; }
+    .msg-content strong { color: var(--gold-light); font-weight: 700; }
+
+    /* ─── AI RESPONSE — STRUCTURED ───────────────────────────── */
+    .ai-section {
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .ai-section:first-of-type {
+      margin-top: 1rem;
+      padding-top: 0;
+      border-top: none;
+    }
+
+    .ai-section-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--gold-light);
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Design preview card */
+    .design-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .design-visual {
+      height: 160px;
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.3) 0%, rgba(253, 251, 245, 0.9) 100%),
+        repeating-linear-gradient(45deg, #5c3a1a, #5c3a1a 6px, #6e4a25 6px, #6e4a25 12px);
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      padding: 1rem;
+    }
+
+    .design-visual::before {
+      content: '';
+      position: absolute;
+      bottom: 25%;
+      left: 15%;
+      right: 15%;
+      height: 30%;
+      background: linear-gradient(180deg, transparent 20%, rgba(58, 43, 31, 0.8));
+      border-radius: 8px 8px 0 0;
+    }
+
+    .design-info {
+      padding: 1rem;
+    }
+
+    .design-title {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .design-meta {
+      display: flex;
+      gap: 1rem;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      flex-wrap: wrap;
+    }
+
+    .design-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    /* Specs grid */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.65rem;
+    }
+
+    @media (min-width: 640px) {
+      .specs-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .spec-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 0.85rem;
+    }
+
+    .spec-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+      letter-spacing: 0.03em;
+    }
+
+    .spec-value {
+      font-family: var(--font-numeric);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--gold-light);
+      line-height: 1.1;
+    }
+
+    .spec-value small {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      font-weight: normal;
+    }
+
+    /* Materials list */
+    .materials-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .material-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.7rem 0.9rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      font-size: 0.9rem;
+    }
+
+    .material-name {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .material-emoji {
+      font-size: 1.1rem;
+    }
+
+    .material-qty {
+      font-family: var(--font-numeric);
+      font-weight: 600;
+      color: var(--gold-light);
+    }
+
+    /* Cost breakdown */
+    .cost-card {
+      background: linear-gradient(160deg, var(--bg-card) 0%, var(--bg-base) 100%);
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cost-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, var(--gold-glow) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .cost-total-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      margin-bottom: 0.25rem;
+      position: relative;
+    }
+
+    .cost-total-value {
+      font-family: var(--font-numeric);
+      font-size: 2.5rem;
+      font-weight: 600;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--gold-pale), var(--gold-primary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.75rem;
+      position: relative;
+    }
+
+    .cost-total-currency {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-right: 0.5rem;
+      font-family: var(--font-body);
+    }
+
+    .cost-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding-top: 0.75rem;
+      border-top: 1px dashed var(--border-subtle);
+      position: relative;
+    }
+
+    .cost-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+    }
+
+    .cost-row-label {
+      color: var(--text-secondary);
+    }
+
+    .cost-row-value {
+      font-family: var(--font-numeric);
+      color: var(--gold-light);
+      font-weight: 600;
+    }
+
+    /* Action buttons */
+    .ai-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .ai-action-btn {
+      flex: 1;
+      min-width: 130px;
+      padding: 0.75rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      color: var(--text-primary);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    .ai-action-btn:hover {
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+    }
+
+    .ai-action-btn.primary {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-deep));
+      color: var(--bg-deep);
+      border-color: var(--gold-primary);
+      font-weight: 700;
+    }
+
+    .ai-action-btn.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-gold);
+      color: var(--bg-deep);
+    }
+
+    /* Suggestion chips after AI response */
+    .suggestions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .suggestion-chip {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 0.5rem 0.9rem;
+      border-radius: 100px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-family: var(--font-body);
+      transition: all 0.2s;
+    }
+
+    .suggestion-chip:hover {
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+      background: var(--gold-glow);
+    }
+
+    /* Typing indicator */
+    .typing {
+      display: flex;
+      gap: 0.3rem;
+      padding: 0.5rem 0;
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--gold-primary);
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+      30% { opacity: 1; transform: translateY(-4px); }
+    }
+
+    /* ─── COMPOSER ───────────────────────────────────────────── */
+    .composer-wrap {
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(180deg, transparent 0%, var(--bg-deep) 40%);
+      padding: 1rem 0 1.25rem;
+      z-index: 5;
+    }
+
+    .composer {
+      background: var(--bg-base);
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      padding: 0.5rem;
+      box-shadow: var(--shadow-deep);
+      display: flex;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+
+    .composer:focus-within {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 0 3px var(--gold-glow), var(--shadow-deep);
+    }
+
+    .composer-textarea {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      padding: 0.75rem 0.75rem;
+      resize: none;
+      max-height: 140px;
+      min-height: 24px;
+      line-height: 1.5;
+    }
+
+    .composer-textarea::placeholder { color: var(--text-muted); }
+
+    .composer-actions {
+      display: flex;
+      gap: 0.25rem;
+      padding: 0.25rem;
+    }
+
+    .composer-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      border: none;
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1.05rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .composer-btn:hover {
+      background: var(--bg-card);
+      color: var(--gold-light);
+    }
+
+    .send-btn {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-deep));
+      color: var(--bg-deep);
+      box-shadow: var(--shadow-gold);
+    }
+
+    .send-btn:hover {
+      background: linear-gradient(135deg, var(--gold-pale), var(--gold-primary));
+      color: var(--bg-deep);
+      transform: scale(1.05);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .composer-hint {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.6rem;
+    }
+
+    /* Hide welcome when messages exist */
+    .chat-active .welcome { display: none; }
+
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container">
+      <div class="header-inner">
+        <a href="shamoukh_home.html" class="back-link">
+          <span>→</span> العودة
+        </a>
+        <div class="header-brand">
+          <div class="ai-badge">
+            <div class="ai-badge-inner">AI</div>
+          </div>
+          <div class="header-info">
+            <div class="header-name">مساعد شُمُوخ الذكي</div>
+            <div class="header-status">
+              <span class="status-dot"></span>
+              متاح الآن
+            </div>
+          </div>
+        </div>
+        <button class="new-chat-btn" title="محادثة جديدة" onclick="newChat()">+</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container" id="chat-container">
+
+    <div class="chat-area" id="chat-area">
+
+      <!-- ─── WELCOME ──────────────────────────────────────── -->
+      <div class="welcome" id="welcome">
+        <div class="welcome-eyebrow">Smart Building Assistant</div>
+        <h1 class="welcome-title">كيف أقدر أساعدك اليوم؟</h1>
+        <p class="welcome-sub">صِف مشروعك بكلماتك العادية، وأنا أحوّله لتصميم كامل مع المواد، التكلفة، والوقت — خلال ثوانٍ.</p>
+
+        <div class="quick-prompts">
+          <div class="quick-prompt" onclick="sendPrompt('بدي كوخ خشبي ٧×٧ للمزرعة')">
+            <div class="quick-prompt-icon">🛖</div>
+            <div class="quick-prompt-text">
+              <div class="quick-prompt-title">كوخ خشبي ٧×٧</div>
+              <div class="quick-prompt-desc">تصميم كامل للمزرعة</div>
+            </div>
+          </div>
+
+          <div class="quick-prompt" onclick="sendPrompt('بدي قرميد برتغالي لبيت ١٢٠ متر')">
+            <div class="quick-prompt-icon">🏛️</div>
+            <div class="quick-prompt-text">
+              <div class="quick-prompt-title">قرميد لبيت ١٢٠م²</div>
+              <div class="quick-prompt-desc">حساب فوري للقرميد</div>
+            </div>
+          </div>
+
+          <div class="quick-prompt" onclick="sendPrompt('بدي جلسة عربية فاخرة لاستراحتي')">
+            <div class="quick-prompt-icon">🌿</div>
+            <div class="quick-prompt-text">
+              <div class="quick-prompt-title">جلسة عربية</div>
+              <div class="quick-prompt-desc">للاستراحة الخارجية</div>
+            </div>
+          </div>
+
+          <div class="quick-prompt" onclick="sendPrompt('شو الفرق بين القرميد البرتغالي والإيطالي؟')">
+            <div class="quick-prompt-icon">💡</div>
+            <div class="quick-prompt-text">
+              <div class="quick-prompt-title">سؤال استشاري</div>
+              <div class="quick-prompt-desc">اعرف الأنواع والفروقات</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── MESSAGES ─────────────────────────────────────── -->
+      <div class="messages" id="messages"></div>
+
+    </div>
+
+    <!-- ─── COMPOSER ───────────────────────────────────────── -->
+    <div class="composer-wrap">
+      <div class="composer">
+        <div class="composer-actions">
+          <button class="composer-btn" title="صورة" onclick="attachImage()">📷</button>
+          <button class="composer-btn" title="صوت" onclick="recordVoice()">🎤</button>
+        </div>
+        <textarea
+          class="composer-textarea"
+          id="composer-input"
+          placeholder="مثلاً: بدي كوخ خشبي ٧×٧ مع مظلة..."
+          rows="1"
+        ></textarea>
+        <div class="composer-actions">
+          <button class="composer-btn send-btn" id="send-btn" title="إرسال" onclick="sendMessage()">↑</button>
+        </div>
+      </div>
+      <div class="composer-hint">
+        المساعد قد يخطئ — تأكد من المعلومات الحساسة. الأسعار تقديرية.
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const input = document.getElementById('composer-input');
+    const container = document.getElementById('chat-container');
+
+    // Auto-grow textarea
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    function newChat() {
+      messagesEl.innerHTML = '';
+      container.classList.remove('chat-active');
+      document.getElementById('welcome').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function sendPrompt(text) {
+      input.value = text;
+      sendMessage();
+    }
+
+    function attachImage() {
+      addUserMessage('📷 تم إرفاق صورة لموقع المشروع');
+      respond('ai-image-analysis');
+    }
+
+    function recordVoice() {
+      addUserMessage('🎤 ملاحظة صوتية');
+      respond('ai-voice-analysis');
+    }
+
+    function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+
+      addUserMessage(text);
+      input.value = '';
+      input.style.height = 'auto';
+
+      // Determine response based on keywords
+      const lower = text.toLowerCase();
+      let responseType = 'generic';
+
+      if (lower.includes('كوخ') || lower.includes('خشب')) responseType = 'cabin';
+      else if (lower.includes('قرميد') && (lower.includes('برتغالي') || lower.includes('بيت') || lower.includes('متر'))) responseType = 'tiles';
+      else if (lower.includes('جلسة') || lower.includes('عربية')) responseType = 'session';
+      else if (lower.includes('فرق') || lower.includes('برتغالي') || lower.includes('إيطالي')) responseType = 'comparison';
+
+      respond(responseType);
+    }
+
+    function addUserMessage(text) {
+      container.classList.add('chat-active');
+      document.getElementById('welcome').style.display = 'none';
+
+      const msg = document.createElement('div');
+      msg.className = 'message user';
+      msg.innerHTML = `
+        <div class="msg-avatar">أ</div>
+        <div class="msg-content">${escapeHtml(text)}</div>
+      `;
+      messagesEl.appendChild(msg);
+      scrollToBottom();
+    }
+
+    function showTyping() {
+      const typing = document.createElement('div');
+      typing.className = 'message ai';
+      typing.id = 'typing-indicator';
+      typing.innerHTML = `
+        <div class="msg-avatar"><span style="font-size:0.75rem">AI</span></div>
+        <div class="msg-content">
+          <div class="typing">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
+      `;
+      messagesEl.appendChild(typing);
+      scrollToBottom();
+    }
+
+    function removeTyping() {
+      const t = document.getElementById('typing-indicator');
+      if (t) t.remove();
+    }
+
+    function respond(type) {
+      showTyping();
+      setTimeout(() => {
+        removeTyping();
+        const responses = {
+          'cabin': cabinResponse,
+          'tiles': tilesResponse,
+          'session': sessionResponse,
+          'comparison': comparisonResponse,
+          'ai-image-analysis': imageAnalysisResponse,
+          'ai-voice-analysis': voiceResponse,
+          'generic': genericResponse
+        };
+        (responses[type] || genericResponse)();
+      }, 1400);
+    }
+
+    function addAIMessage(htmlContent) {
+      const msg = document.createElement('div');
+      msg.className = 'message ai';
+      msg.innerHTML = `
+        <div class="msg-avatar"><span style="font-size:0.75rem">AI</span></div>
+        <div class="msg-content">${htmlContent}</div>
+      `;
+      messagesEl.appendChild(msg);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ─── RESPONSES ─────────────────────────────────────────────
+
+    function cabinResponse() {
+      addAIMessage(`
+        <p>ممتاز! خلّيني أصمم لك كوخ <strong>٧×٧ متر</strong> بمواصفات تليق بمزرعتك 🌿</p>
+
+        <div class="ai-section">
+          <div class="ai-section-title">🛖 التصميم المقترح</div>
+          <div class="design-card">
+            <div class="design-visual"></div>
+            <div class="design-info">
+              <div class="design-title">كوخ خشبي ريفي · ٤٩ م²</div>
+              <div class="design-meta">
+                <span>📐 ٧×٧×٣ م</span>
+                <span>🏠 ٣ غرف</span>
+                <span>⏱️ ٢١-٣٠ يوم</span>
+              </div>
+            </div>
+          </div>
+          <p style="font-size:0.9rem;color:var(--text-secondary)">
+            الكوخ يحتوي على: <strong>صالة جلوس</strong> (٢٥م²) + <strong>غرفة نوم</strong> (١٥م²) + <strong>حمام</strong> (٩م²) + <strong>شرفة خارجية</strong> اختيارية.
+          </p>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-section-title">📐 المواصفات الفنية</div>
+          <div class="specs-grid">
+            <div class="spec-item">
+              <div class="spec-label">المساحة</div>
+              <div class="spec-value">٤٩ <small>م²</small></div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">الارتفاع</div>
+              <div class="spec-value">٣ <small>متر</small></div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">الغرف</div>
+              <div class="spec-value">٣ <small>غرف</small></div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">السقف</div>
+              <div class="spec-value">قرميد <small>برتغالي</small></div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">العزل</div>
+              <div class="spec-value">حراري <small>كامل</small></div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">الضمان</div>
+              <div class="spec-value">١٠ <small>سنوات</small></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-section-title">📦 المواد المطلوبة</div>
+          <div class="materials-list">
+            <div class="material-item">
+              <div class="material-name">
+                <span class="material-emoji">🪵</span>
+                خشب سويدي معالج
+              </div>
+              <div class="material-qty">٢٤٠ متر طولي</div>
+            </div>
+            <div class="material-item">
+              <div class="material-name">
+                <span class="material-emoji">🏛️</span>
+                قرميد برتغالي للسقف
+              </div>
+              <div class="material-qty">٦٠٠ حبة</div>
+            </div>
+            <div class="material-item">
+              <div class="material-name">
+                <span class="material-emoji">🛡️</span>
+                عزل حراري + مائي
+              </div>
+              <div class="material-qty">٥٠ م²</div>
+            </div>
+            <div class="material-item">
+              <div class="material-name">
+                <span class="material-emoji">🔩</span>
+                براغي وإكسسوارات
+              </div>
+              <div class="material-qty">طقم كامل</div>
+            </div>
+            <div class="material-item">
+              <div class="material-name">
+                <span class="material-emoji">🪟</span>
+                نوافذ خشبية مزدوجة
+              </div>
+              <div class="material-qty">٤ نوافذ</div>
+            </div>
+            <div class="material-item">
+              <div class="material-name">
+                <span class="material-emoji">🚪</span>
+                أبواب خشب صلب
+              </div>
+              <div class="material-qty">٣ أبواب</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-section-title">💰 التكلفة التقديرية</div>
+          <div class="cost-card">
+            <div class="cost-total-label">الإجمالي شامل التركيب</div>
+            <div class="cost-total-value">١٢٬٣٠٠ <span class="cost-total-currency">د.أ</span></div>
+            <div class="cost-breakdown">
+              <div class="cost-row">
+                <span class="cost-row-label">الخشب والمواد</span>
+                <span class="cost-row-value">٧٬٢٠٠</span>
+              </div>
+              <div class="cost-row">
+                <span class="cost-row-label">القرميد + العزل</span>
+                <span class="cost-row-value">٢٬٦٠٠</span>
+              </div>
+              <div class="cost-row">
+                <span class="cost-row-label">التركيب والعمالة</span>
+                <span class="cost-row-value">١٬٨٠٠</span>
+              </div>
+              <div class="cost-row">
+                <span class="cost-row-label">نقل + تجهيز</span>
+                <span class="cost-row-value">٧٠٠</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-actions">
+          <button class="ai-action-btn primary" onclick="quoteRequest()">
+            📩 طلب تسعيرة رسمية
+          </button>
+          <button class="ai-action-btn" onclick="sendPrompt('غيّر التصميم لـ ٨×٨')">
+            🔄 تعديل
+          </button>
+          <button class="ai-action-btn">
+            💾 حفظ
+          </button>
+        </div>
+
+        <div class="suggestions">
+          <div class="suggestion-chip" onclick="sendPrompt('شو لو زدت غرفة نوم ثانية؟')">+ غرفة نوم ثانية</div>
+          <div class="suggestion-chip" onclick="sendPrompt('بدي مظلة خارجية إضافية')">+ مظلة خارجية</div>
+          <div class="suggestion-chip" onclick="sendPrompt('شو الفرق لو استخدمت بلوط؟')">خشب بلوط بدل سويدي</div>
+          <div class="suggestion-chip" onclick="sendPrompt('كم وقت التنفيذ بالضبط؟')">⏱️ مدة التنفيذ</div>
+        </div>
+      `);
+    }
+
+    function tilesResponse() {
+      addAIMessage(`
+        <p>تمام! لبيت <strong>١٢٠ م²</strong> بقرميد برتغالي، إليك الحسبة الكاملة 🏛️</p>
+
+        <div class="ai-section">
+          <div class="ai-section-title">📐 الحساب الفوري</div>
+          <div class="specs-grid">
+            <div class="spec-item">
+              <div class="spec-label">المساحة</div>
+              <div class="spec-value">١٢٠ <small>م²</small></div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">عدد القرميد</div>
+              <div class="spec-value">١٬٤٤٠ <small>حبة</small></div>
+            </div>
+            <div class="spec-item">
+              <div class="spec-label">المدة</div>
+              <div class="spec-value">١٤ <small>يوم</small></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-section-title">📦 ما تحتاجه</div>
+          <div class="materials-list">
+            <div class="material-item">
+              <div class="material-name">
+                <span class="material-emoji">🏛️</span>
+                قرميد برتغالي ٤٠×٢٥
+              </div>
+              <div class="material-qty">١٬٤٤٠ حبة</div>
+            </div>
+            <div class="material-item">
+              <div class="material-name">
+                <span class="material-emoji">🔩</span>
+                هيكل حديد مجلفن
+              </div>
+              <div class="material-qty">٤٨٠ كغ</div>
+            </div>
+            <div class="material-item">
+              <div class="material-name">
+                <span class="material-emoji">🛡️</span>
+                عزل مائي
+              </div>
+              <div class="material-qty">١٢٠ م²</div>
+            </div>
+            <div class="material-item">
+              <div class="material-name">
+                <span class="material-emoji">⚙️</span>
+                براغي قرميد
+              </div>
+              <div class="material-qty">٦٠ كغ</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-section-title">💰 التكلفة التقديرية</div>
+          <div class="cost-card">
+            <div class="cost-total-label">الإجمالي شامل التركيب</div>
+            <div class="cost-total-value">٩٬٢٤٠ <span class="cost-total-currency">د.أ</span></div>
+            <div class="cost-breakdown">
+              <div class="cost-row">
+                <span class="cost-row-label">القرميد (١٬٤٤٠ × ٤٫٥)</span>
+                <span class="cost-row-value">٦٬٤٨٠</span>
+              </div>
+              <div class="cost-row">
+                <span class="cost-row-label">هيكل الحديد</span>
+                <span class="cost-row-value">١٬٨٠٠</span>
+              </div>
+              <div class="cost-row">
+                <span class="cost-row-label">التركيب (٨ د.أ/م²)</span>
+                <span class="cost-row-value">٩٦٠</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p style="margin-top:1rem;font-size:0.88rem;color:var(--text-secondary)">
+          💡 <strong>نصيحة:</strong> القرميد البرتغالي يأتي بضمان ١٠ سنوات. لو تبغى نصيحة لاختيار اللون المناسب لواجهة بيتك، صفلي البيت أو ارفع صورة.
+        </p>
+
+        <div class="ai-actions">
+          <button class="ai-action-btn primary" onclick="quoteRequest()">
+            📩 طلب تسعيرة
+          </button>
+          <button class="ai-action-btn" onclick="sendPrompt('شو لو غيرت لإيطالي؟')">
+            🔄 جرّب إيطالي
+          </button>
+        </div>
+
+        <div class="suggestions">
+          <div class="suggestion-chip" onclick="sendPrompt('شو الفرق بين القرميد البرتغالي والإيطالي؟')">الفرق بين الأنواع</div>
+          <div class="suggestion-chip" onclick="sendPrompt('بدي عزل ممتاز')">عزل ممتاز</div>
+          <div class="suggestion-chip" onclick="sendPrompt('كيف أختار اللون؟')">🎨 اختيار اللون</div>
+        </div>
+      `);
+    }
+
+    function sessionResponse() {
+      addAIMessage(`
+        <p>اختيار راقي! 🌿 الجلسة العربية الفاخرة تعطي روح أصيلة للاستراحة. إليك الفكرة:</p>
+
+        <div class="ai-section">
+          <div class="ai-section-title">🌿 التصميم المقترح</div>
+          <div class="design-card">
+            <div class="design-visual" style="background: linear-gradient(160deg, rgba(253, 251, 245, 0.3) 0%, rgba(253, 251, 245, 0.9) 100%), repeating-linear-gradient(0deg, #3d2817, #3d2817 6px, #4d3220 6px, #4d3220 12px);"></div>
+            <div class="design-info">
+              <div class="design-title">ديوان عربي مفتوح · ٨٠ م²</div>
+              <div class="design-meta">
+                <span>📐 ٨×١٠ م</span>
+                <span>🛋️ يتسع ٢٠ شخص</span>
+                <span>⏱️ ١٤ يوم</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-section-title">📦 العناصر الأساسية</div>
+          <div class="materials-list">
+            <div class="material-item">
+              <div class="material-name"><span class="material-emoji">🪵</span> هيكل خشب صنوبر</div>
+              <div class="material-qty">٨٠ م²</div>
+            </div>
+            <div class="material-item">
+              <div class="material-name"><span class="material-emoji">🏛️</span> سقف قرميد فخاري</div>
+              <div class="material-qty">٩٦٠ حبة</div>
+            </div>
+            <div class="material-item">
+              <div class="material-name"><span class="material-emoji">🛋️</span> مساند ومجالس عربية</div>
+              <div class="material-qty">طقم كامل</div>
+            </div>
+            <div class="material-item">
+              <div class="material-name"><span class="material-emoji">💡</span> إضاءة معلقة</div>
+              <div class="material-qty">٦ ثريات</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cost-card">
+          <div class="cost-total-label">الإجمالي شامل الفرش</div>
+          <div class="cost-total-value">٧٬٨٠٠ <span class="cost-total-currency">د.أ</span></div>
+          <div class="cost-breakdown">
+            <div class="cost-row">
+              <span class="cost-row-label">الهيكل والسقف</span>
+              <span class="cost-row-value">٤٬٥٠٠</span>
+            </div>
+            <div class="cost-row">
+              <span class="cost-row-label">الفرش والمجالس</span>
+              <span class="cost-row-value">٢٬٢٠٠</span>
+            </div>
+            <div class="cost-row">
+              <span class="cost-row-label">إضاءة وتركيب</span>
+              <span class="cost-row-value">١٬١٠٠</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ai-actions">
+          <button class="ai-action-btn primary" onclick="quoteRequest()">📩 طلب تسعيرة</button>
+          <button class="ai-action-btn" onclick="sendPrompt('بدي حجم أكبر')">🔄 حجم أكبر</button>
+        </div>
+      `);
+    }
+
+    function comparisonResponse() {
+      addAIMessage(`
+        <p>سؤال ممتاز! 💡 خلّيني أقارن لك الأنواع باختصار وبدقة:</p>
+
+        <div class="ai-section">
+          <div class="ai-section-title">🏛️ مقارنة الأنواع</div>
+          <div class="materials-list">
+            <div class="material-item" style="flex-direction:column;align-items:flex-start;gap:0.4rem;padding:1rem">
+              <div class="material-name">
+                <span class="material-emoji">🔴</span>
+                <strong style="color:var(--gold-light)">برتغالي</strong>
+              </div>
+              <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6">
+                الأكثر طلباً في الأردن. لون أحمر كلاسيكي، مقاوم للحرارة والرطوبة. <strong>السعر:</strong> ٤٫٥ د.أ/حبة. <strong>الضمان:</strong> ١٠ سنوات.
+              </div>
+            </div>
+            <div class="material-item" style="flex-direction:column;align-items:flex-start;gap:0.4rem;padding:1rem">
+              <div class="material-name">
+                <span class="material-emoji">🟤</span>
+                <strong style="color:var(--gold-light)">إيطالي</strong>
+              </div>
+              <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6">
+                الأفخم. لون بني فحمي راقي، خفيف الوزن وعازل ممتاز. <strong>السعر:</strong> ٥٫٨٥ د.أ/حبة. <strong>الضمان:</strong> ١٥ سنة.
+              </div>
+            </div>
+            <div class="material-item" style="flex-direction:column;align-items:flex-start;gap:0.4rem;padding:1rem">
+              <div class="material-name">
+                <span class="material-emoji">🟠</span>
+                <strong style="color:var(--gold-light)">تركي</strong>
+              </div>
+              <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6">
+                الأفضل اقتصادياً. جودة جيدة وألوان متنوعة. <strong>السعر:</strong> ٣٫٨ د.أ/حبة. <strong>الضمان:</strong> ٧ سنوات.
+              </div>
+            </div>
+            <div class="material-item" style="flex-direction:column;align-items:flex-start;gap:0.4rem;padding:1rem">
+              <div class="material-name">
+                <span class="material-emoji">⭐</span>
+                <strong style="color:var(--gold-light)">إسباني</strong>
+              </div>
+              <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6">
+                البريميوم. تصاميم مميزة وألوان متعددة، نادر الاستخدام في الفلل الفاخرة. <strong>السعر:</strong> ٦٫٧٥ د.أ/حبة. <strong>الضمان:</strong> ٢٠ سنة.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p style="margin-top:1rem;font-size:0.9rem">
+          💡 <strong>توصيتي:</strong> للبيوت العادية في الأردن، <strong>البرتغالي</strong> هو الخيار الأذكى — سعر معقول، جودة عالية، ومتوفر بكثرة. للفلل الفاخرة، <strong>الإيطالي</strong> يستحق الفرق بالسعر.
+        </p>
+
+        <div class="suggestions">
+          <div class="suggestion-chip" onclick="sendPrompt('احسبلي برتغالي ل١٥٠ متر')">احسب لي برتغالي ١٥٠م²</div>
+          <div class="suggestion-chip" onclick="sendPrompt('احسبلي إيطالي ل١٥٠ متر')">احسب لي إيطالي ١٥٠م²</div>
+        </div>
+      `);
+    }
+
+    function imageAnalysisResponse() {
+      addAIMessage(`
+        <p>تم تحليل الصورة 📷 — بناءً على ما أراه:</p>
+        <ul style="padding-right:1.5rem;color:var(--text-secondary);line-height:1.9">
+          <li>المساحة التقديرية: <strong style="color:var(--gold-light)">حوالي ١٤٠ م²</strong></li>
+          <li>نوع الهيكل المناسب: <strong style="color:var(--gold-light)">حديد مجلفن</strong></li>
+          <li>أنصح بقرميد <strong style="color:var(--gold-light)">برتغالي بلون داكن</strong> ليتناسب مع لون الواجهة</li>
+        </ul>
+        <p style="margin-top:1rem">هل تريد أن أحضّر لك تسعيرة كاملة؟</p>
+        <div class="ai-actions">
+          <button class="ai-action-btn primary" onclick="sendPrompt('نعم احسب التكلفة')">احسب التكلفة</button>
+          <button class="ai-action-btn">صورة أخرى</button>
+        </div>
+      `);
+    }
+
+    function voiceResponse() {
+      addAIMessage(`
+        <p>🎤 تم تحويل ملاحظتك إلى نص:</p>
+        <p style="background:var(--bg-elevated);padding:1rem;border-radius:10px;border-right:3px solid var(--gold-primary);font-style:italic;color:var(--text-secondary)">"بدي كوخ في مزرعتي وأركب عليه قرميد..."</p>
+        <p style="margin-top:1rem">هل تريد أن أبدأ بتصميم كوخ كامل؟</p>
+        <div class="ai-actions">
+          <button class="ai-action-btn primary" onclick="sendPrompt('بدي كوخ ٧×٧')">ابدأ التصميم</button>
+        </div>
+      `);
+    }
+
+    function genericResponse() {
+      addAIMessage(`
+        <p>هلا فيك! 👋 أنا مساعدك الذكي بشموخ، أقدر أساعدك في:</p>
+        <ul style="padding-right:1.5rem;color:var(--text-secondary);line-height:1.9">
+          <li>🛖 تصميم أكواخ خشبية بكل الأحجام</li>
+          <li>🏛️ حساب كميات القرميد لأي مساحة</li>
+          <li>🌿 اقتراح تصاميم جلسات ومظلات</li>
+          <li>💡 المقارنة بين أنواع المواد ومساعدتك بالاختيار</li>
+        </ul>
+        <p style="margin-top:1rem">صفلي مشروعك بكلماتك العادية وخلّيني أبدأ.</p>
+        <div class="suggestions">
+          <div class="suggestion-chip" onclick="sendPrompt('بدي كوخ ٧×٧')">🛖 كوخ ٧×٧</div>
+          <div class="suggestion-chip" onclick="sendPrompt('قرميد لبيت ١٢٠م²')">🏛️ قرميد ١٢٠م²</div>
+          <div class="suggestion-chip" onclick="sendPrompt('جلسة عربية')">🌿 جلسة عربية</div>
+        </div>
+      `);
+    }
+
+    function quoteRequest() {
+      addUserMessage('طلب تسعيرة رسمية');
+      showTyping();
+      setTimeout(() => {
+        removeTyping();
+        addAIMessage(`
+          <p>ممتاز! ✅ تم إرسال طلبك للمقاولين المعتمدين في منطقتك.</p>
+          <div style="background:var(--bg-elevated);border:1px solid var(--gold-primary);border-radius:12px;padding:1.25rem;margin:1rem 0">
+            <div style="font-family:var(--font-display);font-size:1rem;color:var(--gold-light);margin-bottom:0.5rem">📩 طلبك رقم #٢٤٨</div>
+            <div style="color:var(--text-secondary);font-size:0.9rem;line-height:1.8">
+              ✓ تم استلام الطلب<br>
+              ⏳ ٣ مقاولين معتمدون يراجعون الطلب<br>
+              📞 سيتواصل معك أحدهم خلال ساعة
+            </div>
+          </div>
+          <p style="font-size:0.88rem;color:var(--text-secondary)">يمكنك متابعة الطلب من <strong style="color:var(--gold-light)">صفحة طلباتي</strong> في التطبيق.</p>
+        `);
+      }, 1400);
+    }
+  </script>
+
+</body>
+</html>

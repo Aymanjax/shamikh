@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>قرميد فخاري — شُمُوخ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Tajawal:wght@300;400;500;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Light Mode - Cream & Gold luxury */
+      --bg-deep: #faf7f1;
+      --bg-base: #ffffff;
+      --bg-elevated: #f5f0e6;
+      --bg-card: #fdfbf5;
+      --bg-card-hover: #f0e9d8;
+
+      --gold-primary: #b8902a;
+      --gold-light: #d4af37;
+      --gold-pale: #f4e4a8;
+      --gold-deep: #8b6f1f;
+      --gold-glow: rgba(184, 144, 42, 0.12);
+
+      --text-primary: #2a2418;
+      --text-secondary: #6b5d42;
+      --text-muted: #a08e6e;
+
+      --border-subtle: rgba(184, 144, 42, 0.18);
+      --border-strong: rgba(184, 144, 42, 0.4);
+
+      --success: #15803d;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --info: #1e40af;
+
+      --shadow-gold: 0 8px 32px rgba(184, 144, 42, 0.15);
+      --shadow-deep: 0 16px 48px rgba(75, 60, 30, 0.12);
+
+      --font-display: 'Reem Kufi', sans-serif;
+      --font-body: 'Tajawal', sans-serif;
+      --font-numeric: 'Cormorant Garamond', serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cpath d='M40 0L80 40L40 80L0 40Z' fill='none' stroke='%23d4af37' stroke-width='0.5' stroke-opacity='0.07'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ─── NAV ────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 253, 245, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-deep));
+      border-radius: 8px;
+      box-shadow: var(--shadow-gold);
+      position: relative;
+    }
+
+    .logo-icon::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border: 1.5px solid rgba(255, 255, 255, 0.5);
+      border-radius: 4px;
+    }
+
+    .logo-text {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--gold-light);
+    }
+
+    .breadcrumb {
+      display: none;
+      gap: 0.5rem;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    @media (min-width: 768px) {
+      .breadcrumb { display: flex; }
+    }
+
+    .breadcrumb a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .breadcrumb a:hover { color: var(--gold-light); }
+    .breadcrumb .current { color: var(--gold-light); font-weight: 600; }
+
+    .nav-cta {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-deep));
+      color: var(--bg-deep);
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-shadow: var(--shadow-gold);
+    }
+
+    /* ─── HERO ───────────────────────────────────────────────── */
+    .hero {
+      padding: 3rem 0 2rem;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+
+    @media (min-width: 1024px) {
+      .hero-grid { grid-template-columns: 1.1fr 1fr; }
+    }
+
+    /* Gallery */
+    .gallery {
+      position: relative;
+    }
+
+    .main-image {
+      width: 100%;
+      aspect-ratio: 4/3;
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--border-subtle);
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.15) 0%, rgba(253, 251, 245, 0.5) 100%),
+        repeating-linear-gradient(45deg, #6b3a1a, #6b3a1a 12px, #7c4520 12px, #7c4520 24px);
+      transition: all 0.4s;
+    }
+
+    .main-image.var-portuguese {
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.15) 0%, rgba(253, 251, 245, 0.5) 100%),
+        repeating-linear-gradient(45deg, #b04528, #b04528 12px, #c44d2e 12px, #c44d2e 24px);
+    }
+
+    .main-image.var-italian {
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.15) 0%, rgba(253, 251, 245, 0.5) 100%),
+        repeating-linear-gradient(45deg, #4a2e1a, #4a2e1a 12px, #5d3a26 12px, #5d3a26 24px);
+    }
+
+    .main-image.var-turkish {
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.15) 0%, rgba(253, 251, 245, 0.5) 100%),
+        repeating-linear-gradient(45deg, #c46836, #c46836 12px, #d97843 12px, #d97843 24px);
+    }
+
+    .main-image.var-spanish {
+      background:
+        linear-gradient(160deg, rgba(253, 251, 245, 0.15) 0%, rgba(253, 251, 245, 0.5) 100%),
+        repeating-linear-gradient(45deg, #8b5a2f, #8b5a2f 12px, #a8763d 12px, #a8763d 24px);
+    }
+
+    .image-badge {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: rgba(10, 9, 8, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--gold-primary);
+      color: var(--gold-light);
+      padding: 0.4rem 0.85rem;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .image-badge.featured {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-deep));
+      color: var(--bg-deep);
+      border: none;
+    }
+
+    .image-actions {
+      position: absolute;
+      bottom: 1rem;
+      left: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: space-between;
+    }
+
+    .image-stats {
+      background: rgba(10, 9, 8, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 0.5rem 0.85rem;
+      border-radius: 100px;
+      display: flex;
+      gap: 0.75rem;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .thumbnails {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.65rem;
+      margin-top: 0.75rem;
+    }
+
+    .thumb {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: all 0.2s;
+      overflow: hidden;
+    }
+
+    .thumb.active {
+      border-color: var(--gold-primary);
+      box-shadow: var(--shadow-gold);
+    }
+
+    .thumb:hover { border-color: var(--border-strong); }
+
+    .thumb-1 { background: repeating-linear-gradient(45deg, #b04528, #b04528 4px, #c44d2e 4px, #c44d2e 8px); }
+    .thumb-2 { background: repeating-linear-gradient(0deg, #6b3a1a, #6b3a1a 3px, #7c4520 3px, #7c4520 6px); }
+    .thumb-3 { background: linear-gradient(135deg, #b04528, #4a2e1a); }
+    .thumb-4 { background: radial-gradient(circle, #c44d2e, #6b3a1a); }
+
+    /* ─── INFO ───────────────────────────────────────────────── */
+    .info {
+      position: sticky;
+      top: 6rem;
+    }
+
+    .info-eyebrow {
+      font-family: var(--font-numeric);
+      font-style: italic;
+      color: var(--gold-primary);
+      font-size: 1rem;
+      letter-spacing: 0.15em;
+      margin-bottom: 0.75rem;
+    }
+
+    .info-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.85rem, 4vw, 2.75rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+
+    .info-rating {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .stars {
+      color: var(--gold-primary);
+      font-size: 1.05rem;
+    }
+
+    .rating-value {
+      font-family: var(--font-numeric);
+      font-weight: 600;
+      color: var(--gold-light);
+      font-size: 1.05rem;
+    }
+
+    .rating-meta {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .info-desc {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      line-height: 1.8;
+      margin-bottom: 1.75rem;
+    }
+
+    /* Variant selector */
+    .variants-section {
+      margin-bottom: 1.75rem;
+    }
+
+    .section-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.85rem;
+    }
+
+    .section-label-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .section-label-extra {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .variants-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.65rem;
+    }
+
+    .variant-card {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 0.85rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .variant-card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+    }
+
+    .variant-card.selected {
+      border-color: var(--gold-primary);
+      background: linear-gradient(135deg, var(--bg-card), var(--bg-base));
+      box-shadow: var(--shadow-gold);
+    }
+
+    .variant-card.selected::after {
+      content: '✓';
+      position: absolute;
+      top: 0.5rem;
+      left: 0.5rem;
+      width: 20px;
+      height: 20px;
+      background: var(--gold-primary);
+      color: var(--bg-deep);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .variant-swatch {
+      width: 100%;
+      height: 50px;
+      border-radius: 8px;
+      margin-bottom: 0.6rem;
+    }
+
+    .var-swatch-portuguese { background: repeating-linear-gradient(45deg, #b04528, #b04528 6px, #c44d2e 6px, #c44d2e 12px); }
+    .var-swatch-italian { background: repeating-linear-gradient(45deg, #4a2e1a, #4a2e1a 6px, #5d3a26 6px, #5d3a26 12px); }
+    .var-swatch-turkish { background: repeating-linear-gradient(45deg, #c46836, #c46836 6px, #d97843 6px, #d97843 12px); }
+    .var-swatch-spanish { background: repeating-linear-gradient(45deg, #8b5a2f, #8b5a2f 6px, #a8763d 6px, #a8763d 12px); }
+
+    .variant-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .variant-origin {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .variant-price {
+      font-family: var(--font-numeric);
+      color: var(--gold-light);
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+
+    .variant-price small {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+
+    /* Price box */
+    .price-box {
+      background: linear-gradient(160deg, var(--bg-card) 0%, var(--bg-base) 100%);
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .price-box::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, var(--gold-glow) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      position: relative;
+      margin-bottom: 0.5rem;
+    }
+
+    .price-row:last-child { margin-bottom: 0; }
+
+    .price-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .price-value {
+      font-family: var(--font-numeric);
+      font-weight: 600;
+      color: var(--gold-light);
+      font-size: 1.15rem;
+    }
+
+    .price-main {
+      padding-bottom: 0.75rem;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px dashed var(--border-subtle);
+    }
+
+    .price-main .price-label {
+      font-size: 0.95rem;
+    }
+
+    .price-main .price-value {
+      font-size: 1.85rem;
+    }
+
+    .price-main .price-value small {
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-weight: normal;
+    }
+
+    /* CTAs */
+    .cta-group {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.6rem;
+    }
+
+    @media (min-width: 480px) {
+      .cta-group { grid-template-columns: 2fr 1fr; }
+    }
+
+    .btn-cta {
+      padding: 1rem;
+      border-radius: 12px;
+      border: none;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-primary), var(--gold-deep));
+      color: var(--bg-deep);
+      box-shadow: 0 8px 24px rgba(212, 175, 55, 0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(212, 175, 55, 0.5);
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+    }
+
+    .trust-row {
+      display: flex;
+      gap: 1rem;
+      justify-content: space-around;
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+    }
+
+    .trust-item {
+      text-align: center;
+      flex: 1;
+      min-width: 90px;
+    }
+
+    .trust-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .trust-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+
+    .trust-value {
+      font-size: 0.85rem;
+      color: var(--gold-light);
+      font-weight: 600;
+    }
+
+    /* ─── SECTIONS ───────────────────────────────────────────── */
+    section {
+      padding: 4rem 0;
+    }
+
+    .section-header {
+      margin-bottom: 2.5rem;
+      text-align: center;
+    }
+
+    .section-eyebrow {
+      font-family: var(--font-numeric);
+      font-style: italic;
+      color: var(--gold-primary);
+      font-size: 0.95rem;
+      letter-spacing: 0.15em;
+      margin-bottom: 0.75rem;
+      display: inline-block;
+      position: relative;
+      padding: 0 2rem;
+    }
+
+    .section-eyebrow::before,
+    .section-eyebrow::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 1.5rem;
+      height: 1px;
+      background: var(--gold-primary);
+    }
+    .section-eyebrow::before { right: -0.5rem; }
+    .section-eyebrow::after { left: -0.5rem; }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+      font-weight: 700;
+    }
+
+    /* Features grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .features-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .feature-card {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 1.5rem;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-4px);
+    }
+
+    .feature-icon {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 1rem;
+      background: var(--gold-glow);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .feature-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: var(--gold-light);
+    }
+
+    .feature-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Process steps */
+    .process-section {
+      background: var(--bg-base);
+    }
+
+    .process-steps {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 768px) {
+      .process-steps {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0;
+        max-width: none;
+      }
+    }
+
+    .step {
+      position: relative;
+      text-align: center;
+      padding: 0 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 24px;
+        left: 0;
+        right: 50%;
+        width: calc(100% - 48px);
+        height: 1px;
+        background: linear-gradient(90deg, var(--gold-primary), transparent);
+        transform: translateX(50%);
+      }
+    }
+
+    .step-num {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 1rem;
+      background: var(--bg-card);
+      border: 2px solid var(--gold-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-numeric);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--gold-light);
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    .step-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* FAQ */
+    .faq-list {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .faq-item {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      margin-bottom: 0.75rem;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .faq-item.open {
+      border-color: var(--border-strong);
+    }
+
+    .faq-question {
+      padding: 1.15rem 1.5rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .faq-question:hover { background: var(--bg-card); }
+
+    .faq-toggle {
+      color: var(--gold-primary);
+      font-size: 1.4rem;
+      transition: transform 0.3s;
+    }
+
+    .faq-item.open .faq-toggle { transform: rotate(45deg); }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.3s;
+      padding: 0 1.5rem;
+      color: var(--text-secondary);
+      font-size: 0.92rem;
+      line-height: 1.7;
+    }
+
+    .faq-item.open .faq-answer {
+      max-height: 200px;
+      padding: 0 1.5rem 1.25rem;
+    }
+
+    /* Similar Projects */
+    .similar-projects {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (min-width: 640px) {
+      .similar-projects { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (min-width: 1024px) {
+      .similar-projects { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .similar-card {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .similar-card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-4px);
+    }
+
+    .similar-image {
+      aspect-ratio: 16/10;
+      position: relative;
+    }
+
+    .sim-1 .similar-image { background: repeating-linear-gradient(45deg, #b04528, #b04528 8px, #c44d2e 8px, #c44d2e 16px); }
+    .sim-2 .similar-image { background: repeating-linear-gradient(45deg, #4a2e1a, #4a2e1a 8px, #5d3a26 8px, #5d3a26 16px); }
+    .sim-3 .similar-image { background: repeating-linear-gradient(45deg, #c46836, #c46836 8px, #d97843 8px, #d97843 16px); }
+
+    .similar-content {
+      padding: 1rem 1.25rem;
+      background: var(--bg-base);
+    }
+
+    .similar-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .similar-meta {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    /* CTA section */
+    .final-cta {
+      padding: 5rem 0;
+      text-align: center;
+      position: relative;
+    }
+
+    .final-cta::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, var(--gold-glow) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .final-cta-content {
+      position: relative;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .final-cta-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.85rem, 4.5vw, 2.85rem);
+      font-weight: 700;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, var(--gold-pale), var(--gold-primary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .final-cta-desc {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      margin-bottom: 2rem;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .cta-buttons .btn-cta {
+      padding: 1rem 1.75rem;
+    }
+
+    /* Footer */
+    footer {
+      padding: 2rem 0;
+      border-top: 1px solid var(--border-subtle);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    section { animation: fadeUp 0.6s ease both; }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-inner">
+      <a href="shamoukh_home.html" class="brand">
+        <div class="logo-icon"></div>
+        <div class="logo-text">شُمُوخ</div>
+      </a>
+      <div class="breadcrumb">
+        <a href="shamoukh_home.html">الرئيسية</a>
+        <span>›</span>
+        <a href="#">الخدمات</a>
+        <span>›</span>
+        <span class="current">قرميد فخاري</span>
+      </div>
+      <a href="shamoukh_calculator.html" class="nav-cta">احسب التكلفة</a>
+    </div>
+  </nav>
+
+  <!-- ─── HERO ─────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid">
+
+        <!-- Gallery -->
+        <div class="gallery">
+          <div class="main-image var-portuguese" id="main-image">
+            <div class="image-badge featured">⭐ الأكثر طلباً</div>
+            <div class="image-actions">
+              <div class="image-stats">
+                <span>👁️ ١٢٬٤٥٠</span>
+                <span>❤️ ٨٩٠</span>
+              </div>
+              <div class="image-stats" style="cursor:pointer">🔍 تكبير</div>
+            </div>
+          </div>
+          <div class="thumbnails">
+            <div class="thumb active thumb-1" onclick="changeImage(this, 'var-portuguese')"></div>
+            <div class="thumb thumb-2" onclick="changeImage(this, 'var-italian')"></div>
+            <div class="thumb thumb-3" onclick="changeImage(this, 'var-turkish')"></div>
+            <div class="thumb thumb-4" onclick="changeImage(this, 'var-spanish')"></div>
+          </div>
+        </div>
+
+        <!-- Info -->
+        <div class="info">
+          <div class="info-eyebrow">Premium Roofing</div>
+          <h1 class="info-title">قرميد فخاري بأصالة عالمية</h1>
+
+          <div class="info-rating">
+            <span class="stars">★★★★★</span>
+            <span class="rating-value">٤٫٩</span>
+            <span class="rating-meta">(١٢٤ تقييم)</span>
+            <span class="rating-meta">·</span>
+            <span class="rating-meta">٢٤٧ مشروع منفّذ</span>
+          </div>
+
+          <p class="info-desc">
+            قرميد فخاري من أفخم العلامات العالمية — البرتغال، إيطاليا، تركيا، وإسبانيا. مقاوم لحرارة الصيف وأمطار الشتاء، بضمان حتى ٢٠ سنة. تركيب احترافي بأيدي مقاولين معتمدين.
+          </p>
+
+          <!-- Variants -->
+          <div class="variants-section">
+            <div class="section-label">
+              <div class="section-label-title">اختر النوع</div>
+              <div class="section-label-extra">٤ خيارات متاحة</div>
+            </div>
+            <div class="variants-grid">
+              <div class="variant-card selected" onclick="selectVariant(this, 'portuguese', 4.5)">
+                <div class="variant-swatch var-swatch-portuguese"></div>
+                <div class="variant-name">برتغالي</div>
+                <div class="variant-origin">🇵🇹 البرتغال</div>
+                <div class="variant-price">٤٫٥ <small>د.أ/حبة</small></div>
+              </div>
+              <div class="variant-card" onclick="selectVariant(this, 'italian', 5.85)">
+                <div class="variant-swatch var-swatch-italian"></div>
+                <div class="variant-name">إيطالي</div>
+                <div class="variant-origin">🇮🇹 إيطاليا</div>
+                <div class="variant-price">٥٫٨٥ <small>د.أ/حبة</small></div>
+              </div>
+              <div class="variant-card" onclick="selectVariant(this, 'turkish', 3.8)">
+                <div class="variant-swatch var-swatch-turkish"></div>
+                <div class="variant-name">تركي</div>
+                <div class="variant-origin">🇹🇷 تركيا</div>
+                <div class="variant-price">٣٫٨ <small>د.أ/حبة</small></div>
+              </div>
+              <div class="variant-card" onclick="selectVariant(this, 'spanish', 6.75)">
+                <div class="variant-swatch var-swatch-spanish"></div>
+                <div class="variant-name">إسباني</div>
+                <div class="variant-origin">🇪🇸 إسبانيا</div>
+                <div class="variant-price">٦٫٧٥ <small>د.أ/حبة</small></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Price box -->
+          <div class="price-box">
+            <div class="price-row price-main">
+              <div class="price-label">السعر يبدأ من</div>
+              <div class="price-value"><span id="price-display">٤٫٥</span> <small>د.أ/حبة</small></div>
+            </div>
+            <div class="price-row">
+              <div class="price-label">تكلفة المتر المربع المتوقعة</div>
+              <div class="price-value"><span id="m2-price">٥٤</span> د.أ</div>
+            </div>
+            <div class="price-row">
+              <div class="price-label">مع التركيب والمواد</div>
+              <div class="price-value"><span id="total-price">٧٧</span> د.أ/م²</div>
+            </div>
+          </div>
+
+          <!-- CTAs -->
+          <div class="cta-group">
+            <a href="shamoukh_calculator.html" class="btn-cta btn-primary">
+              🧮 احسب لمشروعك
+            </a>
+            <a href="https://wa.me/962790000000" class="btn-cta btn-secondary">
+              💬 استفسار
+            </a>
+          </div>
+
+          <!-- Trust indicators -->
+          <div class="trust-row">
+            <div class="trust-item">
+              <div class="trust-icon">🛡️</div>
+              <div class="trust-value">١٠ سنوات</div>
+              <div class="trust-label">ضمان شامل</div>
+            </div>
+            <div class="trust-item">
+              <div class="trust-icon">🚚</div>
+              <div class="trust-value">٧٢ ساعة</div>
+              <div class="trust-label">توريد سريع</div>
+            </div>
+            <div class="trust-item">
+              <div class="trust-icon">⭐</div>
+              <div class="trust-value">معتمدون</div>
+              <div class="trust-label">مقاولون فقط</div>
+            </div>
+            <div class="trust-item">
+              <div class="trust-icon">💎</div>
+              <div class="trust-value">أصلي ١٠٠٪</div>
+              <div class="trust-label">شهادات منشأ</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FEATURES ─────────────────────────────────────────── -->
+  <section>
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Key Features</div>
+        <h2 class="section-title">لماذا قرميد شموخ؟</h2>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🌡️</div>
+          <div class="feature-title">عزل حراري</div>
+          <div class="feature-desc">يخفض حرارة السقف ٧°م صيفاً ويحافظ على الدفء شتاءً</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">💧</div>
+          <div class="feature-title">مقاوم للماء</div>
+          <div class="feature-desc">مع طبقة عزل مائي تمنع التسرب لمدة ٢٠ سنة</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎨</div>
+          <div class="feature-title">ألوان ثابتة</div>
+          <div class="feature-desc">لا يتأثر باللون رغم الشمس والمطر والرياح</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚖️</div>
+          <div class="feature-title">خفيف الوزن</div>
+          <div class="feature-desc">يناسب جميع أنواع الهياكل، حديد أو خشب</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── PROCESS ──────────────────────────────────────────── -->
+  <section class="process-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">How It Works</div>
+        <h2 class="section-title">٤ خطوات بسيطة</h2>
+      </div>
+
+      <div class="process-steps">
+        <div class="step">
+          <div class="step-num">١</div>
+          <div class="step-title">احسب التكلفة</div>
+          <div class="step-desc">استخدم الحاسبة الذكية لتقدير المشروع خلال دقيقة</div>
+        </div>
+        <div class="step">
+          <div class="step-num">٢</div>
+          <div class="step-title">معاينة مجانية</div>
+          <div class="step-desc">مقاول معتمد يزور موقعك ويأخذ المقاسات الفعلية</div>
+        </div>
+        <div class="step">
+          <div class="step-num">٣</div>
+          <div class="step-title">تسعيرة رسمية</div>
+          <div class="step-desc">تستلم عرضاً تفصيلياً بالمواد والأسعار خلال ٢٤ ساعة</div>
+        </div>
+        <div class="step">
+          <div class="step-num">٤</div>
+          <div class="step-title">التنفيذ</div>
+          <div class="step-desc">فريق محترف ينفذ المشروع بأعلى المعايير</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FAQ ──────────────────────────────────────────────── -->
+  <section>
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Common Questions</div>
+        <h2 class="section-title">أسئلة شائعة</h2>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item open">
+          <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            <span>ما الفرق بين القرميد البرتغالي والإيطالي؟</span>
+            <span class="faq-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            البرتغالي هو الأكثر طلباً في الأردن بسعر مناسب ولون أحمر كلاسيكي، مع ضمان ١٠ سنوات. الإيطالي أفخم وأخف وزناً، بلون بني فحمي راقي وضمان ١٥ سنة، لكن أغلى بحوالي ٣٠٪. الاختيار يعتمد على ميزانيتك ونوع الواجهة.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            <span>كم تستغرق مدة تركيب القرميد؟</span>
+            <span class="faq-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            لمساحة ١٢٠ م²، التركيب يستغرق من ١٠ إلى ١٤ يوماً عمل تقريباً. تشمل المدة: تجهيز الهيكل (٤ أيام)، عزل مائي (يومان)، تركيب القرميد (٥ أيام)، تنظيف وتسليم (يوم).
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            <span>هل التركيب يشمل الهيكل؟</span>
+            <span class="faq-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            نعم، السعر النهائي يشمل الهيكل (حديد أو خشب)، القرميد، العزل المائي، البراغي، النقل، والتركيب. لا توجد تكاليف خفية — كل شيء مفصّل في عرض السعر الرسمي.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            <span>ما هو الضمان وما الذي يغطيه؟</span>
+            <span class="faq-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            الضمان يغطي القرميد ضد الكسر والتشقق، تسرّب المياه، وثبات اللون. مدة الضمان: برتغالي ١٠ سنوات، إيطالي ١٥ سنة، إسباني ٢٠ سنة، تركي ٧ سنوات. الضمان موثق رسمياً.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            <span>هل تتوفر خدمة الصيانة الدورية؟</span>
+            <span class="faq-toggle">+</span>
+          </div>
+          <div class="faq-answer">
+            نعم، نقدم خدمة صيانة سنوية اختيارية تشمل: فحص شامل للسقف، إعادة تثبيت البراغي، تنظيف وتلميع القرميد، وفحص العزل. السعر يبدأ من ٢٠٠ د.أ سنوياً للبيت العادي.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SIMILAR PROJECTS ─────────────────────────────────── -->
+  <section style="background:var(--bg-base)">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-eyebrow">Recent Work</div>
+        <h2 class="section-title">مشاريع منفذة بقرميد فخاري</h2>
+      </div>
+
+      <div class="similar-projects">
+        <div class="similar-card sim-1">
+          <div class="similar-image"></div>
+          <div class="similar-content">
+            <div class="similar-title">فيلا الصبيحي · عبدون</div>
+            <div class="similar-meta">
+              <span>برتغالي</span>
+              <span>·</span>
+              <span>٢٤٠ م²</span>
+              <span>·</span>
+              <span>٢١ يوم</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="similar-card sim-2">
+          <div class="similar-image"></div>
+          <div class="similar-content">
+            <div class="similar-title">قصر الخليج · الرياض</div>
+            <div class="similar-meta">
+              <span>إيطالي</span>
+              <span>·</span>
+              <span>٤٢٠ م²</span>
+              <span>·</span>
+              <span>٣٥ يوم</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="similar-card sim-3">
+          <div class="similar-image"></div>
+          <div class="similar-content">
+            <div class="similar-title">مزرعة الحرفوش · الرمثا</div>
+            <div class="similar-meta">
+              <span>تركي</span>
+              <span>·</span>
+              <span>٣٢٠ م²</span>
+              <span>·</span>
+              <span>٢٨ يوم</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FINAL CTA ────────────────────────────────────────── -->
+  <section class="final-cta">
+    <div class="container">
+      <div class="final-cta-content">
+        <h2 class="final-cta-title">جاهز لقرميد يليق ببيتك؟</h2>
+        <p class="final-cta-desc">احسب التكلفة بدقة الآن أو تواصل معنا لمعاينة مجانية في موقعك</p>
+        <div class="cta-buttons">
+          <a href="shamoukh_calculator.html" class="btn-cta btn-primary">
+            🧮 احسب التكلفة
+          </a>
+          <a href="shamoukh_ai_assistant.html" class="btn-cta btn-secondary">
+            🤖 اسأل المساعد الذكي
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div>© ٢٠٢٦ شُمُوخ — جميع الحقوق محفوظة</div>
+    </div>
+  </footer>
+
+  <script>
+    function changeImage(thumb, variantClass) {
+      document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
+      thumb.classList.add('active');
+      const main = document.getElementById('main-image');
+      main.className = 'main-image ' + variantClass;
+    }
+
+    function selectVariant(card, name, price) {
+      document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+
+      // Update prices
+      document.getElementById('price-display').textContent = price.toLocaleString('ar-EG');
+      document.getElementById('m2-price').textContent = Math.round(price * 12).toLocaleString('ar-EG');
+      document.getElementById('total-price').textContent = Math.round((price * 12) + 23).toLocaleString('ar-EG');
+
+      // Update main image
+      const main = document.getElementById('main-image');
+      main.className = 'main-image var-' + name;
+    }
+  </script>
+
+</body>
+</html>
