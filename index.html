@@ -1,39 +1,554 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>شموخ — لوحة التحكم</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&family=Tajawal:wght@300;400;500;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      /* Light Mode - Cream & Gold luxury */
-      --bg-deep: #faf7f1;
-      --bg-base: #ffffff;
-      --bg-elevated: #f5f0e6;
-      --bg-card: #fdfbf5;
-      --bg-card-hover: #f0e9d8;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاسبة القرميد | أيمن أبو عبدو</title>
+    <!-- خطوط جوجل (Cairo) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Cairo', 'sans-serif'] },
+                    colors: {
+                        brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' },
+                        dark: '#0f172a'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+        }
+        .invoice-paper {
+            background: #fff;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-top: 6px solid #2563eb;
+        }
+        .invoice-paper::after {
+            content: "";
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: radial-gradient(circle, transparent, transparent 50%, #fff 50%, #fff 100%) 0 0 / 20px 20px repeat-x;
+        }
+        .dashed-divider {
+            border-top: 2px dashed #e2e8f0;
+            margin: 12px 0;
+        }
+        .radio-pill input:checked + div {
+            background-color: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased selection:bg-brand-500 selection:text-white pb-12">
 
-      --gold-primary: #b8902a;
-      --gold-light: #d4af37;
-      --gold-pale: #f4e4a8;
-      --gold-deep: #8b6f1f;
-      --gold-glow: rgba(184, 144, 42, 0.12);
+    <!-- شريط علوي حديث -->
+    <nav class="bg-dark text-white sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-brand-600 p-2.5 rounded-xl">
+                    <i class="fa-solid fa-calculator text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-tight">حاسبة القرميد | أيمن أبو عبدو</h1>
+                    <a href="https://wa.me/962788859723" target="_blank" class="text-brand-100 text-[11px] font-semibold flex items-center gap-1 hover:text-[#25D366] transition-colors mt-0.5">
+                        <i class="fa-brands fa-whatsapp text-[#25D366]"></i> للتواصل: 0788859723
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
 
-      --text-primary: #2a2418;
-      --text-secondary: #6b5d42;
-      --text-muted: #a08e6e;
+    <!-- الهيكل الرئيسي -->
+    <main class="max-w-7xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- القسم الأيمن: لوحة التحكم والمدخلات -->
+        <section class="lg:col-span-7 space-y-6">
+            
+            <!-- أبعاد الورشة -->
+            <div class="glass-panel rounded-3xl p-6 lg:p-8 transition-all hover:shadow-xl">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="bg-blue-100 text-brand-600 w-10 h-10 flex items-center justify-center rounded-full text-lg shadow-inner"><i class="fa-solid fa-pen-ruler"></i></span>
+                    <h2 class="text-xl font-bold text-slate-900">القياسات الهندسية والميول</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">طول السقف الأرضي (متر)</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-arrows-left-right absolute right-4 top-3.5 text-slate-400"></i>
+                            <input type="number" id="roofLength" value="5.0" step="0.1" class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 text-slate-900 font-bold focus:ring-2 focus:ring-brand-500 transition-all outline-none">
+                        </div>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">عرض السقف الأرضي (متر)</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-arrows-up-down absolute right-4 top-3.5 text-slate-400"></i>
+                            <input type="number" id="roofWidth" value="4.0" step="0.1" class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 text-slate-900 font-bold focus:ring-2 focus:ring-brand-500 transition-all outline-none">
+                        </div>
+                    </div>
 
-      --border-subtle: rgba(184, 144, 42, 0.18);
-      --border-strong: rgba(184, 144, 42, 0.4);
+                    <!-- نسبة الميل -->
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-sm font-bold text-slate-600">نسبة الميل (الزيادة المتوقعة للمساحة)</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-chart-line absolute right-4 top-3.5 text-slate-400"></i>
+                            <select id="slopePercent" class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 text-slate-900 font-bold focus:ring-2 focus:ring-brand-500 transition-all outline-none appearance-none cursor-pointer">
+                                <option value="0">0% (مستوي تماماً)</option>
+                                <option value="5">5%</option>
+                                <option value="10">10%</option>
+                                <option value="15">15%</option>
+                                <option value="20" selected>20% (ميل طبيعي)</option>
+                                <option value="25">25%</option>
+                                <option value="30">30% (ميل حاد)</option>
+                                <option value="35">35%</option>
+                                <option value="40">40%</option>
+                                <option value="50">50%</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute left-4 top-4 text-slate-400 text-sm pointer-events-none"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- عدد الميول (الواجهات) -->
+                    <div class="space-y-1.5 md:col-span-2">
+                        <label class="text-sm font-bold text-slate-600">عدد الميول (يحدد مجموع أطوال الواجهات/الشراشف)</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-layer-group absolute right-4 top-3.5 text-slate-400"></i>
+                            <select id="numFacades" class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 text-slate-900 font-bold focus:ring-2 focus:ring-brand-500 transition-all outline-none appearance-none cursor-pointer">
+                                <option value="1">1 ميل (طول الورشة فقط)</option>
+                                <option value="2" selected>2 ميل (طول الورشة + عرض الورشة)</option>
+                                <option value="3">3 ميول (طولين + عرض)</option>
+                                <option value="4">4 ميول (طولين + عرضين)</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute left-4 top-4 text-slate-400 text-sm pointer-events-none"></i>
+                        </div>
+                    </div>
 
-      --success: #15803d;
-      --warning: #b45309;
-      --danger: #b91c1c;
-      --info: #1e40af;
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">عدد الأرجل</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-columns absolute right-4 top-3.5 text-slate-400"></i>
+                            <input type="number" id="numLegs" value="6" class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 text-slate-900 font-bold focus:ring-2 focus:ring-brand-500 transition-all outline-none">
+                        </div>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-bold text-slate-600">ارتفاع الرجل (متر)</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-text-height absolute right-4 top-3.5 text-slate-400"></i>
+                            <input type="number" id="legHeight" value="2.7" step="0.1" class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 text-slate-900 font-bold focus:ring-2 focus:ring-brand-500 transition-all outline-none">
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+            <!-- المواصفات والمواد -->
+            <div class="glass-panel rounded-3xl p-6 lg:p-8 transition-all hover:shadow-xl">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="bg-indigo-100 text-indigo-600 w-10 h-10 flex items-center justify-center rounded-full text-lg shadow-inner"><i class="fa-solid fa-swatchbook"></i></span>
+                    <h2 class="text-xl font-bold text-slate-900">المواصفات الفنية</h2>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- نوع القرميد -->
+                    <div class="space-y-2">
+                        <label class="text-sm font-bold text-slate-600 block">صنف القرميد المعتمد:</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-cubes absolute right-4 top-3.5 text-slate-400"></i>
+                            <select id="tileType" class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pr-11 pl-4 text-slate-900 font-bold appearance-none focus:ring-2 focus:ring-indigo-500 transition-all outline-none cursor-pointer">
+                                <!-- سيتم التعبئة برمجياً -->
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute left-4 top-4 text-slate-400 text-sm pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <!-- مسافات الحديد / الخشب -->
+                    <div class="space-y-2">
+                        <label class="text-sm font-bold text-slate-600 block">مسافات توزيع الحديد 4*8 والأسس:</label>
+                        <div class="flex gap-3">
+                            <label class="cursor-pointer flex-1 radio-pill">
+                                <input type="radio" name="spacing" value="55" checked class="hidden">
+                                <div class="text-center py-2.5 border-2 border-slate-200 rounded-xl font-bold text-slate-600 transition-all">55 سم</div>
+                            </label>
+                            <label class="cursor-pointer flex-1 radio-pill">
+                                <input type="radio" name="spacing" value="60" class="hidden">
+                                <div class="text-center py-2.5 border-2 border-slate-200 rounded-xl font-bold text-slate-600 transition-all">60 سم</div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- التبديلات (Toggles) -->
+                    <div class="space-y-3 pt-2">
+                        <label class="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors">
+                            <div>
+                                <div class="font-bold text-slate-800">ديكور خشبي داخلي</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">تعديل حسبة البيش وتحديد ربطات الديكور</div>
+                            </div>
+                            <div class="relative">
+                                <input type="checkbox" id="withDecor" checked class="sr-only peer">
+                                <div class="w-12 h-7 bg-slate-300 rounded-full peer peer-checked:bg-brand-500 transition-all shadow-inner"></div>
+                                <div class="absolute w-5 h-5 bg-white rounded-full top-1 right-1 transition-all peer-checked:translate-x-[-20px] shadow"></div>
+                            </div>
+                        </label>
+
+                        <label class="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors">
+                            <div>
+                                <div class="font-bold text-slate-800">إضافة العزل المائي الكامل</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">زفتة، ألواح لاتي، ومساطير</div>
+                            </div>
+                            <div class="relative">
+                                <input type="checkbox" id="enableInsulation" class="sr-only peer">
+                                <div class="w-12 h-7 bg-slate-300 rounded-full peer peer-checked:bg-emerald-500 transition-all shadow-inner"></div>
+                                <div class="absolute w-5 h-5 bg-white rounded-full top-1 right-1 transition-all peer-checked:translate-x-[-20px] shadow"></div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- القسم الأيسر: الفاتورة الذكية -->
+        <section class="lg:col-span-5">
+            <div class="sticky top-24">
+                
+                <!-- الفاتورة -->
+                <div class="invoice-paper rounded-2xl p-6 lg:p-8">
+                    <!-- الترويسة -->
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 class="text-xl font-extrabold text-slate-900 tracking-tight">كشف المواد</h3>
+                            <p class="text-slate-500 text-xs mt-1 font-semibold">فاتورة الكميات التقديرية <i class="fa-solid fa-circle-check text-emerald-500 ml-1"></i></p>
+                        </div>
+                        <div class="bg-brand-50 text-brand-700 px-3 py-1.5 rounded-lg border border-brand-100 text-center shadow-sm">
+                            <div class="text-[10px] font-bold uppercase">المساحة بعد الميل</div>
+                            <div class="text-lg font-black" id="lblArea">0 م²</div>
+                        </div>
+                    </div>
+
+                    <!-- البنود -->
+                    <div class="space-y-4">
+                        
+                        <!-- قسم الحديد -->
+                        <div>
+                            <h4 class="text-[11px] font-black text-slate-400 mb-2 uppercase tracking-wider">هيكل الحديد</h4>
+                            <div class="flex justify-between items-center py-1">
+                                <span class="text-slate-700 font-semibold text-sm flex items-center gap-2"><i class="fa-solid fa-grip-lines text-slate-400"></i> حديد 4*8 (شبكة)</span>
+                                <span class="text-slate-900 font-bold text-base" id="outIron4x8">0 تيوب</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1">
+                                <span class="text-slate-700 font-semibold text-sm flex items-center gap-2"><i class="fa-solid fa-border-all text-slate-400"></i> حديد 10*10 (أرجل+واجهات+قواطع)</span>
+                                <span class="text-slate-900 font-bold text-base" id="outIron10x10">0 تيوب</span>
+                            </div>
+                            <div class="text-left text-[10px] text-slate-400 leading-tight mt-1" id="outIron10x10Details">0 واجهات / 0 أرجل / 0 قواطع</div>
+                        </div>
+
+                        <div class="dashed-divider"></div>
+
+                        <!-- قسم الخشب -->
+                        <div>
+                            <h4 class="text-[11px] font-black text-slate-400 mb-2 uppercase tracking-wider">الأخشاب والديكور</h4>
+                            <div class="flex justify-between items-center py-1">
+                                <span class="text-slate-700 font-semibold text-sm">ربطات ديكور</span>
+                                <div class="text-left">
+                                    <span class="text-slate-900 font-bold text-base block" id="outDecorBundles">0 ربطة</span>
+                                </div>
+                            </div>
+                            <div class="text-left text-[10px] text-brand-600 font-bold mb-1" id="outDecorLenSuggested">الطول: 0م</div>
+
+                            <div class="flex justify-between items-center py-1">
+                                <span class="text-slate-700 font-semibold text-sm">بيش التثبيت</span>
+                                <span class="text-slate-900 font-bold text-base" id="outBeshQty">0 وحدة</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center py-1">
+                                <span class="text-slate-700 font-semibold text-sm">أسس خشب</span>
+                                <span class="text-slate-900 font-bold text-base" id="outWoodBases">0 قطعة</span>
+                            </div>
+
+                            <div class="mt-2 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                <div class="text-xs font-bold text-slate-800 mb-1">شراشف الواجهة (تجميع ذكي):</div>
+                                <div class="text-brand-600 font-black text-sm" id="outOptimizedBorders">جاري الحساب...</div>
+                                <div class="text-[10px] text-emerald-600 font-bold mt-1" id="outBordersWaste">إجمالي طول الشراشف المطلوبة: 0 م</div>
+                            </div>
+                        </div>
+
+                        <div class="dashed-divider"></div>
+
+                        <!-- قسم العزل -->
+                        <div>
+                            <h4 class="text-[11px] font-black text-slate-400 mb-2 uppercase tracking-wider">الحماية والعزل</h4>
+                            <div class="flex justify-between items-center py-1.5 px-3 bg-amber-50 rounded-lg border border-amber-100">
+                                <span class="text-amber-900 font-bold text-sm"><i class="fa-solid fa-scroll mr-1 text-amber-500"></i> رول مشمع (85سم)</span>
+                                <span class="text-amber-900 font-black text-base" id="outTarpaulinRolls">0 رول</span>
+                            </div>
+                            
+                            <div id="insulationInvoiceSection" class="hidden mt-2 space-y-1">
+                                <div class="flex justify-between items-center py-1">
+                                    <span class="text-slate-700 font-semibold text-sm">رولات زفتة (9م²)</span>
+                                    <span class="text-slate-900 font-bold" id="outZaftaRolls">0 رول</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1">
+                                    <span class="text-slate-700 font-semibold text-sm">ألواح لاتي (2.9م²)</span>
+                                    <span class="text-slate-900 font-bold" id="outLatiSheets">0 لوح</span>
+                                </div>
+                                <div class="flex justify-between items-center py-1">
+                                    <span class="text-slate-700 font-semibold text-sm">مساطير زفتة</span>
+                                    <span class="text-slate-900 font-bold" id="outZaftaRulers">0 م</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dashed-divider"></div>
+
+                        <!-- القرميد النهائي -->
+                        <div class="bg-dark rounded-xl p-4 text-white shadow-md relative overflow-hidden">
+                            <i class="fa-solid fa-layer-group absolute -left-4 -bottom-4 text-6xl text-white opacity-10"></i>
+                            <div class="relative z-10 flex justify-between items-center">
+                                <div>
+                                    <span class="block text-[11px] text-slate-300 font-bold uppercase">الإجمالي المطلوب</span>
+                                    <span class="block text-xl font-black mt-0.5 text-amber-400" id="outTotalTiles">0 حبة قرميد</span>
+                                </div>
+                                <div class="text-left max-w-[50%]">
+                                    <span class="text-[10px] text-slate-300 block line-clamp-2" id="outTileNameSelected">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- زر الإرسال -->
+                <button onclick="shareToWhatsApp()" class="w-full mt-6 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-lg active:scale-[0.98]">
+                    <i class="fa-brands fa-whatsapp text-2xl"></i> إرسال الفاتورة للتاجر
+                </button>
+                <p class="text-center text-slate-400 text-xs mt-3 font-semibold"><i class="fa-solid fa-lock text-[10px]"></i> تمت البرمجة بواسطة: م/ أيمن أبو عبدو</p>
+
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const tilesData = [
+            { name: "بلانيوم (Planum)", origin: "إسبانيا", count: 11 },
+            { name: "فيسيوم 3 (Visum3)", origin: "إسبانيا", count: 11.5 },
+            { name: "بلانا أسود (LOGICA)", origin: "إسبانيا", count: 11 },
+            { name: "فلات طبيعي (Flat)", origin: "إسبانيا", count: 10.7 },
+            { name: "إنوفا (Innova)", origin: "إسبانيا", count: 11.5 },
+            { name: "سيبرانو (CEPRANO)", origin: "مجموعة BMI", count: 14.5 },
+            { name: "مارسيليا أيديال", origin: "اليونان", count: 11 },
+            { name: "المنحني وتوسال", origin: "إسبانيا", count: 10.5 },
+            { name: "تيراكوتا (Terracotta)", origin: "إيطاليا", count: 14 },
+            { name: "بورتوغيز (PORTOGHESE)", origin: "إيطاليا", count: 14 }
+        ];
+
+        const marketLengths = [3.0, 3.3, 3.6, 3.9, 4.2, 4.8, 5.1, 5.4, 5.7, 6.0];
+
+        const tileSelect = document.getElementById("tileType");
+        tilesData.forEach((tile, index) => {
+            let option = document.createElement("option");
+            option.value = index;
+            option.textContent = `${tile.name} - ${tile.origin} (${tile.count} حبة/م²)`;
+            tileSelect.appendChild(option);
+        });
+
+        function optimizeBorders(totalFacadeLength) {
+            if (totalFacadeLength <= 0) return { lengths: {}, total: 0 };
+            
+            let fullSixes = 0;
+            let remainder = totalFacadeLength;
+
+            if (totalFacadeLength > 12.0) {
+                fullSixes = Math.floor(totalFacadeLength / 6.0) - 1;
+                remainder = totalFacadeLength - (fullSixes * 6.0);
+            }
+
+            let bestSum = Infinity;
+            let bestCombo = [];
+
+            for (let l of marketLengths) {
+                if (l >= remainder && l < bestSum) { bestSum = l; bestCombo = [l]; }
+            }
+
+            for (let l1 of marketLengths) {
+                for (let l2 of marketLengths) {
+                    let sum = l1 + l2;
+                    if (sum >= remainder && sum < bestSum) { bestSum = sum; bestCombo = [l1, l2]; }
+                }
+            }
+
+            let lengthsMap = {};
+            if (fullSixes > 0) lengthsMap[6.0] = fullSixes;
+            bestCombo.forEach(len => { lengthsMap[len] = (lengthsMap[len] || 0) + 1; });
+
+            let finalTotalProvided = (fullSixes * 6.0) + bestSum;
+            return { lengths: lengthsMap, total: finalTotalProvided };
+        }
+
+        function calculateWorkshop() {
+            // جلب المتغيرات
+            const length = parseFloat(document.getElementById("roofLength").value) || 0;
+            const width = parseFloat(document.getElementById("roofWidth").value) || 0;
+            const slopePercent = parseFloat(document.getElementById("slopePercent").value) || 0;
+            const numFacades = parseInt(document.getElementById("numFacades").value) || 1;
+            const numLegs = parseFloat(document.getElementById("numLegs").value) || 0;
+            const legHeight = parseFloat(document.getElementById("legHeight").value) || 0;
+
+            const withDecor = document.getElementById("withDecor").checked;
+            const enableInsulation = document.getElementById("enableInsulation").checked;
+            const selectedTile = tilesData[tileSelect.value];
+            const spacing = parseFloat(document.querySelector('input[name="spacing"]:checked').value) || 55;
+
+            // حساب المساحة المستوية ثم ضربها في نسبة الميل
+            const flatArea = length * width;
+            const slopeMultiplier = 1 + (slopePercent / 100);
+            const actualArea = flatArea * slopeMultiplier; // المساحة الفعلية المائلة
+
+            document.getElementById("lblArea").textContent = `${actualArea.toFixed(2)} م²`;
+
+            // حساب طول الواجهات (الشراشف) بناءً على عدد الميول
+            let totalFacadeLength = 0;
+            if (numFacades === 1) totalFacadeLength = length;
+            else if (numFacades === 2) totalFacadeLength = length + width;
+            else if (numFacades === 3) totalFacadeLength = (length * 2) + width;
+            else if (numFacades >= 4) totalFacadeLength = (length * 2) + (width * 2);
+
+            // 1. حساب شبكة الحديد 4*8 (يتم ضرب الأطوال بنسبة الميل لتكون واقعية)
+            const spacingInMeters = spacing / 100;
+            const linesOfIron = Math.ceil(length / spacingInMeters) + 1;
+            // الأمتار الطولية نضربها بمعامل الميل لتعويض المساحة المائلة
+            const totalLinearMeters4x8 = (linesOfIron * width) * slopeMultiplier;
+            const iron4x8 = Math.ceil(totalLinearMeters4x8 / 6.0);
+
+            // 2. حديد 10*10 (أرجل + واجهات + قواطع كل 3 متر)
+            const piecesPer10x10Tube = legHeight > 0 ? Math.floor(6.0 / legHeight) : 0;
+            const iron10x10Legs = piecesPer10x10Tube > 0 ? Math.ceil(numLegs / piecesPer10x10Tube) : 0;
+            const iron10x10Facades = Math.ceil(totalFacadeLength / 6.0);
+            
+            // حساب القواطع (كل 3 متر طول أو عرض) - تتأثر بالمساحة بشكل غير مباشر لكن نتركها على المخطط الأرضي كقواطع أفقية
+            let extraCrossbarsMeters = 0;
+            let cutsInLength = Math.floor(length / 3);
+            let cutsInWidth = Math.floor(width / 3);
+            
+            extraCrossbarsMeters += (cutsInLength * width);  // قواطع بعرض الورشة
+            extraCrossbarsMeters += (cutsInWidth * length);  // قواطع بطول الورشة
+            // نضرب أطوال القواطع بالميل أيضاً لتغطية السقف المائل
+            extraCrossbarsMeters *= slopeMultiplier; 
+
+            const iron10x10Crossbars = Math.ceil(extraCrossbarsMeters / 6.0);
+
+            const totalIron10x10 = iron10x10Legs + iron10x10Facades + iron10x10Crossbars;
+
+            document.getElementById("outIron4x8").textContent = `${iron4x8 > 0 ? iron4x8 : 0} تيوب`;
+            document.getElementById("outIron10x10").textContent = `${totalIron10x10} تيوب`;
+            document.getElementById("outIron10x10Details").textContent = `${iron10x10Facades} واجهات / ${iron10x10Legs} أرجل / ${iron10x10Crossbars} قواطع`;
+
+            // 3. الخشب والديكور
+            // طول الديكور يساوي طول السقف مباشرة (نأخذ الطول مع الميل إذا كان الميل على العرض، أو نبقيها على العرض)
+            const decorBundles = Math.ceil((width * slopeMultiplier) / 0.90);
+            const beshWoodQty = actualArea * (withDecor ? 0.5 : 1.0); // يعتمد على المساحة الفعلية
+            
+            // أسس الخشب: مجموع طول الشراشف مقسوم على المسافة (55سم أو 60سم)
+            const woodBases = Math.ceil(totalFacadeLength / spacingInMeters);
+
+            document.getElementById("outDecorBundles").textContent = `${decorBundles} ربطة`;
+            document.getElementById("outDecorLenSuggested").textContent = `طول اللوح (يطابق السقف): ${length}م`;
+            document.getElementById("outBeshQty").textContent = `${beshWoodQty.toFixed(1)} وحدة`;
+            document.getElementById("outWoodBases").textContent = `${woodBases} قطعة`;
+
+            // الشراشف
+            const borderOptimization = optimizeBorders(totalFacadeLength);
+            let bordersTextParts = [];
+            for (let len in borderOptimization.lengths) {
+                bordersTextParts.push(`${borderOptimization.lengths[len]} لوح (${len}م)`);
+            }
+            document.getElementById("outOptimizedBorders").textContent = bordersTextParts.length > 0 ? bordersTextParts.join(" + ") : "0 قطعة";
+            document.getElementById("outBordersWaste").textContent = `إجمالي طول الشراشف المطلوبة: ${totalFacadeLength.toFixed(1)} م`;
+
+            // 4. رول المشمع (يعتمد على المساحة الفعلية بعد الميل)
+            const tarpaulinLinearMeters = actualArea / 0.85; 
+            let tarpaulinText = "0 رول";
+            if (actualArea > 0) {
+                if (tarpaulinLinearMeters <= 25) tarpaulinText = "1 رول (مقاس 25م)";
+                else if (tarpaulinLinearMeters <= 50) tarpaulinText = "1 رول (مقاس 50م)";
+                else {
+                    let rolls50 = Math.floor(tarpaulinLinearMeters / 50);
+                    let rem = tarpaulinLinearMeters % 50;
+                    if (rem > 0 && rem <= 25) tarpaulinText = `${rolls50} رول (50م) + 1 رول (25م)`;
+                    else if (rem > 25) tarpaulinText = `${rolls50 + 1} رول (50م)`;
+                }
+            }
+            document.getElementById("outTarpaulinRolls").textContent = tarpaulinText;
+
+            // 5. القرميد (يعتمد على المساحة الفعلية بعد الميل)
+            const totalTilesNeeded = Math.ceil(actualArea * selectedTile.count);
+            document.getElementById("outTotalTiles").textContent = `${totalTilesNeeded} حبة`;
+            document.getElementById("outTileNameSelected").textContent = `${selectedTile.name} - ${selectedTile.origin}`;
+
+            // 6. العزل الإضافي (يعتمد على المساحة الفعلية بعد الميل)
+            const insulationSection = document.getElementById("insulationInvoiceSection");
+            if (enableInsulation) {
+                insulationSection.classList.remove("hidden");
+                document.getElementById("outZaftaRolls").textContent = `${Math.ceil(actualArea / 9.0)} رول`;
+                document.getElementById("outLatiSheets").textContent = `${Math.ceil(actualArea / 2.9)} لوح`;
+                document.getElementById("outZaftaRulers").textContent = `${(totalFacadeLength * 0.5).toFixed(1)} م`;
+            } else {
+                insulationSection.classList.add("hidden");
+            }
+        }
+
+        function shareToWhatsApp() {
+            const area = document.getElementById("lblArea").textContent;
+            let text = `📋 *طلب توريد بضاعة قرميد - م/ أيمن أبو عبدو*\n`;
+            text += `المساحة الفعلية (بالميل): ${area}\n`;
+            text += `──────────────\n`;
+            text += `🏗️ *الحديد:*\n`;
+            text += `- حديد 4*8: ${document.getElementById("outIron4x8").textContent}\n`;
+            text += `- حديد 10*10: ${document.getElementById("outIron10x10").textContent} (${document.getElementById("outIron10x10Details").textContent})\n`;
+            text += `\n🪵 *الخشب:*\n`;
+            text += `- ديكور: ${document.getElementById("outDecorBundles").textContent} | ${document.getElementById("outDecorLenSuggested").textContent}\n`;
+            text += `- شراشف: ${document.getElementById("outOptimizedBorders").textContent}\n`;
+            text += `- أسس: ${document.getElementById("outWoodBases").textContent}\n`;
+            text += `- بيش: ${document.getElementById("outBeshQty").textContent}\n`;
+            text += `\n💧 *العزل:*\n`;
+            text += `- مشمع: ${document.getElementById("outTarpaulinRolls").textContent}\n`;
+            if (document.getElementById("enableInsulation").checked) {
+                text += `- زفتة: ${document.getElementById("outZaftaRolls").textContent}\n`;
+                text += `- لاتي: ${document.getElementById("outLatiSheets").textContent}\n`;
+            }
+            text += `\n🧱 *القرميد:*\n`;
+            text += `- ${document.getElementById("outTotalTiles").textContent} (${document.getElementById("outTileNameSelected").textContent})\n\n`;
+            text += `📱 للتواصل: 0788859723`;
+
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        const inputs = document.querySelectorAll("input, select");
+        inputs.forEach(input => {
+            input.addEventListener("input", calculateWorkshop);
+            input.addEventListener("change", calculateWorkshop);
+        });
+
+        window.onload = calculateWorkshop;
+    </script>
+</body>
+</html>
       --shadow-gold: 0 8px 32px rgba(184, 144, 42, 0.15);
       --shadow-deep: 0 16px 48px rgba(75, 60, 30, 0.12);
 
