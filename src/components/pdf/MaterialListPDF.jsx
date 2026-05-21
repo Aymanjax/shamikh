@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
   footer: { textAlign: "center", color: "#94a3b8", fontSize: 8, marginTop: 20, borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 10 },
 });
 
-export default function MaterialListPDF({ result, tile, project }) {
+export default function MaterialListPDF({ result, tile, project, customFields = [] }) {
   const r = result;
   return (
     <Document>
@@ -105,13 +105,13 @@ export default function MaterialListPDF({ result, tile, project }) {
           </View>
         )}
 
-        {r.smallItems.length > 0 && (
+        {customFields.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>مواد إضافية (مشروع صغير)</Text>
-            {r.smallItems.map((item, i) => (
+            <Text style={styles.sectionTitle}>مواد إضافية</Text>
+            {customFields.map((item, i) => (
               <View key={i} style={[styles.row, i % 2 === 0 ? styles.rowEven : {}]}>
                 <Text style={styles.label}>{item.name}:</Text>
-                <Text style={styles.value}>{item.qty} {item.unit}</Text>
+                <Text style={styles.value}>{item.value} {item.unit || ""}</Text>
               </View>
             ))}
           </>

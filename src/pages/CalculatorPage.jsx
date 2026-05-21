@@ -21,7 +21,6 @@ export default function CalculatorPage() {
     tileIndex: 0,
   });
   const [customFields, setCustomFields] = useState([]);
-  const [editableItems, setEditableItems] = useState([]);
   const [prices, setPrices] = useState({
     iron4x8: 12, iron10x10: 22, tile: 0.95,
     decor: 5, besh: 1.5, sharshef: 4, nathrayat: 150,
@@ -245,54 +244,33 @@ export default function CalculatorPage() {
 
           <StepBox stepKey="extra" icon="fa-plus-circle" label="مواد إضافية وحقول مخصصة" color="from-slate-500 to-slate-400">
 
-            {result.smallItems.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs text-amber-400 font-bold flex items-center gap-1">
-                  <i className="fa-solid fa-toolbox"></i> مواد المشاريع الصغيرة (أقل من 100م²)
-                </p>
-                <p className="text-[10px] text-slate-500">قابل للتعديل - غير الكمية حسب رغبتك</p>
-                {result.smallItems.map((item, i) => {
-                  const ei = editableItems.find((e) => e.name === item.name);
-                  const qty = ei ? ei.qty : item.qty;
-                  return (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="flex-1 text-xs text-slate-300">{item.name} ({item.unit})</span>
-                      <input type="number" value={qty} onChange={(e) => {
-                        const list = [...editableItems];
-                        const idx = list.findIndex((x) => x.name === item.name);
-                        if (idx >= 0) list[idx].qty = Number(e.target.value);
-                        else list.push({ name: item.name, qty: Number(e.target.value) });
-                        setEditableItems(list);
-                      }} className="w-16 bg-[#1e293b] border border-white/10 rounded-lg py-1.5 px-2 text-xs text-white outline-none text-center focus:border-brand-500" />
-                    </div>
-                  );
-                })}
-                <div className="border-t border-white/5 pt-3"></div>
-              </div>
-            )}
-
-            <p className="text-xs text-slate-400">أضف حقول حساب إضافية حسب رغبتك</p>
+            <p className="text-xs text-slate-400">أضف مواد إضافية وحقول حسب رغبتك (تظهر في كشف المواد PDF)</p>
             {customFields.map((cf, i) => (
               <div key={i} className="flex items-center gap-2">
-                <input placeholder="اسم الحقل" value={cf.name} onChange={(e) => {
+                <input placeholder="اسم المادة" value={cf.name} onChange={(e) => {
                   const c = [...customFields];
                   c[i].name = e.target.value;
                   setCustomFields(c);
                 }} className="flex-1 bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-brand-500" />
-                <input type="number" placeholder="القيمة" value={cf.value} onChange={(e) => {
+                <input placeholder="الكمية" type="number" value={cf.value} onChange={(e) => {
                   const c = [...customFields];
                   c[i].value = Number(e.target.value);
                   setCustomFields(c);
-                }} className="w-20 bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-brand-500 text-center" />
+                }} className="w-16 bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-brand-500 text-center" />
+                <input placeholder="وحدة" value={cf.unit || ""} onChange={(e) => {
+                  const c = [...customFields];
+                  c[i].unit = e.target.value;
+                  setCustomFields(c);
+                }} className="w-16 bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-brand-500 text-center" />
                 <button onClick={() => setCustomFields(customFields.filter((_, idx) => idx !== i))}
                   className="text-red-400 hover:text-red-300 text-xs p-2">
                   <i className="fa-solid fa-trash-can"></i>
                 </button>
               </div>
             ))}
-            <button onClick={() => setCustomFields([...customFields, { name: "", value: 0 }])}
+            <button onClick={() => setCustomFields([...customFields, { name: "", value: 0, unit: "" }])}
               className="w-full border border-dashed border-white/10 rounded-xl py-3 text-xs text-slate-400 hover:text-white hover:border-white/20 transition flex items-center justify-center gap-1">
-              <i className="fa-solid fa-plus"></i> إضافة حقل مخصص
+              <i className="fa-solid fa-plus"></i> إضافة مادة إضافية
             </button>
           </StepBox>
 
@@ -411,15 +389,15 @@ export default function CalculatorPage() {
                 </div>
               )}
 
-              {result.smallItems.length > 0 && (
+              {customFields.length > 0 && (
                 <div className="border-t border-slate-200 pt-3">
                   <h4 className="text-[10px] font-black text-slate-400 mb-2 flex items-center gap-1">
-                    <i className="fa-solid fa-toolbox text-orange-500"></i> مواد إضافية (مشروع صغير)
+                    <i className="fa-solid fa-plus-circle text-orange-500"></i> مواد إضافية
                   </h4>
-                  {result.smallItems.map((item, i) => (
+                  {customFields.map((cf, i) => (
                     <div key={i} className="flex justify-between py-1 text-xs">
-                      <span>{item.name}:</span>
-                      <span className="font-bold">{item.qty} {item.unit}</span>
+                      <span>{cf.name}:</span>
+                      <span className="font-bold">{cf.value} {cf.unit || ""}</span>
                     </div>
                   ))}
                 </div>
@@ -474,7 +452,7 @@ export default function CalculatorPage() {
           </button>
 
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => downloadMaterialList(result, tile, { client: { name: "ورشة حالية" } })}
+            <button onClick={() => downloadMaterialList(result, tile, { client: { name: "ورشة حالية" } }, customFields)}
               className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl transition flex items-center justify-center gap-2 text-sm">
               <i className="fa-solid fa-file-pdf text-red-400"></i> كشف مواد PDF
             </button>

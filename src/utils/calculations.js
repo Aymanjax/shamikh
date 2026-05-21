@@ -115,34 +115,6 @@ export function calcInsulation(actualArea, totalFacadeLength) {
   };
 }
 
-export function calcSmallProjectItems(actualArea) {
-  if (actualArea >= 100) return [];
-
-  const items = [
-    { name: "زيت حار", unit: "جلن 5ك", qty: 1 },
-    { name: "فرنيش", unit: "جلن", qty: 1 },
-    { name: "رول دهان", unit: "حبة", qty: 1 },
-    { name: "فرش", unit: "حبة", qty: 3 },
-    { name: "مسامير فرد", unit: "كغم", qty: 1 },
-    { name: "مسامير فرد بولاد", unit: "كغم", qty: 1 },
-    { name: "مسامير 4سم", unit: "كغم", qty: 1 },
-    { name: "مسامير بولاد", unit: "كغم", qty: 7 },
-    { name: "مبروم حديد", unit: "ربطة", qty: 1 },
-    { name: "فيبر قص حديد", unit: "حبة", qty: 1 },
-    { name: "اسلاك لحام", unit: "كغم", qty: 1 },
-    { name: "اسمنت", unit: "كيس", qty: 1 },
-    { name: "بودرة", unit: "كيس", qty: 1 },
-  ];
-
-  if (actualArea < 20) {
-    items.push({ name: "روف جارد", unit: "صغير", qty: 1 });
-  } else {
-    items.push({ name: "روف جارد", unit: "5ك", qty: 1 });
-  }
-
-  return items;
-}
-
 export function calcAll(input) {
   const {
     length, width, slopePercent = 20, spacingCm = 55,
@@ -165,14 +137,12 @@ export function calcAll(input) {
   const totalTiles = calcTiles(actualArea, tile);
   const tileStarts = calcTileStarts(numFacades);
   const insulation = enableInsulation ? calcInsulation(actualArea, totalFacadeLength) : null;
-  const smallItems = calcSmallProjectItems(actualArea);
-
   return {
     flatArea, actualArea, slopeMultiplier, totalFacadeLength,
     iron4x8, iron10x10,
     decor: { optimalLen: decorOptimal.optimalLen, wasteCm: decorOptimal.wasteCm, bundles: decorBundles },
     beshQty, woodBases, borders, tarpaulin, totalTiles, tileStarts,
-    tileSelected: tile, insulation, smallItems,
+    tileSelected: tile, insulation,
   };
 }
 

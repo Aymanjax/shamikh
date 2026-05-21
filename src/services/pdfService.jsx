@@ -19,8 +19,8 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-export async function downloadMaterialList(result, tile, project) {
-  const blob = await generateBlob(<MaterialListPDF result={result} tile={tile} project={project} />);
+export async function downloadMaterialList(result, tile, project, customFields = []) {
+  const blob = await generateBlob(<MaterialListPDF result={result} tile={tile} project={project} customFields={customFields} />);
   downloadBlob(blob, `كشف_مواد_${project?.client?.name || "ورشة"}.pdf`);
 }
 
