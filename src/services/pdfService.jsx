@@ -20,13 +20,21 @@ function downloadBlob(blob, filename) {
 }
 
 export async function downloadMaterialList(result, tile, project, customFields = []) {
-  const blob = await generateBlob(<MaterialListPDF result={result} tile={tile} project={project} customFields={customFields} />);
-  downloadBlob(blob, `كشف_مواد_${project?.client?.name || "ورشة"}.pdf`);
+  try {
+    const blob = await generateBlob(<MaterialListPDF result={result} tile={tile} project={project} customFields={customFields} />);
+    downloadBlob(blob, `كشف_مواد_${project?.client?.name || "ورشة"}.pdf`);
+  } catch (e) {
+    alert("حدث خطأ أثناء إنشاء PDF: " + e.message);
+  }
 }
 
 export async function downloadQuotation(result, costResult, tile, prices, project) {
-  const blob = await generateBlob(
-    <QuotationPDF result={result} costResult={costResult} tile={tile} prices={prices} project={project} />
-  );
-  downloadBlob(blob, `عرض_سعر_${project?.client?.name || "ورشة"}.pdf`);
+  try {
+    const blob = await generateBlob(
+      <QuotationPDF result={result} costResult={costResult} tile={tile} prices={prices} project={project} />
+    );
+    downloadBlob(blob, `عرض_سعر_${project?.client?.name || "ورشة"}.pdf`);
+  } catch (e) {
+    alert("حدث خطأ أثناء إنشاء PDF: " + e.message);
+  }
 }

@@ -1,13 +1,17 @@
 import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
 
-Font.register({
-  family: "Cairo",
-  fonts: [
-    { src: "https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkZvQ9p1KQpJU1i.woff2", fontWeight: 400 },
-    { src: "https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkZvQ5p1KYpJU1i.woff2", fontWeight: 700 },
-    { src: "https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkZvQZx1KQpJU1i.woff2", fontWeight: 900 },
-  ],
-});
+try {
+  Font.register({
+    family: "Cairo",
+    fonts: [
+      { src: "https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkZvQ9p1KQpJU1i.woff2", fontWeight: 400 },
+      { src: "https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkZvQ5p1KYpJU1i.woff2", fontWeight: 700 },
+      { src: "https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkZvQZx1KQpJU1i.woff2", fontWeight: 900 },
+    ],
+  });
+} catch (e) {
+  // font fallback handled below
+}
 
 const styles = StyleSheet.create({
   page: { fontFamily: "Cairo", padding: 30, direction: "rtl", fontSize: 11 },
@@ -29,7 +33,7 @@ export default function MaterialListPDF({ result, tile, project, customFields = 
   const r = result;
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page} wrap>
         <View style={styles.header}>
           <Text style={styles.title}>كشف المواد - {project?.client?.name || "ورشة قرميد"}</Text>
           <Text style={styles.subtitle}>صادر عن شامخ ERP</Text>

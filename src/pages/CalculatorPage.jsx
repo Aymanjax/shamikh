@@ -20,7 +20,23 @@ export default function CalculatorPage() {
     withDecor: true, enableInsulation: false,
     tileIndex: 0,
   });
-  const [customFields, setCustomFields] = useState([]);
+  const DEFAULT_FIELDS = [
+    { name: "زيت حار", value: 1, unit: "جلن 5ك" },
+    { name: "فرنيش", value: 1, unit: "جلن" },
+    { name: "رول دهان", value: 1, unit: "حبة" },
+    { name: "فرش", value: 3, unit: "حبة" },
+    { name: "مسامير فرد", value: 1, unit: "كغم" },
+    { name: "مسامير فرد بولاد", value: 1, unit: "كغم" },
+    { name: "مسامير 4سم", value: 1, unit: "كغم" },
+    { name: "مسامير بولاد", value: 7, unit: "كغم" },
+    { name: "مبروم حديد", value: 1, unit: "ربطة" },
+    { name: "فيبر قص حديد", value: 1, unit: "حبة" },
+    { name: "اسلاك لحام", value: 1, unit: "كغم" },
+    { name: "اسمنت", value: 1, unit: "كيس" },
+    { name: "بودرة", value: 1, unit: "كيس" },
+    { name: "روف جارد", value: 1, unit: "5ك" },
+  ];
+  const [customFields, setCustomFields] = useState(DEFAULT_FIELDS);
   const [prices, setPrices] = useState({
     iron4x8: 12, iron10x10: 22, tile: 0.95,
     decor: 5, besh: 1.5, sharshef: 4, nathrayat: 150,

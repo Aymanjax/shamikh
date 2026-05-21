@@ -8,6 +8,7 @@ export const useAuthStore = create((set) => ({
   loading: true,
   role: "user",
   subscription: null,
+  banned: false,
 
   init: () => {
     const unsub = subscribeToAuth(async (user) => {
@@ -18,9 +19,10 @@ export const useAuthStore = create((set) => ({
           user, loading: false,
           role: data.role || "user",
           subscription: data.subscription || null,
+          banned: data.banned === true,
         });
       } else {
-        set({ user: null, loading: false, role: "user", subscription: null });
+        set({ user: null, loading: false, role: "user", subscription: null, banned: false });
       }
     });
     return unsub;
@@ -32,6 +34,7 @@ export const useAuthStore = create((set) => ({
     set({
       role: data.role || "user",
       subscription: data.subscription || null,
+      banned: data.banned === true,
     });
   },
 }));

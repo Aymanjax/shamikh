@@ -6,6 +6,13 @@ import { getProgramConfig, saveProgramConfig, getDefaultConfig } from "../servic
 
 const sections = ["users", "program"];
 
+const PLAN_OPTIONS = [
+  { value: "free", label: "مجاني" },
+  { value: "trial", label: "تجريبي" },
+  { value: "premium", label: "مميز" },
+  { value: "lifetime", label: "مدى الحياة" },
+];
+
 export default function AdminPage() {
   const { user } = useAuthStore();
   const [tab, setTab] = useState("users");
@@ -32,7 +39,7 @@ export default function AdminPage() {
           try {
             const prof = await getDoc(doc(db, "users", u.uid, "profile", "main"));
             const data = prof.exists() ? prof.data() : {};
-            return { ...u, role: data.role || "user", subscription: data.subscription || null };
+            return { ...u, role: data.role || "user", subscription: data.subscription || null, banned: data.banned === true };
           } catch { return u; }
         }));
         setUsers(enriched);
@@ -86,10 +93,28 @@ export default function AdminPage() {
     setUsers((prev) => prev.map((u) => (u.uid === uid ? { ...u, role } : u)));
   };
 
+  const toggleBan = async (uid, currentlyBanned) => {
+    await setDoc(doc(db, "users", uid, "profile", "main"), { banned: !currentlyBanned }, { merge: true });
+    setUsers((prev) => prev.map((u) => (u.uid === uid ? { ...u, banned: !currentlyBanned } : u)));
+  };
+
+  const setSubscription = async (uid, plan) => {
+    const now = new Date();
+    let expiresAt = null;
+    if (plan === "trial") {
+      expiresAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    } else if (plan === "premium") {
+      expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    }
+    const sub = { plan, expiresAt: expiresAt ? Timestamp.fromDate(expiresAt) : null };
+    await setDoc(doc(db, "users", uid, "profile", "main"), { subscription: sub }, { merge: true });
+    setUsers((prev) => prev.map((u) => (u.uid === uid ? { ...u, subscription: sub } : u)));
+  };
+
   const claimAdmin = async () => {
     await setDoc(doc(db, "users", user.uid, "profile", "main"), { role: "admin" }, { merge: true });
     setUserRole("admin");
-    useAuthStore.getState().refreshRole(user.uid);
+    useAuthStore.getState().refreshProfile(user.uid);
   };
 
   if (!user) return null;
@@ -161,9 +186,9 @@ export default function AdminPage() {
                 <tr className="text-slate-400 border-b border-white/5 text-xs">
                   <th className="text-right py-2 px-3">الاسم</th>
                   <th className="text-right py-2 px-3">البريد</th>
-                  <th className="text-right py-2 px-3">آخر دخول</th>
                   <th className="text-right py-2 px-3">الصلاحية</th>
                   <th className="text-right py-2 px-3">الاشتراك</th>
+                  <th className="text-right py-2 px-3">الحظر</th>
                 </tr>
               </thead>
               <tbody>
@@ -171,14 +196,10 @@ export default function AdminPage() {
                   const sub = u.subscription || {};
                   const subExpiry = sub.expiresAt?.toDate?.();
                   const isExpired = subExpiry && subExpiry < new Date();
-                  const subStatus = !sub.plan ? "بدون" : isExpired ? "منتهي" : sub.plan === "trial" ? "تجريبي" : "مفعل";
                   return (
                     <tr key={u.uid} className="border-b border-white/5 hover:bg-white/5">
                       <td className="py-2.5 px-3">{u.displayName || "-"}</td>
                       <td className="py-2.5 px-3 text-slate-400">{u.email}</td>
-                      <td className="py-2.5 px-3 text-xs text-slate-500">
-                        {u.lastLogin?.toDate?.()?.toLocaleDateString?.("ar-JO") || "-"}
-                      </td>
                       <td className="py-2.5 px-3">
                         <select value={u.role || "user"} onChange={(e) => setRole(u.uid, e.target.value)}
                           className="bg-[#1e293b] border border-white/10 rounded-lg py-1 px-2 text-xs text-white outline-none cursor-pointer">
@@ -187,10 +208,29 @@ export default function AdminPage() {
                         </select>
                       </td>
                       <td className="py-2.5 px-3">
-                        <span className={`text-xs font-bold ${isExpired ? "text-red-400" : sub.plan ? "text-emerald-400" : "text-slate-500"}`}>
-                          {subStatus}
-                          {subExpiry && ` (${subExpiry.toLocaleDateString("ar-JO")})`}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <select value={sub.plan || "free"} onChange={(e) => setSubscription(u.uid, e.target.value)}
+                            className="bg-[#1e293b] border border-white/10 rounded-lg py-1 px-2 text-xs text-white outline-none cursor-pointer">
+                            {PLAN_OPTIONS.map((o) => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </select>
+                          {subExpiry && (
+                            <span className={`text-[10px] ${isExpired ? "text-red-400" : "text-emerald-400"}`}>
+                              {isExpired ? "منتهي" : subExpiry.toLocaleDateString("ar-JO")}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <button onClick={() => toggleBan(u.uid, u.banned)}
+                          className={`text-xs font-bold py-1 px-3 rounded-lg transition ${
+                            u.banned
+                              ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                              : "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                          }`}>
+                          {u.banned ? "رفع الحظر" : "حظر"}
+                        </button>
                       </td>
                     </tr>
                   );
@@ -198,25 +238,6 @@ export default function AdminPage() {
               </tbody>
             </table>
             {users.length === 0 && <p className="text-sm text-slate-500 py-4 text-center">لا يوجد مستخدمين بعد</p>}
-          </div>
-
-          <div className="border-t border-white/5 pt-4 space-y-3">
-            <h4 className="font-bold text-sm flex items-center gap-2">
-              <i className="fa-solid fa-calendar-check text-amber-500"></i> إدارة الاشتراكات
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold">البريد الإلكتروني للمستخدم</label>
-                <input type="email" placeholder="user@example.com" className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-amber-500" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold">تاريخ الصلاحية</label>
-                <input type="date" className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-amber-500" />
-              </div>
-            </div>
-            <button className="bg-amber-600 hover:bg-amber-700 py-2 px-4 rounded-xl text-xs font-bold transition">
-              تحديث الاشتراك
-            </button>
           </div>
         </div>
       )}

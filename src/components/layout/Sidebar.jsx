@@ -7,7 +7,6 @@ const links = [
   { to: "/projects", icon: "fa-folder-open", label: "المشاريع" },
   { to: "/calculator", icon: "fa-calculator", label: "الحاسبة" },
   { to: "/suppliers", icon: "fa-truck", label: "الموردين" },
-  { to: "/inventory", icon: "fa-warehouse", label: "المخزون" },
   { to: "/reports", icon: "fa-file-alt", label: "التقارير" },
   { to: "/settings", icon: "fa-cog", label: "الإعدادات" },
 ];
