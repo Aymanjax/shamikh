@@ -100,25 +100,37 @@ export default function AdminPage() {
   };
 
   const setRole = async (uid, role) => {
-    await setDoc(doc(db, "users", uid, "profile", "main"), { role }, { merge: true });
-    setUsers((prev) => prev.map((u) => (u.uid === uid ? { ...u, role } : u)));
+    try {
+      await setDoc(doc(db, "users", uid, "profile", "main"), { role }, { merge: true });
+      setUsers((prev) => prev.map((u) => (u.uid === uid ? { ...u, role } : u)));
+    } catch (e) {
+      alert("خطأ في تغيير الصلاحية: " + e.message);
+    }
   };
 
   const toggleBan = async (uid, currentlyBanned) => {
-    await setDoc(doc(db, "users", uid, "profile", "main"), { banned: !currentlyBanned }, { merge: true });
-    setUsers((prev) => prev.map((u) => (u.uid === uid ? { ...u, banned: !currentlyBanned } : u)));
+    try {
+      await setDoc(doc(db, "users", uid, "profile", "main"), { banned: !currentlyBanned }, { merge: true });
+      setUsers((prev) => prev.map((u) => (u.uid === uid ? { ...u, banned: !currentlyBanned } : u)));
+    } catch (e) {
+      alert("خطأ في الحظر: " + e.message);
+    }
   };
 
   const setSubscription = async (uid, plan, customDays) => {
-    const now = new Date();
-    let expiresAt = null;
-    const days = customDays || (plan === "trial" ? 14 : plan === "premium" ? 365 : 0);
-    if (plan === "trial" || plan === "premium") {
-      expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    try {
+      const now = new Date();
+      let expiresAt = null;
+      const days = customDays || (plan === "trial" ? 14 : plan === "premium" ? 365 : 0);
+      if (plan === "trial" || plan === "premium") {
+        expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+      }
+      const sub = { plan, expiresAt: expiresAt ? Timestamp.fromDate(expiresAt) : null };
+      await setDoc(doc(db, "users", uid, "profile", "main"), { subscription: sub }, { merge: true });
+      setUsers((prev) => prev.map((u) => (u.uid === uid ? { ...u, subscription: sub } : u)));
+    } catch (e) {
+      alert("خطأ في تحديث الاشتراك: " + e.message + "\n\nتأكد من تحديث قواعد Firestore Database في Firebase Console.");
     }
-    const sub = { plan, expiresAt: expiresAt ? Timestamp.fromDate(expiresAt) : null };
-    await setDoc(doc(db, "users", uid, "profile", "main"), { subscription: sub }, { merge: true });
-    setUsers((prev) => prev.map((u) => (u.uid === uid ? { ...u, subscription: sub } : u)));
   };
 
   const applySubscriptionToAll = async (plan) => {
@@ -134,6 +146,7 @@ export default function AdminPage() {
     await setDoc(doc(db, "users", user.uid, "profile", "main"), { role: "admin" }, { merge: true });
     setUserRole("admin");
     useAuthStore.getState().refreshProfile(user.uid);
+    loadUsers();
   };
 
   if (!user) return null;
