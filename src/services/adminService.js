@@ -1,7 +1,7 @@
 import { db } from "./firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
-const CONFIG_PATH = "config/program/main";
+const CONFIG_PATH = "config/program";
 
 export async function getProgramConfig() {
   const snap = await getDoc(doc(db, CONFIG_PATH));
