@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { trackVisit, getVisitorStats } from "../services/visitorService";
 
 export default function Dashboard() {
-  const { user, role } = useAuthStore();
+  const { user, role, companyName } = useAuthStore();
   const [stats, setStats] = useState({ projects: 0, completed: 0, inProgress: 0 });
   const [visitors, setVisitors] = useState({ total: 0, today: 0, countryList: [] });
 
@@ -18,7 +18,7 @@ export default function Dashboard() {
     const loadStats = async () => {
       if (!user) return;
       const snap = await getDocs(collection(db, "users", user.uid, "projects"));
-      const all = snap.docs.map((d) => d.data());
+      const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setStats({
         projects: all.length,
         completed: all.filter((p) => p.status === "completed").length,
@@ -31,83 +31,100 @@ export default function Dashboard() {
     loadStats();
   }, [user, role]);
 
+  const displayName = companyName || user?.displayName || "شامخ ERP";
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-black">لوحة الأرباح</h1>
-        <p className="text-sm text-slate-400">مرحباً {user?.displayName || "المستخدم"}، هذه نظرة عامة على أعمالك</p>
+      <div className="bg-gradient-to-r from-brand-600/10 to-amber-500/10 border border-brand-500/20 rounded-3xl p-6 md:p-8">
+        <div className="flex items-center gap-4">
+          <div className="bg-gradient-to-tr from-brand-600 to-amber-500 p-3 rounded-2xl shadow-lg shadow-brand-600/30">
+            <i className="fa-solid fa-hotel text-white text-2xl"></i>
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black">{displayName}</h1>
+            <p className="text-sm text-slate-400 mt-1">
+              مرحباً {user?.displayName || "المستخدم"}، هذه نظرة عامة على أعمالك
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Link to="/projects" className="bg-[#0f172a] border border-white/5 rounded-2xl p-5 hover:border-brand-500/30 transition">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Link to="/projects" className="bg-[#0f172a] border border-white/5 rounded-2xl p-4 hover:border-brand-500/30 transition group">
           <div className="flex items-center gap-3">
-            <div className="bg-brand-500/10 text-brand-500 w-12 h-12 flex items-center justify-center rounded-2xl">
-              <i className="fa-solid fa-folder-open text-xl"></i>
+            <div className="bg-brand-500/10 text-brand-500 w-10 h-10 flex items-center justify-center rounded-xl group-hover:scale-110 transition">
+              <i className="fa-solid fa-folder-open"></i>
             </div>
             <div>
-              <p className="text-3xl font-black">{stats.projects}</p>
-              <p className="text-xs text-slate-400">إجمالي المشاريع</p>
+              <p className="text-2xl font-black">{stats.projects}</p>
+              <p className="text-[10px] text-slate-400">إجمالي المشاريع</p>
             </div>
           </div>
         </Link>
 
-        <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-5">
+        <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-4">
           <div className="flex items-center gap-3">
-            <div className="bg-emerald-500/10 text-emerald-400 w-12 h-12 flex items-center justify-center rounded-2xl">
-              <i className="fa-solid fa-check-circle text-xl"></i>
+            <div className="bg-emerald-500/10 text-emerald-400 w-10 h-10 flex items-center justify-center rounded-xl">
+              <i className="fa-solid fa-check-circle"></i>
             </div>
             <div>
-              <p className="text-3xl font-black">{stats.completed}</p>
-              <p className="text-xs text-slate-400">منجز</p>
+              <p className="text-2xl font-black">{stats.completed}</p>
+              <p className="text-[10px] text-slate-400">منجز</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-5">
+        <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-4">
           <div className="flex items-center gap-3">
-            <div className="bg-amber-500/10 text-amber-400 w-12 h-12 flex items-center justify-center rounded-2xl">
-              <i className="fa-solid fa-spinner text-xl"></i>
+            <div className="bg-amber-500/10 text-amber-400 w-10 h-10 flex items-center justify-center rounded-xl">
+              <i className="fa-solid fa-spinner"></i>
             </div>
             <div>
-              <p className="text-3xl font-black">{stats.inProgress}</p>
-              <p className="text-xs text-slate-400">قيد التنفيذ</p>
+              <p className="text-2xl font-black">{stats.inProgress}</p>
+              <p className="text-[10px] text-slate-400">قيد التنفيذ</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-5">
+        <Link to="/projects/new" className="bg-[#0f172a] border border-white/5 rounded-2xl p-4 hover:border-emerald-500/30 transition group">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-500/10 text-blue-400 w-12 h-12 flex items-center justify-center rounded-2xl">
-              <i className="fa-solid fa-calculator text-xl"></i>
+            <div className="bg-emerald-500/10 text-emerald-400 w-10 h-10 flex items-center justify-center rounded-xl group-hover:scale-110 transition">
+              <i className="fa-solid fa-plus"></i>
             </div>
             <div>
-              <p className="text-xl font-black text-brand-500">جديد</p>
-              <p className="text-xs text-slate-400">
-                <Link to="/projects/new" className="hover:underline">أنشئ مشروع</Link>
-              </p>
+              <p className="text-xl font-black text-emerald-400">جديد</p>
+              <p className="text-[10px] text-slate-400">مشروع جديد</p>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-6">
-          <h3 className="font-bold mb-4 flex items-center gap-2"><i className="fa-solid fa-chart-simple text-brand-500"></i> أدوات سريعة</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <Link to="/calculator" className="bg-slate-900/40 border border-white/5 rounded-xl p-4 text-center hover:border-brand-500/30 transition">
-              <i className="fa-solid fa-calculator text-2xl text-brand-500"></i>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-[#0f172a] border border-white/5 rounded-2xl p-6">
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <i className="fa-solid fa-bolt text-amber-500"></i> أدوات سريعة
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <Link to="/calculator" className="bg-slate-900/40 border border-white/5 rounded-xl p-4 text-center hover:border-brand-500/30 hover:bg-slate-900/60 transition group">
+              <i className="fa-solid fa-calculator text-2xl text-brand-500 group-hover:scale-110 transition inline-block"></i>
               <p className="text-sm font-bold mt-2">الحاسبة الذكية</p>
             </Link>
-            <Link to="/projects/new" className="bg-slate-900/40 border border-white/5 rounded-xl p-4 text-center hover:border-brand-500/30 transition">
-              <i className="fa-solid fa-plus-circle text-2xl text-emerald-500"></i>
-              <p className="text-sm font-bold mt-2">مشروع جديد</p>
+            <Link to="/projects" className="bg-slate-900/40 border border-white/5 rounded-xl p-4 text-center hover:border-brand-500/30 hover:bg-slate-900/60 transition group">
+              <i className="fa-solid fa-list text-2xl text-blue-500 group-hover:scale-110 transition inline-block"></i>
+              <p className="text-sm font-bold mt-2">المشاريع</p>
+            </Link>
+            <Link to="/settings" className="bg-slate-900/40 border border-white/5 rounded-xl p-4 text-center hover:border-brand-500/30 hover:bg-slate-900/60 transition group">
+              <i className="fa-solid fa-cog text-2xl text-slate-400 group-hover:scale-110 transition inline-block"></i>
+              <p className="text-sm font-bold mt-2">الإعدادات</p>
             </Link>
           </div>
         </div>
 
         {role === "admin" && (
           <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-6">
-            <h3 className="font-bold mb-4 flex items-center gap-2"><i className="fa-solid fa-globe text-brand-500"></i> زوار الموقع</h3>
+            <h3 className="font-bold mb-4 flex items-center gap-2">
+              <i className="fa-solid fa-globe text-brand-500"></i> زوار الموقع
+            </h3>
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-slate-900/40 rounded-xl p-3 text-center">
                 <p className="text-2xl font-black text-white">{visitors.total}</p>
@@ -121,14 +138,9 @@ export default function Dashboard() {
             {visitors.countryList.length > 0 && (
               <div>
                 <p className="text-[10px] text-slate-400 font-bold mb-2">حسب الدولة</p>
-                {visitors.countryList.slice(0, 8).map((c, i) => (
+                {visitors.countryList.slice(0, 5).map((c, i) => (
                   <div key={i} className="flex items-center justify-between py-1 border-b border-white/5 last:border-0">
                     <span className="text-xs flex items-center gap-2">
-                      {c.name === "غير معروف" ? (
-                        <i className="fa-solid fa-question-circle text-slate-500"></i>
-                      ) : (
-                        <img src={`https://flagcdn.com/w20/${c.name === "الأردن" ? "jo" : c.name === "السعودية" ? "sa" : c.name === "مصر" ? "eg" : c.name === "فلسطين" ? "ps" : c.name === "العراق" ? "iq" : c.name === "الإمارات" ? "ae" : c.name === "الكويت" ? "kw" : c.name === "قطر" ? "qa" : c.name === "عمان" ? "om" : c.name === "البحرين" ? "bh" : c.name === "اليمن" ? "ye" : c.name === "سوريا" ? "sy" : c.name === "لبنان" ? "lb" : c.name === "ليبيا" ? "ly" : c.name === "تونس" ? "tn" : c.name === "الجزائر" ? "dz" : c.name === "المغرب" ? "ma" : c.name === "السودان" ? "sd" : "unknown"}.png`} alt="" className="w-4 h-3 rounded" onError={(e) => e.target.style.display = "none"} />
-                      )}
                       {c.name}
                     </span>
                     <span className="text-xs font-bold">{c.count}</span>
@@ -138,16 +150,6 @@ export default function Dashboard() {
             )}
           </div>
         )}
-
-        <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-6">
-          <h3 className="font-bold mb-4 flex items-center gap-2"><i className="fa-solid fa-circle-info text-brand-500"></i> قريباً</h3>
-          <div className="space-y-2 text-sm text-slate-400">
-            <p><i className="fa-solid fa-chart-line ml-2 text-emerald-400"></i>رسوم بيانية للأرباح الشهرية</p>
-            <p><i className="fa-solid fa-file-pdf ml-2 text-red-400"></i>تصدير فواتير PDF احترافية</p>
-            <p><i className="fa-solid fa-truck ml-2 text-amber-400"></i>مقارنة أسعار الموردين</p>
-            <p><i className="fa-solid fa-warehouse ml-2 text-blue-400"></i>نظام المخزون مع تنبيهات النقص</p>
-          </div>
-        </div>
       </div>
     </div>
   );

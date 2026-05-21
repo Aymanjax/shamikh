@@ -13,6 +13,7 @@ const links = [
 
 export default function Sidebar({ user, open, onClose }) {
   const role = useAuthStore((s) => s.role);
+  const companyName = useAuthStore((s) => s.companyName);
 
   const closeAndNav = () => {
     if (onClose) onClose();
@@ -33,7 +34,7 @@ export default function Sidebar({ user, open, onClose }) {
               <i className="fa-solid fa-hotel text-white text-xl"></i>
             </div>
             <div>
-              <h2 className="text-sm font-black">شامخ ERP</h2>
+              <h2 className="text-sm font-black">{companyName || "شامخ ERP"}</h2>
               <p className="text-[10px] text-slate-400">نظام إدارة المشاريع</p>
             </div>
           </div>

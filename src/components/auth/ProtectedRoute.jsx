@@ -27,10 +27,20 @@ export default function ProtectedRoute({ children }) {
   }
 
   const sub = subscription;
-  if (sub && sub.expiresAt && sub.plan !== "lifetime") {
-    const now = Date.now();
-    const expiry = sub.expiresAt?.toMillis?.() || sub.expiresAt;
-    if (expiry < now) {
+  if (sub && sub.plan && sub.plan !== "free" && sub.plan !== "lifetime") {
+    let expiry = null;
+    if (sub.expiresAt) {
+      if (typeof sub.expiresAt.toMillis === "function") {
+        expiry = sub.expiresAt.toMillis();
+      } else if (sub.expiresAt instanceof Date) {
+        expiry = sub.expiresAt.getTime();
+      } else if (typeof sub.expiresAt === "number") {
+        expiry = sub.expiresAt;
+      } else if (typeof sub.expiresAt === "string") {
+        expiry = new Date(sub.expiresAt).getTime();
+      }
+    }
+    if (expiry && expiry < Date.now()) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-[#020617]">
           <div className="bg-[#0f172a] border border-amber-500/20 rounded-3xl p-8 text-center max-w-sm mx-4">

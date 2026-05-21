@@ -9,6 +9,7 @@ export const useAuthStore = create((set) => ({
   role: "user",
   subscription: null,
   banned: false,
+  companyName: "",
 
   init: () => {
     const unsub = subscribeToAuth(async (user) => {
@@ -20,9 +21,10 @@ export const useAuthStore = create((set) => ({
           role: data.role || "user",
           subscription: data.subscription || null,
           banned: data.banned === true,
+          companyName: data.companyName || "",
         });
       } else {
-        set({ user: null, loading: false, role: "user", subscription: null, banned: false });
+        set({ user: null, loading: false, role: "user", subscription: null, banned: false, companyName: "" });
       }
     });
     return unsub;
@@ -35,6 +37,9 @@ export const useAuthStore = create((set) => ({
       role: data.role || "user",
       subscription: data.subscription || null,
       banned: data.banned === true,
+      companyName: data.companyName || "",
     });
   },
+
+  setCompanyName: (name) => set({ companyName: name }),
 }));

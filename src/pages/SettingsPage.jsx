@@ -1,9 +1,15 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/authStore";
 import { db } from "../services/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 import { changeUserPassword } from "../services/authService";
-import { Link } from "react-router-dom";
+
+const PLAN_LABELS = {
+  free: "مجاني",
+  trial: "تجريبي",
+  premium: "مميز",
+  lifetime: "مدى الحياة",
+};
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
@@ -15,6 +21,8 @@ export default function SettingsPage() {
   const [pwForm, setPwForm] = useState({ old: "", newPw: "", confirm: "" });
   const [pwMsg, setPwMsg] = useState("");
   const [saved, setSaved] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [projectsCount, setProjectsCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -24,7 +32,10 @@ export default function SettingsPage() {
         const d = snap.data();
         setProfile({ companyName: d.companyName || "", phone: d.phone || "" });
         if (d.prices) setPrices(d.prices);
+        setSubscription(d.subscription || null);
       }
+      const projSnap = await getDocs(collection(db, "users", user.uid, "projects"));
+      setProjectsCount(projSnap.docs.length);
     };
     load();
   }, [user]);
@@ -36,6 +47,7 @@ export default function SettingsPage() {
       email: user.email,
       prices,
     }, { merge: true });
+    useAuthStore.getState().setCompanyName(profile.companyName);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -55,13 +67,18 @@ export default function SettingsPage() {
 
   const handlePriceChange = (key, val) => setPrices((f) => ({ ...f, [key]: Number(val) }));
 
+  const sub = subscription || {};
+  const subExpiry = sub.expiresAt?.toDate?.();
+  const isExpired = subExpiry && subExpiry < new Date();
+  const planLabel = PLAN_LABELS[sub.plan] || "بدون اشتراك";
+
   if (!user) return null;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-black">الإعدادات</h1>
-        <p className="text-sm text-slate-400">الملف الشخصي وأسعار المواد الافتراضية</p>
+        <p className="text-sm text-slate-400">الملف الشخصي وإعدادات البرنامج</p>
       </div>
 
       <div className="bg-[#0f172a] border border-white/5 rounded-3xl p-6 space-y-4">
@@ -86,7 +103,38 @@ export default function SettingsPage() {
       </div>
 
       <div className="bg-[#0f172a] border border-white/5 rounded-3xl p-6 space-y-4">
-        <h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-key text-amber-500"></i> تغيير كلمة السر</h3>
+        <h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-shield-halved text-amber-500"></i> الحساب والاشتراك</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-[#1e293b] rounded-xl p-4 text-center">
+            <p className="text-[10px] text-slate-400 font-bold">الاشتراك</p>
+            <p className={`text-lg font-black mt-1 ${isExpired ? "text-red-400" : "text-emerald-400"}`}>
+              {planLabel}
+            </p>
+          </div>
+          <div className="bg-[#1e293b] rounded-xl p-4 text-center">
+            <p className="text-[10px] text-slate-400 font-bold">عدد المشاريع</p>
+            <p className="text-lg font-black text-white mt-1">{projectsCount}</p>
+          </div>
+          <div className="bg-[#1e293b] rounded-xl p-4 text-center">
+            <p className="text-[10px] text-slate-400 font-bold">طريقة الدخول</p>
+            <p className="text-lg font-black text-white mt-1">
+              {user.providerData?.[0]?.providerId === "password" ? "بريد + كلمة سر" : "Google"}
+            </p>
+          </div>
+        </div>
+        {subExpiry && (
+          <p className="text-xs text-slate-500 text-center">
+            تاريخ الانتهاء: {subExpiry.toLocaleDateString("ar-JO")}
+            {isExpired && " (منتهي)"}
+          </p>
+        )}
+        <p className="text-xs text-slate-500 text-center">
+          آخر دخول: {user.metadata?.lastSignInTime ? new Date(user.metadata.lastSignInTime).toLocaleDateString("ar-JO") : "-"}
+        </p>
+      </div>
+
+      <div className="bg-[#0f172a] border border-white/5 rounded-3xl p-6 space-y-4">
+        <h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-key text-red-500"></i> تغيير كلمة السر</h3>
         {pwMsg === "success" ? (
           <div className="bg-emerald-500/10 text-emerald-400 text-sm p-3 rounded-xl">تم تغيير كلمة السر بنجاح</div>
         ) : pwMsg ? (
@@ -111,7 +159,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <button onClick={handleChangePassword}
-            className="bg-amber-600 hover:bg-amber-700 py-2.5 rounded-xl font-bold text-sm transition">
+            className="bg-red-600 hover:bg-red-700 py-2.5 rounded-xl font-bold text-sm transition">
             تغيير كلمة السر
           </button>
         </div>
@@ -141,12 +189,6 @@ export default function SettingsPage() {
               className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-white outline-none focus:border-brand-500" />
           </div>
         </div>
-      </div>
-
-      <div className="bg-[#0f172a] border border-white/5 rounded-3xl p-6 space-y-4">
-        <h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-shield-halved text-red-500"></i> حسابي</h3>
-        <p className="text-xs text-slate-400">نوع الحساب: {user.providerData?.[0]?.providerId === "password" ? "بريد إلكتروني وكلمة سر" : "Google"}</p>
-        <p className="text-xs text-slate-400">آخر دخول: {user.metadata?.lastSignInTime ? new Date(user.metadata.lastSignInTime).toLocaleDateString("ar-JO") : "-"}</p>
       </div>
 
       <button onClick={handleSave}

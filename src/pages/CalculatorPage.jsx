@@ -247,7 +247,7 @@ export default function CalculatorPage() {
               <select value={input.tileIndex} onChange={hSel("tileIndex")}
                 className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-3 text-white outline-none focus:border-rose-500 transition">
                 {TILES_CATALOG.map((t, i) => (
-                  <option key={i} value={i}>{t.name} — {t.origin} ({t.count} حبة/م²)</option>
+                  <option key={i} value={i}>{t.name}</option>
                 ))}
               </select>
             </Field>
