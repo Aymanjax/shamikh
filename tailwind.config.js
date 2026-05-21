@@ -10,6 +10,16 @@ export default {
           400: "#fbbf24", 500: "#f59e0b", 600: "#d97706", 700: "#b45309",
           800: "#92400e", 900: "#78350f",
         },
+        surface: {
+          DEFAULT: "#FFFFFF",
+          alt: "#F8FAFC",
+          input: "#F1F5F9",
+        },
+        ink: {
+          DEFAULT: "#1E293B",
+          muted: "#64748B",
+          light: "#94A3B8",
+        },
       },
     },
   },

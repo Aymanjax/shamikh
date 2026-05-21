@@ -160,8 +160,8 @@ export default function AdminPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-black flex items-center gap-3">
-          <i className="fa-solid fa-shield-halved text-red-500"></i>
+        <h1 className="text-2xl font-black flex items-center gap-3 text-ink">
+          <i className="fa-solid fa-shield-halved text-red-600"></i>
           لوحة التحكم
         </h1>
         <p className="text-sm text-slate-400">

@@ -12,6 +12,7 @@ import ProjectDetailPage from "./pages/ProjectDetailPage";
 import OrderPage from "./pages/OrderPage";
 import CalculatorPage from "./pages/CalculatorPage";
 import SuppliersPage from "./pages/SuppliersPage";
+import WorkersPage from "./pages/WorkersPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import AdminPage from "./pages/AdminPage";
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="projects/:id/order" element={<OrderPage />} />
           <Route path="calculator" element={<CalculatorPage />} />
           <Route path="suppliers" element={<SuppliersPage />} />
+          <Route path="workers" element={<WorkersPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="admin" element={<AdminPage />} />

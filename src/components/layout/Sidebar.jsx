@@ -7,6 +7,7 @@ const links = [
   { to: "/projects", icon: "fa-folder-open", label: "المشاريع" },
   { to: "/calculator", icon: "fa-calculator", label: "الحاسبة" },
   { to: "/suppliers", icon: "fa-truck", label: "الموردين" },
+  { to: "/workers", icon: "fa-users-gear", label: "العمال والرواتب" },
   { to: "/reports", icon: "fa-file-alt", label: "التقارير" },
   { to: "/settings", icon: "fa-cog", label: "الإعدادات" },
 ];
@@ -25,7 +26,7 @@ export default function Sidebar({ user, open, onClose }) {
         <div onClick={onClose} className="md:hidden fixed inset-0 bg-black/60 z-40"></div>
       )}
 
-      <aside className={`fixed md:sticky top-0 right-0 z-50 h-screen w-64 bg-[#0f172a] border-l border-white/5 flex flex-col transition-transform duration-300 ${
+      <aside className={`fixed md:sticky top-0 right-0 z-50 h-screen w-64 bg-[#0F172A] border-l border-white/5 flex flex-col transition-transform duration-300 ${
         open ? "translate-x-0" : "translate-x-full md:translate-x-0"
       }`}>
         <div className="p-5 border-b border-white/5 flex items-center justify-between">
@@ -34,7 +35,7 @@ export default function Sidebar({ user, open, onClose }) {
               <i className="fa-solid fa-hotel text-white text-xl"></i>
             </div>
             <div>
-              <h2 className="text-sm font-black">{companyName || "شامخ ERP"}</h2>
+              <h2 className="text-sm font-black text-white">{companyName || "شامخ ERP"}</h2>
               <p className="text-[10px] text-slate-400">نظام إدارة المشاريع</p>
             </div>
           </div>

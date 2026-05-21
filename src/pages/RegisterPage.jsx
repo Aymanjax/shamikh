@@ -1,27 +1,18 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from "../services/authService";
-import { db } from "../services/firebase";
-import { doc, setDoc } from "firebase/firestore";
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ name: "", phone: "", email: "", password: "" });
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const user = await registerUser(form.email, form.password, form.name);
-      await setDoc(doc(db, "users", user.uid, "profile", "main"), {
-        companyName: form.name,
-        phone: form.phone,
-        email: form.email,
-        role: "user",
-        createdAt: new Date().toISOString(),
-      });
+      await registerUser(email, password, name);
       navigate("/");
     } catch (err) {
       setError(err.message);
@@ -29,59 +20,48 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#020617] p-4">
-      <div className="w-full max-w-md bg-[#0f172a] border border-white/5 rounded-3xl p-8">
+    <div className="min-h-screen bg-surface-alt flex items-center justify-center p-6">
+      <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="bg-gradient-to-tr from-brand-600 to-amber-500 p-3 rounded-2xl inline-flex shadow-lg shadow-brand-600/30 mb-4">
-            <i className="fa-solid fa-user-plus text-white text-2xl"></i>
+          <div className="bg-gradient-to-tr from-brand-600 to-amber-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-600/30">
+            <i className="fa-solid fa-hotel text-white text-2xl"></i>
           </div>
-          <h1 className="text-2xl font-black">حساب جديد</h1>
-          <p className="text-slate-400 text-sm mt-1">أنشئ حسابك لإدارة مشاريع القرميد</p>
+          <h1 className="text-2xl font-black text-ink">إنشاء حساب جديد</h1>
+          <p className="text-sm text-ink-muted">انضم إلى شامخ ERP</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-3 rounded-xl">
-              {error}
-            </div>
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-xl mb-4">{error}</div>
           )}
 
-          <div className="space-y-1">
-            <label className="text-xs text-slate-400 font-bold block">الاسم / اسم الشركة</label>
-            <input name="name" value={form.name} onChange={handleChange} required
-              className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-4 text-white outline-none focus:border-brand-500" />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-ink-muted">الاسم</label>
+              <input value={name} onChange={(e) => setName(e.target.value)} required
+                className="w-full bg-surface-input border border-gray-200 rounded-xl py-2.5 px-4 text-ink outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-ink-muted">البريد الإلكتروني</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} dir="ltr" required
+                className="w-full bg-surface-input border border-gray-200 rounded-xl py-2.5 px-4 text-ink outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-ink-muted">كلمة السر</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
+                className="w-full bg-surface-input border border-gray-200 rounded-xl py-2.5 px-4 text-ink outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition" />
+            </div>
+            <button type="submit"
+              className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 rounded-xl shadow-sm hover:shadow-md transition">
+              إنشاء حساب
+            </button>
+          </form>
 
-          <div className="space-y-1">
-            <label className="text-xs text-slate-400 font-bold block">رقم الهاتف</label>
-            <input name="phone" value={form.phone} onChange={handleChange} required dir="ltr"
-              className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-4 text-white outline-none focus:border-brand-500" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs text-slate-400 font-bold block">البريد الإلكتروني</label>
-            <input type="email" name="email" value={form.email} onChange={handleChange} required
-              className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-4 text-white outline-none focus:border-brand-500" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs text-slate-400 font-bold block">كلمة المرور</label>
-            <input type="password" name="password" value={form.password} onChange={handleChange} required
-              className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-4 text-white outline-none focus:border-brand-500" />
-          </div>
-
-          <button type="submit"
-            className="w-full bg-gradient-to-r from-brand-600 to-amber-500 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition">
-            إنشاء الحساب
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-slate-400 mt-6">
-          عندك حساب؟{" "}
-          <Link to="/login" className="text-brand-500 font-bold hover:underline">
-            سجل دخول
-          </Link>
-        </p>
+          <p className="text-center text-xs text-ink-muted mt-5">
+            لديك حساب بالفعل؟
+            <Link to="/login" className="text-brand-600 font-bold mr-1 hover:text-brand-700">تسجيل دخول</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
