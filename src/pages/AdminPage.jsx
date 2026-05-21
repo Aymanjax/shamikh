@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { useAuthStore } from "../store/authStore";
 import { getProgramConfig, saveProgramConfig, getDefaultConfig } from "../services/adminService";
@@ -26,8 +26,16 @@ export default function AdminPage() {
     if (tab === "users") {
       setLoading(true);
       setError("");
-      getDocs(collection(db, "users-public")).then((s) => {
-        setUsers(s.docs.map((d) => ({ uid: d.id, ...d.data() })));
+      getDocs(collection(db, "users-public")).then(async (s) => {
+        const list = s.docs.map((d) => ({ uid: d.id, ...d.data() }));
+        const enriched = await Promise.all(list.map(async (u) => {
+          try {
+            const prof = await getDoc(doc(db, "users", u.uid, "profile", "main"));
+            const data = prof.exists() ? prof.data() : {};
+            return { ...u, role: data.role || "user", subscription: data.subscription || null };
+          } catch { return u; }
+        }));
+        setUsers(enriched);
         setLoading(false);
       }).catch((e) => {
         setError(e.message);
@@ -59,7 +67,6 @@ export default function AdminPage() {
 
   const addTile = () => {
     setConfig({ ...config, tileCatalog: [...config.tileCatalog, { name: "", origin: "", count: 11 }] });
-    setEditingTileIndex(config.tileCatalog.length);
   };
 
   const removeTile = (i) => {
@@ -156,28 +163,60 @@ export default function AdminPage() {
                   <th className="text-right py-2 px-3">البريد</th>
                   <th className="text-right py-2 px-3">آخر دخول</th>
                   <th className="text-right py-2 px-3">الصلاحية</th>
+                  <th className="text-right py-2 px-3">الاشتراك</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
-                  <tr key={u.uid} className="border-b border-white/5 hover:bg-white/5">
-                    <td className="py-2.5 px-3">{u.displayName || "-"}</td>
-                    <td className="py-2.5 px-3 text-slate-400">{u.email}</td>
-                    <td className="py-2.5 px-3 text-xs text-slate-500">
-                      {u.lastLogin?.toDate?.()?.toLocaleDateString?.("ar-JO") || "-"}
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <select value={u.role || "user"} onChange={(e) => setRole(u.uid, e.target.value)}
-                        className="bg-[#1e293b] border border-white/10 rounded-lg py-1 px-2 text-xs text-white outline-none cursor-pointer">
-                        <option value="user">مستخدم</option>
-                        <option value="admin">مدير</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+                {users.map((u) => {
+                  const sub = u.subscription || {};
+                  const subExpiry = sub.expiresAt?.toDate?.();
+                  const isExpired = subExpiry && subExpiry < new Date();
+                  const subStatus = !sub.plan ? "بدون" : isExpired ? "منتهي" : sub.plan === "trial" ? "تجريبي" : "مفعل";
+                  return (
+                    <tr key={u.uid} className="border-b border-white/5 hover:bg-white/5">
+                      <td className="py-2.5 px-3">{u.displayName || "-"}</td>
+                      <td className="py-2.5 px-3 text-slate-400">{u.email}</td>
+                      <td className="py-2.5 px-3 text-xs text-slate-500">
+                        {u.lastLogin?.toDate?.()?.toLocaleDateString?.("ar-JO") || "-"}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <select value={u.role || "user"} onChange={(e) => setRole(u.uid, e.target.value)}
+                          className="bg-[#1e293b] border border-white/10 rounded-lg py-1 px-2 text-xs text-white outline-none cursor-pointer">
+                          <option value="user">مستخدم</option>
+                          <option value="admin">مدير</option>
+                        </select>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className={`text-xs font-bold ${isExpired ? "text-red-400" : sub.plan ? "text-emerald-400" : "text-slate-500"}`}>
+                          {subStatus}
+                          {subExpiry && ` (${subExpiry.toLocaleDateString("ar-JO")})`}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             {users.length === 0 && <p className="text-sm text-slate-500 py-4 text-center">لا يوجد مستخدمين بعد</p>}
+          </div>
+
+          <div className="border-t border-white/5 pt-4 space-y-3">
+            <h4 className="font-bold text-sm flex items-center gap-2">
+              <i className="fa-solid fa-calendar-check text-amber-500"></i> إدارة الاشتراكات
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold">البريد الإلكتروني للمستخدم</label>
+                <input type="email" placeholder="user@example.com" className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-amber-500" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold">تاريخ الصلاحية</label>
+                <input type="date" className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-amber-500" />
+              </div>
+            </div>
+            <button className="bg-amber-600 hover:bg-amber-700 py-2 px-4 rounded-xl text-xs font-bold transition">
+              تحديث الاشتراك
+            </button>
           </div>
         </div>
       )}

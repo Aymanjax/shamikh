@@ -48,56 +48,77 @@ export default function MaterialListPDF({ result, tile, project }) {
 
         <Text style={styles.sectionTitle}>هيكل الحديد</Text>
         <View style={[styles.row, styles.rowEven]}>
-          <Text style={styles.label}>تيوبات حديد 4×8:</Text>
+          <Text style={styles.label}>حديد 4×8:</Text>
           <Text style={styles.value}>{r.iron4x8} تيوب</Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>تيوبات حديد 10×10:</Text>
-          <Text style={styles.value}>{r.iron10x10.total} تيوب (واجهات: {r.iron10x10.facades} | أرجل: {r.iron10x10.legs} | قواطع: {r.iron10x10.crossbars})</Text>
+          <Text style={styles.label}>حديد 10×10:</Text>
+          <Text style={styles.value}>{r.iron10x10.total} تيوب</Text>
         </View>
 
         <Text style={styles.sectionTitle}>الأخشاب والتشطيب</Text>
         {r.decor.bundles > 0 && (
-          <>
-            <View style={[styles.row, styles.rowEven]}>
-              <Text style={styles.label}>ربطات ديكور:</Text>
-              <Text style={styles.value}>{r.decor.bundles} ربطة (لوح {r.decor.optimalLen}م)</Text>
-            </View>
-          </>
+          <View style={[styles.row, styles.rowEven]}>
+            <Text style={styles.label}>ديكور:</Text>
+            <Text style={styles.value}>{r.decor.bundles} ربطة (لوح {r.decor.optimalLen}م)</Text>
+          </View>
         )}
         <View style={styles.row}>
-          <Text style={styles.label}>بيش خشب:</Text>
-          <Text style={styles.value}>{r.beshQty.toFixed(1)} وحدة</Text>
+          <Text style={styles.label}>بيش:</Text>
+          <Text style={styles.value}>{r.beshQty} وحدة</Text>
         </View>
         <View style={[styles.row, styles.rowEven]}>
           <Text style={styles.label}>أسس خشب:</Text>
           <Text style={styles.value}>{r.woodBases} قطعة</Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>شراشف واجهة (تجميع ذكي):</Text>
-          <Text style={styles.value}>{r.borders.total.toFixed(1)} م</Text>
+          <Text style={styles.label}>شراشف:</Text>
+          <Text style={styles.value}>{r.borders.total} م</Text>
         </View>
 
         <Text style={styles.sectionTitle}>الحماية والكسوة</Text>
         <View style={[styles.row, styles.rowEven]}>
-          <Text style={styles.label}>مشمع (رول 85سم):</Text>
+          <Text style={styles.label}>مشمع:</Text>
           <Text style={styles.value}>{r.tarpaulin.text}</Text>
         </View>
         {r.insulation && (
           <>
             <View style={styles.row}>
-              <Text style={styles.label}>زفتة عازلة:</Text>
+              <Text style={styles.label}>زفتة:</Text>
               <Text style={styles.value}>{r.insulation.zaftaRolls} رول</Text>
             </View>
             <View style={[styles.row, styles.rowEven]}>
-              <Text style={styles.label}>ألواح لاتي:</Text>
+              <Text style={styles.label}>لاتي:</Text>
               <Text style={styles.value}>{r.insulation.latiSheets} لوح</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.label}>مساطر زفتة:</Text>
+              <Text style={styles.value}>{r.insulation.zaftaRulers} حبة</Text>
             </View>
           </>
         )}
 
+        {r.tileStarts > 0 && (
+          <View style={[styles.row, styles.rowEven]}>
+            <Text style={styles.label}>بداية قرميد:</Text>
+            <Text style={styles.value}>{r.tileStarts} حبة</Text>
+          </View>
+        )}
+
+        {r.smallItems.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>مواد إضافية (مشروع صغير)</Text>
+            {r.smallItems.map((item, i) => (
+              <View key={i} style={[styles.row, i % 2 === 0 ? styles.rowEven : {}]}>
+                <Text style={styles.label}>{item.name}:</Text>
+                <Text style={styles.value}>{item.qty} {item.unit}</Text>
+              </View>
+            ))}
+          </>
+        )}
+
         <View style={[styles.row, { backgroundColor: "#0f172a", color: "white", padding: 10, borderRadius: 6, marginTop: 10 }]}>
-          <Text style={{ color: "white" }}>القرميد المعتمد:</Text>
+          <Text style={{ color: "white" }}>القرميد:</Text>
           <Text style={{ color: "#f59e0b", fontWeight: 900 }}>{r.totalTiles} حبة - {tile?.name || "غير محدد"}</Text>
         </View>
 

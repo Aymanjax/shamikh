@@ -1,169 +1,178 @@
 import { MARKET_LENGTHS } from "./constants";
 
-export function calcActualArea(segments, slopePercent) {
-  const flatArea = segments.reduce((sum, s) => sum + (s.length || 0) * (s.width || 0), 0);
-  const slopeMultiplier = 1 + (slopePercent / 100);
-  return flatArea * slopeMultiplier;
+export function calcActualArea(length, width, slopePercent) {
+  const flat = length * width;
+  const slp = 1 + slopePercent / 100;
+  return { flatArea: flat, actualArea: flat * slp, slopeMultiplier: slp };
 }
 
-export function calcIron4x8(baseLength, baseWidth, slopeMultiplier, spacingCm = 55) {
-  const spacingM = spacingCm / 100;
-  const lines = Math.ceil(baseLength / spacingM) + 1;
-  const totalMeters = (lines * baseWidth) * slopeMultiplier;
-  return Math.ceil(totalMeters / 6.0);
+export function calcFacadeTotal(numFacades, length, width) {
+  if (numFacades === 2) return +(length + width).toFixed(2);
+  if (numFacades === 3) return +(length * 2 + width).toFixed(2);
+  if (numFacades === 4) return +(2 * (length + width)).toFixed(2);
+  return 0;
 }
 
-export function calcIron10x10(baseLength, baseWidth, slopeMultiplier, totalFacadeLength, numLegs, legHeight) {
-  const piecesPerTube = legHeight > 0 ? Math.floor(6.0 / legHeight) : 0;
+export function calcIron4x8(actualArea) {
+  return Math.ceil(actualArea / 2);
+}
+
+export function calcIron10x10(totalFacadeLength, numLegs, legHeight) {
+  const frame = Math.ceil(totalFacadeLength / 6);
+  const piecesPerTube = legHeight > 0 ? Math.floor(6 / legHeight) : 0;
   const legs = piecesPerTube > 0 ? Math.ceil(numLegs / piecesPerTube) : 0;
-  const facades = Math.ceil(totalFacadeLength / 6.0);
-
-  const cutsInLength = Math.floor(baseLength / 3);
-  const cutsInWidth = Math.floor(baseWidth / 3);
-  let crossMeters = (cutsInLength * baseWidth) + (cutsInWidth * baseLength);
-  crossMeters *= slopeMultiplier;
-  const crossbars = Math.ceil(crossMeters / 6.0);
-
-  return { legs, facades, crossbars, total: legs + facades + crossbars };
+  return { frame, legs, total: frame + legs };
 }
 
-export function calcDecor(minSide, maxSide, slopeMultiplier, withDecor) {
-  if (!withDecor || minSide <= 0) {
-    return { optimalLen: 0, bundles: 0, wasteCm: 0 };
+export function calcDecorOptimal(minSide, availableLengths) {
+  if (minSide <= 0) return { optimalLen: 0, wasteCm: 0 };
+  for (const l of availableLengths) {
+    if (l >= minSide) return { optimalLen: l, wasteCm: Math.round((l - minSide) * 100) };
   }
-
-  let optimalLen = 6.0;
-  for (const l of MARKET_LENGTHS) {
-    if (l >= minSide) { optimalLen = l; break; }
-  }
-
-  const wasteCm = Math.round((optimalLen - minSide) * 100);
-  const bundles = Math.ceil((maxSide * slopeMultiplier) / 0.90);
-
-  return { optimalLen, bundles, wasteCm };
+  const last = availableLengths[availableLengths.length - 1];
+  return { optimalLen: last, wasteCm: Math.round((last - minSide) * 100) };
 }
 
-export function calcBesh(actualArea, withDecor) {
-  const factor = withDecor ? 1.5 : 1.0;
-  return actualArea * factor;
+export function calcDecorBundles(maxSide, slopeMultiplier) {
+  if (maxSide <= 0) return 0;
+  return Math.ceil((maxSide * slopeMultiplier) / 0.90);
 }
 
-export function calcWoodBases(totalFacadeLength, spacingCm = 55) {
-  return Math.ceil(totalFacadeLength / (spacingCm / 100));
-}
-
-export function optimizeBorders(totalFacadeLength) {
-  if (totalFacadeLength <= 0) return { lengths: {}, total: 0, platesTotal: 0 };
-
+export function optimizeBorders(totalLength) {
+  if (totalLength <= 0) return { lengths: {}, total: 0, platesTotal: 0 };
   let fullSixes = 0;
-  let remainder = totalFacadeLength;
-
-  if (totalFacadeLength > 12) {
-    fullSixes = Math.floor(totalFacadeLength / 6) - 1;
-    remainder = totalFacadeLength - fullSixes * 6;
+  let remainder = totalLength;
+  if (totalLength > 12) {
+    fullSixes = Math.floor(totalLength / 6) - 1;
+    remainder = totalLength - fullSixes * 6;
   }
-
   let bestSum = Infinity;
   let bestCombo = [];
-
   for (const l of MARKET_LENGTHS) {
-    if (l >= remainder && l < bestSum) {
-      bestSum = l;
-      bestCombo = [l];
-    }
+    if (l >= remainder && l < bestSum) { bestSum = l; bestCombo = [l]; }
   }
-
   for (const l1 of MARKET_LENGTHS) {
     for (const l2 of MARKET_LENGTHS) {
       const sum = l1 + l2;
-      if (sum >= remainder && sum < bestSum) {
-        bestSum = sum;
-        bestCombo = [l1, l2];
-      }
+      if (sum >= remainder && sum < bestSum) { bestSum = sum; bestCombo = [l1, l2]; }
     }
   }
-
   const lengths = {};
   if (fullSixes > 0) lengths[6.0] = fullSixes;
   bestCombo.forEach((len) => { lengths[len] = (lengths[len] || 0) + 1; });
+  return {
+    lengths, total: +(fullSixes * 6 + bestSum).toFixed(2),
+    platesTotal: (fullSixes > 0 ? fullSixes : 0) + bestCombo.length,
+  };
+}
 
-  const platesTotal = (fullSixes > 0 ? fullSixes : 0) + bestCombo.length;
-  const total = fullSixes * 6 + bestSum;
+export function calcBesh(actualArea, withDecor) {
+  if (withDecor) return Math.ceil(actualArea / 2);
+  return Math.ceil(actualArea);
+}
 
-  return { lengths, total, platesTotal };
+export function calcWoodBases(sharshefLength, spacingCm = 55) {
+  if (sharshefLength <= 0) return 0;
+  return Math.ceil(sharshefLength / (spacingCm / 100));
 }
 
 export function calcTarpaulin(actualArea) {
-  const linearMeters = actualArea / 0.85;
-  if (actualArea <= 0) return { text: "0 رول", rolls50: 0, rolls25: 0 };
+  if (actualArea <= 0) return { text: "0 رول", rolls50: 0, rolls25: 0, rolls75: 0 };
+  if (actualArea <= 25) return { text: "1 رول (25م)", rolls50: 0, rolls25: 1, rolls75: 0 };
 
-  const rolls50 = Math.floor(linearMeters / 50);
-  const remainder = linearMeters % 50;
+  const full50 = Math.floor(actualArea / 50);
+  const remainder = actualArea % 50;
 
-  let text;
+  let text, rolls50 = full50, rolls25 = 0, rolls75 = 0;
+
   if (remainder === 0) {
-    text = rolls50 > 0 ? `${rolls50} رول (50م)` : "1 رول (25م)";
+    rolls75 = Math.ceil(full50 / 1.5);
+    text = `${full50} رول (50م)`;
   } else if (remainder <= 25) {
-    text = rolls50 > 0 ? `${rolls50} رول (50م) + 1 رول (25م)` : "1 رول (25م)";
+    rolls25 = 1;
+    text = full50 > 0 ? `${full50} رول (50م) + 1 رول (25م)` : "1 رول (25م)";
   } else {
-    text = `${rolls50 + 1} رول (50م)`;
+    rolls50 = full50 + 1;
+    text = `${full50 + 1} رول (50م)`;
   }
 
-  return { text, rolls50, rolls25: remainder > 0 && remainder <= 25 ? 1 : 0 };
+  return { text, rolls50, rolls25, rolls75 };
 }
 
 export function calcTiles(actualArea, tile) {
   return Math.ceil(actualArea * tile.count);
 }
 
+export function calcTileStarts(numFacades) {
+  return numFacades || 0;
+}
+
 export function calcInsulation(actualArea, totalFacadeLength) {
   return {
-    zaftaRolls: Math.ceil(actualArea / 9.0),
+    zaftaRolls: Math.ceil(actualArea / 9),
     latiSheets: Math.ceil(actualArea / 2.9),
-    zaftaRulers: (totalFacadeLength * 0.5).toFixed(1),
+    zaftaRulers: Math.ceil(totalFacadeLength / 6),
   };
+}
+
+export function calcSmallProjectItems(actualArea) {
+  if (actualArea >= 100) return [];
+
+  const items = [
+    { name: "زيت حار", unit: "جلن 5ك", qty: 1 },
+    { name: "فرنيش", unit: "جلن", qty: 1 },
+    { name: "رول دهان", unit: "حبة", qty: 1 },
+    { name: "فرش", unit: "حبة", qty: 3 },
+    { name: "مسامير فرد", unit: "كغم", qty: 1 },
+    { name: "مسامير فرد بولاد", unit: "كغم", qty: 1 },
+    { name: "مسامير 4سم", unit: "كغم", qty: 1 },
+    { name: "مسامير بولاد", unit: "كغم", qty: 7 },
+    { name: "مبروم حديد", unit: "ربطة", qty: 1 },
+    { name: "فيبر قص حديد", unit: "حبة", qty: 1 },
+    { name: "اسلاك لحام", unit: "كغم", qty: 1 },
+    { name: "اسمنت", unit: "كيس", qty: 1 },
+    { name: "بودرة", unit: "كيس", qty: 1 },
+  ];
+
+  if (actualArea < 20) {
+    items.push({ name: "روف جارد", unit: "صغير", qty: 1 });
+  } else {
+    items.push({ name: "روف جارد", unit: "5ك", qty: 1 });
+  }
+
+  return items;
 }
 
 export function calcAll(input) {
   const {
-    segments, slopePercent, spacingCm = 55,
-    facadeLength, numLegs, legHeight,
-    withDecor, enableInsulation, tile,
+    length, width, slopePercent = 20, spacingCm = 55,
+    numFacades = 2, numLegs = 6, legHeight = 2.7,
+    withDecor = true, enableInsulation = false, tile,
   } = input;
 
-  const baseLength = segments[0]?.length || 0;
-  const baseWidth = segments[0]?.width || 0;
-  const slpM = 1 + slopePercent / 100;
-  const flatArea = segments.reduce((sum, s) => sum + (s.length || 0) * (s.width || 0), 0);
-  const actualArea = flatArea * slpM;
-
-  const minSide = Math.min(baseLength, baseWidth);
-  const maxSide = Math.max(baseLength, baseWidth);
-
-  const iron4x8 = calcIron4x8(baseLength, baseWidth, slpM, spacingCm);
-  const iron10x10 = calcIron10x10(baseLength, baseWidth, slpM, facadeLength, numLegs, legHeight);
-  const decor = calcDecor(minSide, maxSide, slpM, withDecor);
+  const { flatArea, actualArea, slopeMultiplier } = calcActualArea(length, width, slopePercent);
+  const totalFacadeLength = calcFacadeTotal(numFacades, length, width);
+  const iron4x8 = calcIron4x8(actualArea);
+  const iron10x10 = calcIron10x10(totalFacadeLength, numLegs, legHeight);
+  const minSide = Math.min(length, width);
+  const maxSide = Math.max(length, width);
+  const decorOptimal = calcDecorOptimal(minSide, MARKET_LENGTHS);
+  const decorBundles = calcDecorBundles(maxSide, slopeMultiplier);
   const beshQty = calcBesh(actualArea, withDecor);
-  const woodBases = calcWoodBases(facadeLength, spacingCm);
-  const borders = optimizeBorders(facadeLength);
+  const borders = optimizeBorders(totalFacadeLength);
+  const woodBases = calcWoodBases(borders.total, spacingCm);
   const tarpaulin = calcTarpaulin(actualArea);
   const totalTiles = calcTiles(actualArea, tile);
-  const insulation = enableInsulation ? calcInsulation(actualArea, facadeLength) : null;
+  const tileStarts = calcTileStarts(numFacades);
+  const insulation = enableInsulation ? calcInsulation(actualArea, totalFacadeLength) : null;
+  const smallItems = calcSmallProjectItems(actualArea);
 
   return {
-    flatArea,
-    actualArea,
-    slopeMultiplier: slpM,
-    iron4x8,
-    iron10x10,
-    decor,
-    beshQty,
-    woodBases,
-    borders,
-    tarpaulin,
-    totalTiles,
-    tileSelected: tile,
-    insulation,
+    flatArea, actualArea, slopeMultiplier, totalFacadeLength,
+    iron4x8, iron10x10,
+    decor: { optimalLen: decorOptimal.optimalLen, wasteCm: decorOptimal.wasteCm, bundles: decorBundles },
+    beshQty, woodBases, borders, tarpaulin, totalTiles, tileStarts,
+    tileSelected: tile, insulation, smallItems,
   };
 }
 
@@ -176,9 +185,6 @@ export function calcCosts(materials, prices, nathrayat = 0) {
     { label: "البيش", cost: materials.beshQty * prices.besh },
     { label: "الشراشف", cost: materials.borders.total * prices.sharshef },
   ];
-
   const totalMaterials = items.reduce((s, i) => s + i.cost, 0);
-  const totalWithNathrayat = totalMaterials + nathrayat;
-
-  return { items, totalMaterials, totalWithNathrayat };
+  return { items, totalMaterials, totalWithNathrayat: totalMaterials + nathrayat };
 }

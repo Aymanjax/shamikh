@@ -7,23 +7,31 @@ export const useAuthStore = create((set) => ({
   user: null,
   loading: true,
   role: "user",
+  subscription: null,
 
   init: () => {
     const unsub = subscribeToAuth(async (user) => {
       if (user) {
         const snap = await getDoc(doc(db, "users", user.uid, "profile", "main"));
-        const role = snap.exists() ? snap.data().role || "user" : "user";
-        set({ user, loading: false, role });
+        const data = snap.exists() ? snap.data() : {};
+        set({
+          user, loading: false,
+          role: data.role || "user",
+          subscription: data.subscription || null,
+        });
       } else {
-        set({ user: null, loading: false, role: "user" });
+        set({ user: null, loading: false, role: "user", subscription: null });
       }
     });
     return unsub;
   },
 
-  refreshRole: async (uid) => {
+  refreshProfile: async (uid) => {
     const snap = await getDoc(doc(db, "users", uid, "profile", "main"));
-    const role = snap.exists() ? snap.data().role || "user" : "user";
-    set({ role });
+    const data = snap.exists() ? snap.data() : {};
+    set({
+      role: data.role || "user",
+      subscription: data.subscription || null,
+    });
   },
 }));
