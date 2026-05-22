@@ -9,6 +9,7 @@ import { getSuppliersWithPrices } from "../services/supplierService";
 import { getProgramConfig } from "../services/adminService";
 import SideEditor from "../components/roof/SideEditor";
 import RoofPresets from "../components/roof/RoofPresets";
+import RoofShapeViewer from "../components/roof/RoofShapeViewer";
 
 function Field({ label, children }) {
   return (
@@ -131,6 +132,9 @@ export default function CalculatorPage() {
   };
 
   const handleSideChange = (newSides) => setSides(newSides);
+  const handleToggleFacade = (index) => {
+    setSides((prev) => prev.map((s, i) => i === index ? { ...s, hasFacade: !s.hasFacade } : s));
+  };
   const handleDecor = () => setInput((f) => ({ ...f, withDecor: !f.withDecor }));
   const handleInsulation = () => setInput((f) => ({ ...f, enableInsulation: !f.enableInsulation }));
 
@@ -186,6 +190,13 @@ export default function CalculatorPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left: Sides + Controls */}
         <div className="lg:col-span-3 space-y-4">
+          {/* Roof Shape Viewer */}
+          <div className="bg-surface border border-line rounded-2xl overflow-hidden shadow-sm">
+            <div className="p-3 sm:p-4">
+              <RoofShapeViewer sides={sides} onToggleFacade={handleToggleFacade} />
+            </div>
+          </div>
+
           {/* Side Editor */}
           <div className="bg-surface border border-line rounded-2xl overflow-hidden shadow-sm">
             <div className="p-3 sm:p-4">
