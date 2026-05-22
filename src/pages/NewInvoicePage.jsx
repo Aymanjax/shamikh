@@ -7,6 +7,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { TILES_CATALOG } from "../utils/constants";
 import { calcAll, calcCosts } from "../utils/calculations";
+import { getProgramConfig } from "../services/adminService";
 
 export default function NewInvoicePage() {
   const { user, companyName } = useAuthStore();
@@ -14,8 +15,9 @@ export default function NewInvoicePage() {
   const [step, setStep] = useState("select");
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [prices, setPrices] = useState({ iron4x8: 12, iron10x10: 22, tile: 0.95, decor: 5, besh: 1.5, sharshef: 4, nathrayat: 150 });
+  const [prices, setPrices] = useState({ iron4x8: 12, iron10x10: 22, tile: 0.95, decor: 5, besh: 1.5, sharshef: 4, nathrayat: 150, tileStarts: 0, tarpaulin: 0, zafta: 0, latiSheets: 0, woodBases: 0, tarabeesh: 0 });
   const [items, setItems] = useState([]);
+  const [extraItems, setExtraItems] = useState([]);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split("T")[0];
@@ -27,8 +29,13 @@ export default function NewInvoicePage() {
   useEffect(() => {
     if (!user) return;
     fetchProjects(user.uid).then(setProjects);
-    getDoc(doc(db, "users", user.uid, "profile", "main")).then((snap) => {
-      if (snap.exists() && snap.data().prices) setPrices(snap.data().prices);
+    getProgramConfig().then((pg) => {
+      const adminExtras = pg?.extraItems || [];
+      getDoc(doc(db, "users", user.uid, "profile", "main")).then((snap) => {
+        if (snap.exists() && snap.data().prices) setPrices(snap.data().prices);
+        const userExtras = snap.exists() ? snap.data().extraItems : null;
+        setExtraItems(userExtras && userExtras.length > 0 ? userExtras : adminExtras);
+      });
     });
   }, [user]);
 
@@ -55,7 +62,7 @@ export default function NewInvoicePage() {
     if (r.iron4x8) list.push({ name: "حديد 4×8", unit: "تيوب", qty: r.iron4x8, unitPrice: prices.iron4x8 || 0 });
     if (r.iron10x10?.total) list.push({ name: "حديد 10×10", unit: "تيوب", qty: r.iron10x10.total, unitPrice: prices.iron10x10 || 0 });
     if (r.totalTiles) list.push({ name: "القرميد", unit: "حبة", qty: r.totalTiles, unitPrice: prices.tile || 0 });
-    if (r.tileStarts) list.push({ name: "بداية قرميد", unit: "حبة", qty: r.tileStarts, unitPrice: 0 });
+    if (r.tileStarts) list.push({ name: "بداية قرميد", unit: "حبة", qty: r.tileStarts, unitPrice: prices.tileStarts || 0 });
     if (r.decor?.bundles) list.push({ name: "الديكور", unit: "ربطة", qty: r.decor.bundles, unitPrice: prices.decor || 0 });
     if (r.beshQty) list.push({ name: "البيش", unit: "وحدة", qty: Number(r.beshQty.toFixed(1)), unitPrice: prices.besh || 0 });
     if (r.borders?.lengths) {
@@ -64,11 +71,15 @@ export default function NewInvoicePage() {
         list.push({ name: `شراشف ${len}م`, unit: "شريحة", qty: count, unitPrice: platePrice });
       });
     }
-    if (r.tarpaulin?.text && r.tarpaulin.text !== "0") list.push({ name: "مشمع", unit: "رول", qty: parseFloat(r.tarpaulin.text) || 0, unitPrice: 0 });
-    if (r.insulation?.zaftaRolls) list.push({ name: "زفتة", unit: "رول", qty: r.insulation.zaftaRolls, unitPrice: 0 });
-    if (r.insulation?.latiSheets) list.push({ name: "الواح لاتي", unit: "لوح", qty: r.insulation.latiSheets, unitPrice: 0 });
-    if (r.woodBases) list.push({ name: "أسس خشب", unit: "قطعة", qty: r.woodBases, unitPrice: 0 });
-    if (r.nathrayatItem) list.push({ name: "نثريات", unit: "", qty: 1, unitPrice: prices.nathrayat || 0 });
+    if (r.tarpaulin?.text && r.tarpaulin.text !== "0") list.push({ name: "مشمع", unit: "رول", qty: parseFloat(r.tarpaulin.text) || 0, unitPrice: prices.tarpaulin || 0 });
+    if (r.insulation?.zaftaRolls) list.push({ name: "زفتة", unit: "رول", qty: r.insulation.zaftaRolls, unitPrice: prices.zafta || 0 });
+    if (r.insulation?.latiSheets) list.push({ name: "الواح لاتي", unit: "لوح", qty: r.insulation.latiSheets, unitPrice: prices.latiSheets || 0 });
+    if (r.woodBases) list.push({ name: "أسس خشب", unit: "قطعة", qty: r.woodBases, unitPrice: prices.woodBases || 0 });
+    if (r.tarabeesh) list.push({ name: "طرابيش", unit: "حبة", qty: r.tarabeesh, unitPrice: prices.tarabeesh || 0 });
+    if (prices.nathrayat > 0) list.push({ name: "نثريات", unit: "", qty: 1, unitPrice: prices.nathrayat || 0 });
+    extraItems.forEach((ei) => {
+      list.push({ name: ei.name, unit: ei.unit || "", qty: 1, unitPrice: 0 });
+    });
     return list.map((item) => ({ ...item, total: item.qty * item.unitPrice }));
   };
 

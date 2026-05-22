@@ -116,6 +116,8 @@ export default function CalculatorPage() {
   const [prices, setPrices] = useState({
     iron4x8: 12, iron10x10: 22, tile: 0.95,
     decor: 5, besh: 1.5, sharshef: 4, nathrayat: 150,
+    tileStarts: 0, tarpaulin: 0, zafta: 0,
+    latiSheets: 0, woodBases: 0, tarabeesh: 0,
   });
   const [showPrices, setShowPrices] = useState(false);
   const [supplierPrices, setSupplierPrices] = useState([]);
@@ -387,6 +389,12 @@ export default function CalculatorPage() {
                   { key: "decor", label: "الديكور (م²)" },
                   { key: "besh", label: "البيش (وحدة)" },
                   { key: "sharshef", label: "الشراشف (م)" },
+                  { key: "tileStarts", label: "بداية قرميد (حبة)" },
+                  { key: "tarpaulin", label: "مشمع (رول)" },
+                  { key: "zafta", label: "زفتة (رول)" },
+                  { key: "latiSheets", label: "الواح لاتي (لوح)" },
+                  { key: "woodBases", label: "أسس خشب (قطعة)" },
+                  { key: "tarabeesh", label: "طرابيش (حبة)" },
                 ].map(({ key, label }) => (
                   <div key={key} className="space-y-1">
                     <label className="text-[10px] text-ink-muted font-bold">{label}</label>
