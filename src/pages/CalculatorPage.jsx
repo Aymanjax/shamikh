@@ -7,7 +7,7 @@ import { db } from "../services/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { getSuppliersWithPrices } from "../services/supplierService";
 import { getProgramConfig } from "../services/adminService";
-import RoofVisual from "../components/roof/RoofVisual";
+import SideEditor from "../components/roof/SideEditor";
 import RoofPresets from "../components/roof/RoofPresets";
 
 function Field({ label, children }) {
@@ -38,9 +38,16 @@ const FACADE_LABELS = { 2: "وجهين", 3: "ثلاث أوجه", 4: "أربع أ
 
 export default function CalculatorPage() {
   const { user, companyName } = useAuthStore();
+  const [sides, setSides] = useState([
+    { length: 5, hasFacade: true },
+    { length: 4, hasFacade: true },
+    { length: 5, hasFacade: true },
+    { length: 4, hasFacade: true },
+  ]);
+  const [areaLen, setAreaLen] = useState(5);
+  const [areaWid, setAreaWid] = useState(4);
   const [input, setInput] = useState({
-    length: 5, width: 4, slope: 20,
-    numFacades: 2, numLegs: 6, legHeight: 2.7,
+    slope: 20, numLegs: 6, legHeight: 2.7,
     withDecor: true, enableInsulation: false,
     tileIndex: 0,
   });
@@ -101,10 +108,11 @@ export default function CalculatorPage() {
   const [supplierPrices, setSupplierPrices] = useState([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
 
+  const facadeCount = sides.filter((s) => s.hasFacade).length;
   useEffect(() => {
-    setExtraTileStarts(input.numFacades || 0);
-    setExtraTarabeesh((input.numFacades || 0) * 2);
-  }, [input.numFacades]);
+    setExtraTileStarts(facadeCount);
+    setExtraTarabeesh(facadeCount * 2);
+  }, [facadeCount]);
 
   const h = (name) => (e) => {
     const { value, type, checked } = e.target;
@@ -112,23 +120,29 @@ export default function CalculatorPage() {
   };
   const hSel = (name) => (e) => setInput((f) => ({ ...f, [name]: Number(e.target.value) }));
 
-  const applyPreset = (p) => setInput((f) => ({ ...f, ...p, tileIndex: f.tileIndex }));
+  const applyPreset = (p) => {
+    setSides(p.sides.map((s) => ({ ...s })));
+    if (p.area) { setAreaLen(p.area.length || 5); setAreaWid(p.area.width || 4); }
+    if (p.slope) setInput((f) => ({ ...f, slope: p.slope }));
+    if (p.numLegs) setInput((f) => ({ ...f, numLegs: p.numLegs }));
+    if (p.legHeight) setInput((f) => ({ ...f, legHeight: p.legHeight }));
+    if (p.withDecor !== undefined) setInput((f) => ({ ...f, withDecor: p.withDecor }));
+    if (p.enableInsulation !== undefined) setInput((f) => ({ ...f, enableInsulation: p.enableInsulation }));
+  };
 
-  const handleNumFacades = (n) => setInput((f) => ({ ...f, numFacades: n }));
+  const handleSideChange = (newSides) => setSides(newSides);
   const handleDecor = () => setInput((f) => ({ ...f, withDecor: !f.withDecor }));
   const handleInsulation = () => setInput((f) => ({ ...f, enableInsulation: !f.enableInsulation }));
-  const handleLength = (v) => setInput((f) => ({ ...f, length: v }));
-  const handleWidth = (v) => setInput((f) => ({ ...f, width: v }));
-  const cycleTile = () => setInput((f) => ({ ...f, tileIndex: (f.tileIndex + 1) % TILES_CATALOG.length }));
 
   const tile = TILES_CATALOG[input.tileIndex] || TILES_CATALOG[0];
 
   const result = useMemo(() => calcAll({
-    length: input.length, width: input.width,
+    sides,
+    area: { length: areaLen, width: areaWid },
     slopePercent: input.slope, spacingCm: 55,
-    numFacades: input.numFacades, numLegs: input.numLegs, legHeight: input.legHeight,
+    numLegs: input.numLegs, legHeight: input.legHeight,
     withDecor: input.withDecor, enableInsulation: input.enableInsulation, tile,
-  }), [input, tile]);
+  }), [sides, areaLen, areaWid, input, tile]);
 
   const costResult = useMemo(() => {
     if (!showPrices) return null;
@@ -165,35 +179,44 @@ export default function CalculatorPage() {
         </div>
         <div className="flex-1">
           <h1 className="text-2xl font-black">حساب البضاعة</h1>
-          <p className="text-sm text-ink-muted">مصمم بصري لكميات الورشة — النتيجة فورية</p>
+          <p className="text-sm text-ink-muted">أدخل أضلاع السقف يدوياً — النتيجة فورية</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left: Visual + Controls */}
+        {/* Left: Sides + Controls */}
         <div className="lg:col-span-3 space-y-4">
-          {/* Roof Visual */}
+          {/* Side Editor */}
           <div className="bg-surface border border-line rounded-2xl overflow-hidden shadow-sm">
             <div className="p-3 sm:p-4">
-              <RoofVisual
-                length={input.length} width={input.width} slope={input.slope}
-                numFacades={input.numFacades} withDecor={input.withDecor}
-                enableInsulation={input.enableInsulation} tileIndex={input.tileIndex}
-                onLengthChange={handleLength} onWidthChange={handleWidth}
-                onNumFacadesChange={handleNumFacades}
-                onDecorToggle={handleDecor} onInsulationToggle={handleInsulation}
-                onTileChange={cycleTile}
-              />
+              <SideEditor sides={sides} onChange={handleSideChange} />
             </div>
           </div>
 
           {/* Presets */}
           <div className="bg-surface border border-line rounded-2xl p-3 sm:p-4 shadow-sm">
-            <RoofPresets onSelect={applyPreset} current={input} />
+            <RoofPresets onSelect={applyPreset} current={{ sides }} />
           </div>
 
           {/* Quick controls */}
           <div className="bg-surface border border-line rounded-2xl p-3 sm:p-4 shadow-sm">
+            <p className="text-[11px] font-bold text-ink-muted mb-2 flex items-center gap-1">
+              <i className="fa-solid fa-arrows-alt text-amber-500"></i> المساحة التقريبية
+            </p>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <Field label="الطول (م)">
+                <Input type="number" value={areaLen} onChange={(e) => setAreaLen(Number(e.target.value))} min="0.1" step="0.5" />
+              </Field>
+              <Field label="العرض (م)">
+                <Input type="number" value={areaWid} onChange={(e) => setAreaWid(Number(e.target.value))} min="0.1" step="0.5" />
+              </Field>
+            </div>
+            <p className="text-[10px] text-ink-muted mb-3 px-1">
+              المساحة: <strong className="text-ink">{result.flatArea.toFixed(1)}</strong> م²
+              <span className="mx-1">|</span>
+              بعد الميل: <strong className="text-amber-700">{result.actualArea.toFixed(1)}</strong> م²
+            </p>
+            <hr className="border-line mb-3" />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Field label="عدد الأرجل">
                 <Input type="number" value={input.numLegs} onChange={h("numLegs")} min="2" max="20" />
@@ -229,7 +252,7 @@ export default function CalculatorPage() {
                 {input.enableInsulation ? "✅ عزل مائي" : "❌ عزل مائي"}
               </span>
               <span className="text-xs font-bold px-3 py-1.5 rounded-xl border bg-surface border-line text-ink-muted select-none">
-                {FACADE_LABELS[input.numFacades] || `${input.numFacades} أوجه`}
+                {facadeCount} أوجه من {sides.length}
               </span>
             </div>
           </div>
@@ -359,7 +382,7 @@ export default function CalculatorPage() {
           <div className="bg-surface rounded-2xl p-3 sm:p-5 text-ink shadow-xl border-2 border-line" dir="rtl">
             <div className="text-center pb-3 border-b-2 border-line">
               <h2 className="text-base sm:text-lg font-black">تقدير كميات الورشة</h2>
-              <p className="text-[9px] sm:text-[10px] text-ink-muted font-bold">كشف المواد حسب المقاسات المدخلة</p>
+              <p className="text-[9px] sm:text-[10px] text-ink-muted font-bold">كشف المواد حسب الأضلاع المدخلة</p>
             </div>
 
             <div className="py-3">
@@ -576,7 +599,7 @@ export default function CalculatorPage() {
                   lines.push("*📦 مواد إضافية*");
                   extras.forEach((e) => lines.push(e));
                 }
-                const msg = `📋 *كشف المواد حسب المقاسات المدخلة*\n\n${lines.join("\n")}`;
+                const msg = `📋 *كشف المواد حسب الأضلاع المدخلة*\n\n${lines.join("\n")}`;
                 window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, "_blank");
               }}
                 className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-extrabold py-3 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 text-sm">

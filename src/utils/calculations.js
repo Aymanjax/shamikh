@@ -149,11 +149,90 @@ export function calcInsulation(actualArea, totalFacadeLength) {
 
 export function calcAll(input) {
   const {
-    length, width, slopePercent = 20, spacingCm = 55,
-    numFacades = 2, numLegs = 6, legHeight = 2.7,
+    slopePercent = 20, spacingCm = 55,
+    numLegs = 6, legHeight = 2.7,
     withDecor = true, enableInsulation = false, tile,
   } = input;
 
+  // === Sides mode (all sides individually) ===
+  if (input.sides && input.sides.length > 0) {
+    const slopeMul = 1 + slopePercent / 100;
+    const facadeSides = input.sides.filter((s) => s.hasFacade);
+    const totalFacadeLength = facadeSides.reduce((s, side) => s + side.length, 0);
+    const borderLengths = facadeSides.map((s) => s.length);
+    const al = Math.max(input.area?.length || 0, 0.1);
+    const aw = Math.max(input.area?.width || 0, 0.1);
+    const totalFlat = Math.max(input.area?.total || al * aw, 0.1);
+    const actual = totalFlat * slopeMul;
+
+    const decorOpt = withDecor ? calcDecorOptimal(Math.min(al, aw), MARKET_LENGTHS) : { optimalLen: 0, wasteCm: 0 };
+    const decorBundles = withDecor ? calcDecorBundles(Math.max(al, aw)) : 0;
+    const borders = optimizeBorderSections(borderLengths);
+    const wb = borders.sections.reduce((s, sec) => s + calcWoodBases(sec.requiredLength, spacingCm), 0);
+    const ins = enableInsulation ? calcInsulation(actual, totalFacadeLength) : null;
+
+    return {
+      flatArea: +totalFlat.toFixed(2),
+      actualArea: +actual.toFixed(2),
+      slopeMultiplier: slopeMul, totalFacadeLength,
+      iron4x8: calcIron4x8(actual),
+      iron10x10: calcIron10x10(totalFacadeLength, numLegs, legHeight),
+      decor: { optimalLen: decorOpt.optimalLen, wasteCm: decorOpt.wasteCm, bundles: decorBundles },
+      beshQty: calcBesh(actual, withDecor),
+      woodBases: wb, borders, tarpaulin: calcTarpaulin(actual),
+      totalTiles: calcTiles(actual, tile),
+      tileStarts: facadeSides.length,
+      tarabeesh: facadeSides.length * 2,
+      tileSelected: tile, insulation: ins,
+    };
+  }
+
+  // === Multi-section mode (array of rectangles) ===
+  if (input.sections && input.sections.length > 0) {
+    const slopeMul = 1 + slopePercent / 100;
+    let totalFlat = 0;
+    let totalFacade = 0;
+    const borderLens = [];
+    let largestMin = 0;
+    let largestMax = 0;
+    let decorBundlesTotal = 0;
+
+    input.sections.forEach((sec) => {
+      const area = sec.length * sec.width;
+      totalFlat += area;
+      const fl = calcFacadeTotal(sec.numFacades || 2, sec.length, sec.width);
+      totalFacade += fl;
+      borderLens.push(fl);
+      const mn = Math.min(sec.length, sec.width);
+      const mx = Math.max(sec.length, sec.width);
+      if (mn > largestMin) { largestMin = mn; largestMax = mx; }
+      if (withDecor) decorBundlesTotal += calcDecorBundles(mx);
+    });
+
+    const actual = totalFlat * slopeMul;
+    const decorOpt = withDecor ? calcDecorOptimal(largestMin, MARKET_LENGTHS) : { optimalLen: 0, wasteCm: 0 };
+    const borders = optimizeBorderSections(borderLens);
+    const wb = borders.sections.reduce((s, sec) => s + calcWoodBases(sec.requiredLength, spacingCm), 0);
+    const ins = enableInsulation ? calcInsulation(actual, totalFacade) : null;
+
+    return {
+      flatArea: +totalFlat.toFixed(2),
+      actualArea: +actual.toFixed(2),
+      slopeMultiplier: slopeMul, totalFacadeLength: totalFacade,
+      iron4x8: calcIron4x8(actual),
+      iron10x10: calcIron10x10(totalFacade, numLegs, legHeight),
+      decor: { optimalLen: decorOpt.optimalLen, wasteCm: decorOpt.wasteCm, bundles: withDecor ? decorBundlesTotal : 0 },
+      beshQty: input.sections.reduce((s, sec) => s + calcBesh(sec.length * sec.width * slopeMul, withDecor), 0),
+      woodBases: wb, borders, tarpaulin: calcTarpaulin(actual),
+      totalTiles: calcTiles(actual, tile),
+      tileStarts: input.sections.reduce((s, sec) => s + calcTileStarts(sec.numFacades || 2), 0),
+      tarabeesh: input.sections.reduce((s, sec) => s + calcTarabeesh(sec.numFacades || 2), 0),
+      tileSelected: tile, insulation: ins,
+    };
+  }
+
+  // === Legacy single-section mode ===
+  const { length = 5, width = 4, numFacades = 2 } = input;
   const { flatArea, actualArea, slopeMultiplier } = calcActualArea(length, width, slopePercent);
   const totalFacadeLength = input.borderSections?.length
     ? input.borderSections.reduce((s, l) => s + l, 0)
