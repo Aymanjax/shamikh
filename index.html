@@ -4,11 +4,33 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>شامخ ERP - منصة إدارة مشاريع القرميد</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <title>شموخ ERP - منصة إدارة مشاريع القرميد</title>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" />
+    <style>
+      #root:empty { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+      .splash { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px; text-align: center; }
+      .splash-logo { width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, #d97706, #f59e0b); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(217,119,6,0.3); }
+      .splash-logo svg { width: 32px; height: 32px; fill: white; }
+      .splash h1 { font-size: 22px; font-weight: 800; color: #1e293b; }
+      .splash p { font-size: 13px; color: #94a3b8; }
+      .splash-spinner { width: 32px; height: 32px; border: 3px solid #e2e8f0; border-top-color: #d97706; border-radius: 50%; animation: spin 0.8s linear infinite; margin-top: 8px; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="splash">
+        <div class="splash-logo">
+          <svg viewBox="0 0 24 24"><path d="M19 9.3V4h-3v2.6L12 3 2 12h3v8h5v-6h4v6h5v-8h3L19 9.3zm-1 8.7h-3v-6H9v6H6v-7.1l6-5.5 6 5.5V18z"/></svg>
+        </div>
+        <h1>شموخ ERP</h1>
+        <p>نظام إدارة مشاريع القرميد</p>
+        <div class="splash-spinner"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

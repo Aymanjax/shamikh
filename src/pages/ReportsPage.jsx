@@ -25,48 +25,48 @@ export default function ReportsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-black">التقارير</h1>
-        <p className="text-sm text-slate-400">إحصائيات وإنجازات المشاريع</p>
+        <p className="text-sm text-ink-muted">إحصائيات وإنجازات المشاريع</p>
       </div>
 
       {loading ? (
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-amber-500 mx-auto"></div>
         </div>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-4 text-center">
-              <p className="text-3xl font-black text-brand-500">{total}</p>
-              <p className="text-xs text-slate-400 mt-1">إجمالي المشاريع</p>
+            <div className="bg-surface border border-line rounded-2xl p-4 text-center shadow-sm">
+              <p className="text-3xl font-black text-amber-600">{total}</p>
+              <p className="text-xs text-ink-muted mt-1">إجمالي المشاريع</p>
             </div>
-            <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-4 text-center">
-              <p className="text-3xl font-black text-emerald-400">{completed}</p>
-              <p className="text-xs text-slate-400 mt-1">منجز</p>
+            <div className="bg-surface border border-line rounded-2xl p-4 text-center shadow-sm">
+              <p className="text-3xl font-black text-emerald-600">{completed}</p>
+              <p className="text-xs text-ink-muted mt-1">منجز</p>
             </div>
-            <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-4 text-center">
-              <p className="text-3xl font-black text-amber-400">{inProgress}</p>
-              <p className="text-xs text-slate-400 mt-1">قيد التنفيذ</p>
+            <div className="bg-surface border border-line rounded-2xl p-4 text-center shadow-sm">
+              <p className="text-3xl font-black text-amber-600">{inProgress}</p>
+              <p className="text-xs text-ink-muted mt-1">قيد التنفيذ</p>
             </div>
-            <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-4 text-center">
-              <p className="text-3xl font-black text-blue-400">{sent}</p>
-              <p className="text-xs text-slate-400 mt-1">مُرسل/معتمد</p>
+            <div className="bg-surface border border-line rounded-2xl p-4 text-center shadow-sm">
+              <p className="text-3xl font-black text-blue-600">{sent}</p>
+              <p className="text-xs text-ink-muted mt-1">مُرسل/معتمد</p>
             </div>
           </div>
 
-          <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-6">
+          <div className="bg-surface border border-line rounded-2xl p-6 shadow-sm">
             <h3 className="font-bold mb-3 flex items-center gap-2">
-              <i className="fa-solid fa-list text-brand-500"></i> آخر المشاريع
+              <i className="fa-solid fa-list text-amber-600"></i> آخر المشاريع
             </h3>
             <div className="space-y-2">
               {projects.slice(-10).reverse().map((p) => (
-                <div key={p.id} className="flex justify-between items-center bg-white/5 rounded-xl px-4 py-2.5">
+                <div key={p.id} className="flex justify-between items-center bg-surface-subtle rounded-xl px-4 py-2.5">
                   <span className="text-sm font-bold">{p.client?.name || "بدون اسم"}</span>
                   <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${
-                    p.status === "completed" ? "bg-green-500/20 text-green-400" :
-                    p.status === "in_progress" ? "bg-amber-500/20 text-amber-400" :
-                    p.status === "approved" ? "bg-emerald-500/20 text-emerald-400" :
-                    p.status === "sent" ? "bg-blue-500/20 text-blue-400" :
-                    "bg-slate-500/20 text-slate-400"
+                    p.status === "completed" ? "bg-green-100 text-green-700" :
+                    p.status === "in_progress" ? "bg-amber-100 text-amber-700" :
+                    p.status === "approved" ? "bg-emerald-100 text-emerald-700" :
+                    p.status === "sent" ? "bg-blue-100 text-blue-700" :
+                    "bg-surface-subtle text-ink"
                   }`}>
                     {p.status === "completed" ? "منجز" :
                      p.status === "in_progress" ? "قيد التنفيذ" :
@@ -76,7 +76,7 @@ export default function ReportsPage() {
                 </div>
               ))}
               {projects.length === 0 && (
-                <p className="text-sm text-slate-500 text-center py-4">لا توجد مشاريع بعد</p>
+                <p className="text-sm text-ink-muted text-center py-4">لا توجد مشاريع بعد</p>
               )}
             </div>
           </div>

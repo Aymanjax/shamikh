@@ -33,13 +33,13 @@ export function calcDecorOptimal(minSide, availableLengths) {
   return { optimalLen: last, wasteCm: Math.round((last - minSide) * 100) };
 }
 
-export function calcDecorBundles(maxSide, slopeMultiplier) {
+export function calcDecorBundles(maxSide) {
   if (maxSide <= 0) return 0;
-  return Math.ceil((maxSide * slopeMultiplier) / 0.90);
+  return Math.round(maxSide / 0.90);
 }
 
 export function optimizeBorders(totalLength) {
-  if (totalLength <= 0) return { lengths: {}, total: 0, platesTotal: 0 };
+  if (totalLength <= 0) return { lengths: {}, total: 0, platesTotal: 0, waste: 0, wastePercent: 0 };
   let fullSixes = 0;
   let remainder = totalLength;
   if (totalLength > 12) {
@@ -63,12 +63,40 @@ export function optimizeBorders(totalLength) {
   return {
     lengths, total: +(fullSixes * 6 + bestSum).toFixed(2),
     platesTotal: (fullSixes > 0 ? fullSixes : 0) + bestCombo.length,
+    waste: +((fullSixes * 6 + bestSum) - totalLength).toFixed(2),
+    wastePercent: +((((fullSixes * 6 + bestSum) / totalLength) - 1) * 100).toFixed(1),
+  };
+}
+
+export function optimizeBorderSections(sections) {
+  if (!sections || sections.length === 0) return null;
+  const optimized = sections.map((len, i) => ({
+    sectionIndex: i,
+    requiredLength: len,
+    ...optimizeBorders(len),
+  }));
+  const totalNeeded = sections.reduce((s, l) => s + l, 0);
+  const totalBought = optimized.reduce((s, o) => s + o.total, 0);
+  const allLengths = {};
+  optimized.forEach((o) => {
+    Object.entries(o.lengths).forEach(([len, count]) => {
+      allLengths[len] = (allLengths[len] || 0) + count;
+    });
+  });
+  return {
+    sections: optimized,
+    lengths: allLengths,
+    total: totalBought,
+    platesTotal: optimized.reduce((s, o) => s + o.platesTotal, 0),
+    totalNeeded,
+    waste: +(totalBought - totalNeeded).toFixed(2),
+    wastePercent: totalNeeded > 0 ? +((totalBought / totalNeeded - 1) * 100).toFixed(1) : 0,
   };
 }
 
 export function calcBesh(actualArea, withDecor) {
-  if (withDecor) return Math.ceil(actualArea / 2);
-  return Math.ceil(actualArea);
+  if (withDecor) return Math.ceil(actualArea);
+  return Math.ceil(actualArea / 2);
 }
 
 export function calcWoodBases(sharshefLength, spacingCm = 55) {
@@ -107,6 +135,10 @@ export function calcTileStarts(numFacades) {
   return numFacades || 0;
 }
 
+export function calcTarabeesh(numFacades) {
+  return (numFacades || 0) * 2;
+}
+
 export function calcInsulation(actualArea, totalFacadeLength) {
   return {
     zaftaRolls: Math.ceil(actualArea / 9),
@@ -123,25 +155,32 @@ export function calcAll(input) {
   } = input;
 
   const { flatArea, actualArea, slopeMultiplier } = calcActualArea(length, width, slopePercent);
-  const totalFacadeLength = calcFacadeTotal(numFacades, length, width);
+  const totalFacadeLength = input.borderSections?.length
+    ? input.borderSections.reduce((s, l) => s + l, 0)
+    : calcFacadeTotal(numFacades, length, width);
   const iron4x8 = calcIron4x8(actualArea);
   const iron10x10 = calcIron10x10(totalFacadeLength, numLegs, legHeight);
   const minSide = Math.min(length, width);
   const maxSide = Math.max(length, width);
   const decorOptimal = calcDecorOptimal(minSide, MARKET_LENGTHS);
-  const decorBundles = calcDecorBundles(maxSide, slopeMultiplier);
+  const decorBundles = calcDecorBundles(maxSide);
   const beshQty = calcBesh(actualArea, withDecor);
-  const borders = optimizeBorders(totalFacadeLength);
-  const woodBases = calcWoodBases(borders.total, spacingCm);
+  const borders = input.borderSections?.length
+    ? optimizeBorderSections(input.borderSections)
+    : optimizeBorders(totalFacadeLength);
+  const woodBases = input.borderSections?.length
+    ? borders.sections.reduce((s, sec) => s + calcWoodBases(sec.requiredLength, spacingCm), 0)
+    : calcWoodBases(borders.total, spacingCm);
   const tarpaulin = calcTarpaulin(actualArea);
   const totalTiles = calcTiles(actualArea, tile);
   const tileStarts = calcTileStarts(numFacades);
+  const tarabeesh = calcTarabeesh(numFacades);
   const insulation = enableInsulation ? calcInsulation(actualArea, totalFacadeLength) : null;
   return {
     flatArea, actualArea, slopeMultiplier, totalFacadeLength,
     iron4x8, iron10x10,
     decor: { optimalLen: decorOptimal.optimalLen, wasteCm: decorOptimal.wasteCm, bundles: decorBundles },
-    beshQty, woodBases, borders, tarpaulin, totalTiles, tileStarts,
+    beshQty, woodBases, borders, tarpaulin, totalTiles, tileStarts, tarabeesh,
     tileSelected: tile, insulation,
   };
 }

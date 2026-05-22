@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "277872804120",
+    "firebase_url": "https://shumukh-9011f-default-rtdb.firebaseio.com",
+    "project_id": "shumukh-9011f",
+    "storage_bucket": "shumukh-9011f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:277872804120:android:032fc0dd244147bfbd9e6d",
+        "android_client_info": {
+          "package_name": "com.shamikh.erp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "277872804120-uj8ubrbfhngh42dactv6uq2ov0niebcj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1mgHN27aqlKc32t82ZQLEkjsys1GkftA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "277872804120-uj8ubrbfhngh42dactv6uq2ov0niebcj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

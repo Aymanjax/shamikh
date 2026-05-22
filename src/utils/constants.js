@@ -36,9 +36,9 @@ export const STATUS_LABELS = {
 };
 
 export const STATUS_COLORS = {
-  draft: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-  sent: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  approved: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  in_progress: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  completed: "bg-green-500/10 text-green-400 border-green-500/20",
+  draft: "bg-slate-100 text-slate-600 border-slate-200",
+  sent: "bg-blue-50 text-blue-600 border-blue-200",
+  approved: "bg-emerald-50 text-emerald-600 border-emerald-200",
+  in_progress: "bg-amber-50 text-amber-600 border-amber-200",
+  completed: "bg-green-50 text-green-600 border-green-200",
 };

@@ -53,55 +53,55 @@ export default function NewProjectPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-black">مشروع جديد</h1>
-        <p className="text-sm text-slate-400">أدخل بيانات العميل وقياسات الورشة لحساب المواد والتكلفة</p>
+        <p className="text-sm text-ink-muted">أدخل بيانات العميل وقياسات الورشة لحساب المواد والتكلفة</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="bg-[#0f172a] border border-white/5 rounded-3xl p-6 space-y-4">
-          <h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-user text-brand-500"></i> بيانات العميل</h3>
+        <div className="bg-surface border border-line rounded-3xl p-6 space-y-4 shadow-sm">
+          <h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-user text-amber-600"></i> بيانات العميل</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 space-y-1">
-              <label className="text-xs text-slate-400 font-bold">اسم العميل</label>
+              <label className="text-xs text-ink-muted font-bold">اسم العميل</label>
               <input name="clientName" value={form.clientName} onChange={handleChange} required
-                className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-4 text-white outline-none focus:border-brand-500" />
+                className="w-full bg-surface-input border border-line rounded-xl py-2.5 px-4 text-ink outline-none focus:border-amber-500 transition" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400 font-bold">رقم الهاتف</label>
+              <label className="text-xs text-ink-muted font-bold">رقم الهاتف</label>
               <input name="clientPhone" value={form.clientPhone} onChange={handleChange} dir="ltr"
-                className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-4 text-white outline-none focus:border-brand-500" />
+                className="w-full bg-surface-input border border-line rounded-xl py-2.5 px-4 text-ink outline-none focus:border-amber-500 transition" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400 font-bold">العنوان</label>
+              <label className="text-xs text-ink-muted font-bold">العنوان</label>
               <input name="clientAddress" value={form.clientAddress} onChange={handleChange}
-                className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-4 text-white outline-none focus:border-brand-500" />
+                className="w-full bg-surface-input border border-line rounded-xl py-2.5 px-4 text-ink outline-none focus:border-amber-500 transition" />
             </div>
           </div>
         </div>
 
-        <div className="bg-[#0f172a] border border-white/5 rounded-3xl p-6 space-y-4">
+        <div className="bg-surface border border-line rounded-3xl p-6 space-y-4 shadow-sm">
           <div className="flex justify-between items-center">
-            <h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-ruler-combined text-brand-500"></i> قياسات الورشة</h3>
+            <h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-ruler-combined text-amber-600"></i> قياسات الورشة</h3>
             <button type="button" onClick={addSegment}
-              className="text-xs bg-brand-600 hover:bg-brand-700 py-1.5 px-3 rounded-lg font-bold transition">
+              className="text-xs bg-amber-500 hover:bg-amber-600 text-white py-1.5 px-3 rounded-lg font-bold transition">
               <i className="fa-solid fa-plus ml-1"></i> مقطع إضافي
             </button>
           </div>
 
           {form.segments.map((seg, i) => (
-            <div key={i} className="flex gap-3 items-end bg-slate-900/40 p-3 rounded-2xl border border-white/5">
+            <div key={i} className="flex gap-3 items-end bg-surface-subtle p-3 rounded-2xl border border-line">
               <div className="flex-1 space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold">الطول (م)</label>
+                <label className="text-[10px] text-ink-muted font-bold">الطول (م)</label>
                 <input type="number" value={seg.length} onChange={(e) => handleSegmentChange(i, "length", e.target.value)} step="0.1"
-                  className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-white outline-none focus:border-brand-500" />
+                  className="w-full bg-surface border border-line rounded-xl py-2 px-3 text-ink outline-none focus:border-amber-500 transition" />
               </div>
               <div className="flex-1 space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold">العرض (م)</label>
+                <label className="text-[10px] text-ink-muted font-bold">العرض (م)</label>
                 <input type="number" value={seg.width} onChange={(e) => handleSegmentChange(i, "width", e.target.value)} step="0.1"
-                  className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-white outline-none focus:border-brand-500" />
+                  className="w-full bg-surface border border-line rounded-xl py-2 px-3 text-ink outline-none focus:border-amber-500 transition" />
               </div>
               {form.segments.length > 1 && (
                 <button type="button" onClick={() => removeSegment(i)}
-                  className="bg-red-500/10 text-red-500 p-2 rounded-xl hover:bg-red-500 hover:text-white transition">
+                  className="bg-red-50 text-red-500 p-2 rounded-xl hover:bg-red-500 hover:text-white transition">
                   <i className="fa-solid fa-trash"></i>
                 </button>
               )}
@@ -110,56 +110,56 @@ export default function NewProjectPage() {
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1">
-              <label className="text-xs text-slate-400 font-bold">الميل (%)</label>
+              <label className="text-xs text-ink-muted font-bold">الميل (%)</label>
               <select name="slope" value={form.slope} onChange={handleChange}
-                className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-4 text-white outline-none focus:border-brand-500">
+                className="w-full bg-surface-input border border-line rounded-xl py-2.5 px-4 text-ink outline-none focus:border-amber-500 transition">
                 <option value="0">0%</option><option value="10">10%</option>
                 <option value="20">20%</option><option value="30">30%</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400 font-bold">أطوال الواجهات (م)</label>
+              <label className="text-xs text-ink-muted font-bold">أطوال الواجهات (م)</label>
               <input type="number" name="facadeLength" value={form.facadeLength} onChange={handleChange} step="0.1"
-                className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-4 text-white outline-none focus:border-brand-500" />
+                className="w-full bg-surface-input border border-line rounded-xl py-2.5 px-4 text-ink outline-none focus:border-amber-500 transition" />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-slate-400 font-bold">عدد الأرجل</label>
+              <label className="text-xs text-ink-muted font-bold">عدد الأرجل</label>
               <input type="number" name="numLegs" value={form.numLegs} onChange={handleChange}
-                className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-4 text-white outline-none focus:border-brand-500" />
+                className="w-full bg-surface-input border border-line rounded-xl py-2.5 px-4 text-ink outline-none focus:border-amber-500 transition" />
             </div>
           </div>
         </div>
 
-        <div className="bg-[#0f172a] border border-white/5 rounded-3xl p-6 space-y-4">
-          <h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-palette text-brand-500"></i> خيارات التشطيب</h3>
+        <div className="bg-surface border border-line rounded-3xl p-6 space-y-4 shadow-sm">
+          <h3 className="font-bold flex items-center gap-2"><i className="fa-solid fa-palette text-amber-600"></i> خيارات التشطيب</h3>
           <div className="space-y-3">
-            <label className="flex items-center justify-between p-3 bg-slate-900/40 border border-white/5 rounded-2xl cursor-pointer">
+            <label className="flex items-center justify-between p-3 bg-surface-subtle border border-line rounded-2xl cursor-pointer">
               <div>
                 <div className="font-bold text-sm">ديكور خشبي</div>
-                <div className="text-[10px] text-slate-400">يزيد كمية البيش 50%</div>
+                <div className="text-[10px] text-ink-muted">البيش يزيد مع الديكور</div>
               </div>
               <div className="relative">
                 <input type="checkbox" name="withDecor" checked={form.withDecor} onChange={handleChange} className="sr-only peer" />
-                <div className="w-12 h-7 bg-slate-800 rounded-full peer peer-checked:bg-brand-500 transition"></div>
-                <div className="absolute w-5 h-5 bg-white rounded-full top-1 right-1 transition peer-checked:translate-x-[-20px]"></div>
+                <div className="w-12 h-7 bg-gray-300 rounded-full peer peer-checked:bg-amber-500 transition"></div>
+                <div className="absolute w-5 h-5 bg-surface rounded-full top-1 right-1 transition peer-checked:translate-x-[-20px]"></div>
               </div>
             </label>
-            <label className="flex items-center justify-between p-3 bg-slate-900/40 border border-white/5 rounded-2xl cursor-pointer">
+            <label className="flex items-center justify-between p-3 bg-surface-subtle border border-line rounded-2xl cursor-pointer">
               <div>
                 <div className="font-bold text-sm">عزل مائي</div>
-                <div className="text-[10px] text-slate-400">زفتة + لاتي + مساطير</div>
+                <div className="text-[10px] text-ink-muted">زفتة + لاتي + مساطير</div>
               </div>
               <div className="relative">
                 <input type="checkbox" name="enableInsulation" checked={form.enableInsulation} onChange={handleChange} className="sr-only peer" />
-                <div className="w-12 h-7 bg-slate-800 rounded-full peer peer-checked:bg-emerald-500 transition"></div>
-                <div className="absolute w-5 h-5 bg-white rounded-full top-1 right-1 transition peer-checked:translate-x-[-20px]"></div>
+                <div className="w-12 h-7 bg-gray-300 rounded-full peer peer-checked:bg-emerald-500 transition"></div>
+                <div className="absolute w-5 h-5 bg-surface rounded-full top-1 right-1 transition peer-checked:translate-x-[-20px]"></div>
               </div>
             </label>
           </div>
         </div>
 
         <button type="submit" disabled={saving}
-          className="w-full bg-gradient-to-r from-brand-600 to-amber-500 py-3.5 rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition disabled:opacity-50">
+          className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white py-3.5 rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition disabled:opacity-50">
           {saving ? "جاري الحفظ..." : "حفظ المشروع"}
         </button>
       </form>

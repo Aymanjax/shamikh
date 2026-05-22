@@ -1,48 +1,130 @@
-import { useState, useMemo } from "react";
-import { TILES_CATALOG, MARKET_LENGTHS } from "../utils/constants";
+import { useState, useMemo, useEffect } from "react";
+import { TILES_CATALOG } from "../utils/constants";
 import { calcAll, calcCosts } from "../utils/calculations";
 import { downloadMaterialList, downloadQuotation } from "../services/pdfService";
+import { useAuthStore } from "../store/authStore";
+import { db } from "../services/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { getSuppliersWithPrices } from "../services/supplierService";
+import { getProgramConfig } from "../services/adminService";
 
 const STEPS = [
-  { key: "basic", icon: "fa-ruler-combined", label: "أساسيات الورشة", color: "from-sky-500 to-cyan-500" },
-  { key: "iron", icon: "fa-border-all", label: "هيكل الحديد", color: "from-violet-500 to-purple-500" },
-  { key: "decor", icon: "fa-palette", label: "الديكور والبيش", color: "from-amber-500 to-orange-500" },
-  { key: "sharshef", icon: "fa-draw-polygon", label: "الشراشف والأسس", color: "from-emerald-500 to-teal-500" },
-  { key: "insulation", icon: "fa-water", label: "العزل المائي", color: "from-blue-500 to-indigo-500" },
-  { key: "tile", icon: "fa-cube", label: "القرميد", color: "from-rose-500 to-pink-500" },
-  { key: "extra", icon: "fa-plus-circle", label: "إضافات", color: "from-slate-500 to-slate-400" },
+  { key: "basic", icon: "fa-ruler-combined", label: "أبعاد الورشة" },
+  { key: "iron", icon: "fa-border-all", label: "هيكل الحديد" },
+  { key: "finishing", icon: "fa-palette", label: "التشطيب" },
+  { key: "insulation", icon: "fa-water", label: "العزل المائي" },
+  { key: "tile", icon: "fa-cube", label: "القرميد" },
+  { key: "pricing", icon: "fa-tags", label: "التسعير والإضافات" },
 ];
 
+function Field({ label, children }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-[10px] text-ink-muted font-bold block">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function Input(props) {
+  return (
+    <input {...props}
+      className={`w-full bg-surface-input border border-line rounded-xl py-2.5 px-3 text-ink outline-none focus:border-amber-500 transition ${props.className || ""}`} />
+  );
+}
+
+function ResultBox({ children, className = "" }) {
+  return (
+    <div className={`bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs space-y-1 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function Card({ icon, colorFrom = "from-amber-500", colorTo = "to-amber-600", label, children }) {
+  return (
+    <div className="bg-surface border border-line rounded-2xl overflow-hidden shadow-sm">
+      <div className={`p-4 border-b border-line bg-gradient-to-l ${colorFrom} ${colorTo}`}>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+            <i className={`fa-solid ${icon} text-white text-sm`}></i>
+          </div>
+          <span className="font-bold text-sm text-white">{label}</span>
+        </div>
+      </div>
+      <div className="p-4 space-y-3">{children}</div>
+    </div>
+  );
+}
+
 export default function CalculatorPage() {
+  const { user, companyName } = useAuthStore();
   const [input, setInput] = useState({
     length: 5, width: 4, slope: 20,
     numFacades: 2, numLegs: 6, legHeight: 2.7,
     withDecor: true, enableInsulation: false,
     tileIndex: 0,
   });
-  const DEFAULT_FIELDS = [
-    { name: "زيت حار", value: 1, unit: "جلن 5ك" },
-    { name: "فرنيش", value: 1, unit: "جلن" },
-    { name: "رول دهان", value: 1, unit: "حبة" },
-    { name: "فرش", value: 3, unit: "حبة" },
-    { name: "مسامير فرد", value: 1, unit: "كغم" },
-    { name: "مسامير فرد بولاد", value: 1, unit: "كغم" },
-    { name: "مسامير 4سم", value: 1, unit: "كغم" },
-    { name: "مسامير بولاد", value: 7, unit: "كغم" },
-    { name: "مبروم حديد", value: 1, unit: "ربطة" },
-    { name: "فيبر قص حديد", value: 1, unit: "حبة" },
-    { name: "اسلاك لحام", value: 1, unit: "كغم" },
-    { name: "اسمنت", value: 1, unit: "كيس" },
-    { name: "بودرة", value: 1, unit: "كيس" },
-    { name: "روف جارد", value: 1, unit: "5ك" },
-  ];
-  const [customFields, setCustomFields] = useState(DEFAULT_FIELDS);
+  const [customFields, setCustomFields] = useState([]);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [step, setStep] = useState(0);
+  const [extraTileStarts, setExtraTileStarts] = useState(0);
+  const [extraTarabeesh, setExtraTarabeesh] = useState(0);
+  const [isIrregular, setIsIrregular] = useState(false);
+  const [borderSections, setBorderSections] = useState([]);
+
+  useEffect(() => {
+    if (!user) return;
+    getProgramConfig().then((pg) => {
+      const defaultExtra = pg?.extraItems?.length
+        ? pg.extraItems.map((ei) => ({ name: ei.name, value: "1", unit: ei.unit }))
+        : null;
+      getDoc(doc(db, "users", user.uid, "profile", "main")).then((snap) => {
+        if (!snap.exists()) {
+          if (defaultExtra) setCustomFields(defaultExtra);
+          return;
+        }
+        const d = snap.data();
+        if (d.prices) setPrices((prev) => ({ ...prev, ...d.prices }));
+        const userItems = d.extraItems || [];
+        if (userItems.length > 0) {
+          setCustomFields(userItems.map((ei) => ({ name: ei.name, value: "1", unit: ei.unit })));
+        } else if (defaultExtra) {
+          setCustomFields(defaultExtra);
+        } else {
+          setCustomFields([
+            { name: "زيت حار", value: "1", unit: "جلن" },
+            { name: "فرنيش", value: "1", unit: "جلن" },
+            { name: "رول دهان", value: "1", unit: "حبة" },
+            { name: "فرش", value: "3", unit: "حبة" },
+            { name: "مسامير فرد", value: "1", unit: "كغم" },
+            { name: "مسامير فرد بولاد", value: "1", unit: "كغم" },
+            { name: "مسامير 4سم", value: "1", unit: "كغم" },
+            { name: "مسامير بولاد", value: "7", unit: "كغم" },
+            { name: "مبروم حديد", value: "1", unit: "ربطة" },
+            { name: "فيبر قص حديد", value: "1", unit: "حبة" },
+            { name: "اسلاك لحام", value: "1", unit: "كغم" },
+            { name: "اسمنت", value: "1", unit: "كيس" },
+            { name: "بودرة", value: "1", unit: "كيس" },
+            { name: "روف جارد", value: "1", unit: "5ك" },
+          ]);
+        }
+      });
+    });
+  }, [user]);
+
   const [prices, setPrices] = useState({
     iron4x8: 12, iron10x10: 22, tile: 0.95,
     decor: 5, besh: 1.5, sharshef: 4, nathrayat: 150,
   });
   const [showPrices, setShowPrices] = useState(false);
-  const [openStep, setOpenStep] = useState("basic");
+  const [supplierPrices, setSupplierPrices] = useState([]);
+  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
+
+  useEffect(() => {
+    setExtraTileStarts(input.numFacades || 0);
+    setExtraTarabeesh((input.numFacades || 0) * 2);
+  }, [input.numFacades]);
 
   const h = (name) => (e) => {
     const { value, type, checked } = e.target;
@@ -57,249 +139,245 @@ export default function CalculatorPage() {
     slopePercent: input.slope, spacingCm: 55,
     numFacades: input.numFacades, numLegs: input.numLegs, legHeight: input.legHeight,
     withDecor: input.withDecor, enableInsulation: input.enableInsulation, tile,
-  }), [input, tile]);
+    borderSections: isIrregular ? borderSections.filter(s => s > 0) : undefined,
+  }), [input, tile, isIrregular, borderSections]);
 
   const costResult = useMemo(() => {
     if (!showPrices) return null;
     return calcCosts(result, prices, prices.nathrayat);
   }, [result, prices, showPrices]);
 
-  const toggleStep = (key) => setOpenStep((prev) => (prev === key ? "" : key));
+  useEffect(() => {
+    if (showPrices) {
+      setLoadingSuppliers(true);
+      getSuppliersWithPrices().then((list) => {
+        const enriched = list.map((s) => {
+          const p = s.prices || {};
+          const qtyTotal =
+            (p.iron4x8 || 0) * result.iron4x8 +
+            (p.iron10x10 || 0) * result.iron10x10.total +
+            (p.tile || 0) * result.totalTiles +
+            (p.decor || 0) * (result.decor?.bundles || 0) * (result.decor?.optimalLen || 0) +
+            (p.besh || 0) * result.beshQty +
+            (p.sharshef || 0) * (result.borders?.total || 0);
+          return { ...s, estimatedTotal: qtyTotal };
+        }).filter((s) => s.estimatedTotal > 0)
+          .sort((a, b) => a.estimatedTotal - b.estimatedTotal);
+        setSupplierPrices(enriched);
+        setLoadingSuppliers(false);
+      }).catch(() => setLoadingSuppliers(false));
+    }
+  }, [showPrices, result]);
 
-  const StepBox = ({ stepKey, children, icon, label, color }) => {
-    const isOpen = openStep === stepKey;
-    return (
-      <div className={`bg-[#0f172a] border border-white/5 rounded-2xl overflow-hidden transition-all duration-300 ${isOpen ? "shadow-lg shadow-black/20" : ""}`}>
-        <button onClick={() => toggleStep(stepKey)}
-          className="w-full flex items-center gap-3 p-4 text-right hover:bg-white/5 transition">
-          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg shrink-0`}>
-            <i className={`fa-solid ${icon} text-white text-sm`}></i>
-          </div>
-          <div className="flex-1">
-            <span className="font-bold text-sm">{label}</span>
-            {!isOpen && <span className="text-[10px] text-slate-500 block mt-0.5">اضغط للتوسيع</span>}
-          </div>
-          <i className={`fa-solid fa-chevron-down text-slate-500 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}></i>
-        </button>
-        <div className={`transition-all duration-300 overflow-hidden ${isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}>
-          <div className="p-4 pt-0 space-y-3 border-t border-white/5">
-            {children}
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const totalSteps = STEPS.length;
+  const progress = ((step + 1) / totalSteps) * 100;
 
-  const Field = ({ label, children }) => (
-    <div className="space-y-1">
-      <label className="text-[10px] text-slate-400 font-bold block">{label}</label>
-      {children}
-    </div>
-  );
+  const nextStep = () => setStep((s) => Math.min(s + 1, totalSteps - 1));
+  const prevStep = () => setStep((s) => Math.max(s - 1, 0));
 
-  return (
-    <div className="max-w-7xl mx-auto">
-      <div className="flex items-center gap-4 mb-6">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-600 to-amber-500 flex items-center justify-center shadow-lg shadow-brand-600/30">
-          <i className="fa-solid fa-calculator text-white text-xl"></i>
-        </div>
-        <div>
-          <h1 className="text-2xl font-black">الحاسبة الذكية</h1>
-          <p className="text-sm text-slate-400">حساب دقيق لكميات الورشة مع تقليل الهدر</p>
-        </div>
-      </div>
-
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        {STEPS.map((s, i) => (
-          <button key={s.key} onClick={() => toggleStep(s.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all shrink-0 ${
-              openStep === s.key
-                ? `bg-gradient-to-r ${s.color} text-white shadow-lg`
-                : "bg-[#0f172a] border border-white/5 text-slate-400 hover:text-white"
-            }`}>
-            <span className="w-5 h-5 rounded-md bg-white/20 flex items-center justify-center text-[8px] font-black">{i + 1}</span>
-            {s.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 space-y-3">
-
-          <StepBox stepKey="basic" icon="fa-ruler-combined" label="أبعاد الورشة والواجهات" color="from-sky-500 to-cyan-500">
+  const renderStep = () => {
+    switch (step) {
+      case 0:
+        return (
+          <Card icon="fa-ruler-combined" label="أبعاد الورشة">
             <div className="grid grid-cols-2 gap-3">
               <Field label="طول السقف (م)">
-                <input type="number" value={input.length} onChange={h("length")} step="0.1"
-                  className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-3 text-white outline-none focus:border-sky-500 transition" />
+                <Input type="number" value={input.length} onChange={h("length")} step="0.1" />
               </Field>
               <Field label="عرض السقف (م)">
-                <input type="number" value={input.width} onChange={h("width")} step="0.1"
-                  className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-3 text-white outline-none focus:border-sky-500 transition" />
+                <Input type="number" value={input.width} onChange={h("width")} step="0.1" />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="عدد الواجهات">
-                <div className="flex bg-[#1e293b] rounded-xl p-1 border border-white/10">
+                <div className="flex bg-surface-input rounded-xl p-1 border border-line">
                   {[2, 3, 4].map((n) => (
                     <button key={n} onClick={() => setInput((f) => ({ ...f, numFacades: n }))}
-                      className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${input.numFacades === n ? "bg-sky-600 text-white shadow" : "text-slate-400 hover:text-white"}`}>{n === 2 ? "وجهين" : n === 3 ? "ثلاث أوجه" : "أربع أوجه"}</button>
+                      className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${input.numFacades === n ? "bg-amber-600 text-white shadow" : "text-ink-muted hover:text-ink"}`}>{n === 2 ? "وجهين" : n === 3 ? "ثلاث أوجه" : "أربع أوجه"}</button>
                   ))}
                 </div>
               </Field>
               <Field label="نسبة الميل (%)">
-                <div className="flex bg-[#1e293b] rounded-xl p-1 border border-white/10">
+                <div className="flex bg-surface-input rounded-xl p-1 border border-line">
                   {[0, 10, 20, 30, 40, 50].map((v) => (
                     <button key={v} onClick={() => setInput((f) => ({ ...f, slope: v }))}
-                      className={`flex-1 py-2 rounded-lg font-bold text-[10px] transition ${input.slope === v ? "bg-sky-600 text-white shadow" : "text-slate-400 hover:text-white"}`}>{v}%</button>
+                      className={`flex-1 py-2 rounded-lg font-bold text-[10px] transition ${input.slope === v ? "bg-amber-600 text-white shadow" : "text-ink-muted hover:text-ink"}`}>{v}%</button>
                   ))}
                 </div>
               </Field>
             </div>
-            <div className="bg-gradient-to-r from-sky-600/10 to-cyan-600/10 border border-sky-500/10 rounded-xl p-3">
-              <div className="flex justify-between text-xs font-bold">
-                <span className="text-sky-400">المساحة الأرضية: <span className="text-white">{result.flatArea.toFixed(2)} م²</span></span>
-                <span className="text-sky-400">مجموع الواجهات: <span className="text-white">{result.totalFacadeLength} م</span></span>
-                <span className="text-sky-400">المساحة الفعلية: <span className="text-amber-400">{result.actualArea.toFixed(2)} م²</span></span>
+            <div className="flex items-center justify-between p-3 bg-surface-subtle border border-dashed border-line rounded-2xl mt-3 opacity-60 select-none">
+              <div>
+                <div className="font-bold text-sm text-ink-muted">موقع غير منتظم</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-ink-muted">إدخال أطوال أضلاع الفريم بدلاً من الواجهات</span>
+                  <span className="text-[9px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full border border-amber-200 flex items-center gap-1">
+                    <i className="fa-solid fa-hard-hat text-[8px]"></i> قيد التطوير
+                  </span>
+                </div>
+              </div>
+              <div className="relative">
+                <div className="w-12 h-7 bg-gray-200 rounded-full"></div>
+                <div className="absolute w-5 h-5 bg-gray-300 rounded-full top-1 right-1"></div>
               </div>
             </div>
-          </StepBox>
+            <ResultBox>
+              <div className="flex justify-between text-xs font-bold">
+                <span>المساحة الأرضية: <span className="text-amber-700">{result.flatArea.toFixed(2)} م²</span></span>
+                {isIrregular ? (
+                  <span>مجموع الأضلاع: <span className="text-amber-700">{result.totalFacadeLength} م</span></span>
+                ) : (
+                  <span>مجموع الواجهات: <span className="text-amber-700">{result.totalFacadeLength} م</span></span>
+                )}
+                <span>المساحة الفعلية: <span className="text-amber-700">{result.actualArea.toFixed(2)} م²</span></span>
+              </div>
+            </ResultBox>
+          </Card>
+        );
 
-          <StepBox stepKey="iron" icon="fa-structure" label="هيكل الحديد 4×8 و 10×10" color="from-violet-500 to-purple-500">
-            <div className="grid grid-cols-3 gap-3">
+      case 1:
+        return (
+          <Card icon="fa-border-all" colorFrom="from-blue-500" colorTo="to-blue-600" label="هيكل الحديد">
+            <div className="grid grid-cols-2 gap-3">
               <Field label="عدد الأرجل">
-                <input type="number" value={input.numLegs} onChange={h("numLegs")}
-                  className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-3 text-white outline-none focus:border-violet-500 transition" />
+                <Input type="number" value={input.numLegs} onChange={h("numLegs")} />
               </Field>
               <Field label="طول الرجل (م)">
-                <input type="number" value={input.legHeight} onChange={h("legHeight")} step="0.1"
-                  className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-3 text-white outline-none focus:border-violet-500 transition" />
+                <Input type="number" value={input.legHeight} onChange={h("legHeight")} step="0.1" />
               </Field>
             </div>
-          </StepBox>
+            <ResultBox>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex justify-between"><span className="text-blue-700 font-bold">حديد 4×8:</span><span className="font-bold text-ink">{result.iron4x8} تيوب</span></div>
+                <div className="flex justify-between"><span className="text-blue-700 font-bold">حديد 10×10 فريم:</span><span className="font-bold text-ink">{result.iron10x10.frame} تيوب</span></div>
+                <div className="flex justify-between"><span className="text-blue-700 font-bold">حديد 10×10 أرجل:</span><span className="font-bold text-ink">{result.iron10x10.legs} تيوب</span></div>
+                <div className="flex justify-between"><span className="text-blue-700 font-bold">إجمالي 10×10:</span><span className="font-bold text-ink">{result.iron10x10.total} تيوب</span></div>
+              </div>
+            </ResultBox>
+          </Card>
+        );
 
-          <StepBox stepKey="decor" icon="fa-palette" label="الديكور الخشبي والبيش" color="from-amber-500 to-orange-500">
-            <label className="flex items-center justify-between p-3 bg-slate-900/40 border border-white/5 rounded-2xl cursor-pointer">
+      case 2:
+        return (
+          <Card icon="fa-palette" colorFrom="from-purple-500" colorTo="to-purple-600" label="التشطيب">
+            <label className="flex items-center justify-between p-3 bg-surface-subtle border border-line rounded-2xl cursor-pointer">
               <div>
                 <div className="font-bold text-sm">ديكور خشبي داخلي</div>
-                <div className="text-[10px] text-slate-400">البيش ينقص للنصف مع الديكور</div>
+                <div className="text-[10px] text-ink-muted">البيش يزيد مع الديكور</div>
               </div>
               <div className="relative">
                 <input type="checkbox" checked={input.withDecor} onChange={h("withDecor")} className="sr-only peer" />
-                <div className="w-12 h-7 bg-slate-800 rounded-full peer peer-checked:bg-amber-500 transition"></div>
-                <div className="absolute w-5 h-5 bg-white rounded-full top-1 right-1 transition peer-checked:translate-x-[-20px]"></div>
+                <div className="w-12 h-7 bg-gray-300 rounded-full peer peer-checked:bg-amber-500 transition"></div>
+                <div className="absolute w-5 h-5 bg-surface rounded-full top-1 right-1 transition peer-checked:translate-x-[-20px]"></div>
               </div>
             </label>
-            {input.withDecor && (
-              <div className="bg-gradient-to-r from-amber-600/10 to-orange-600/10 border border-amber-500/10 rounded-xl p-3 text-xs space-y-1">
-                <div className="flex justify-between"><span className="text-amber-400">طول الديكور (المقاس الأصغر):</span><span className="font-bold text-white">{Math.min(input.length, input.width)} م</span></div>
-                <div className="flex justify-between"><span className="text-amber-400">طول اللوح المناسب:</span><span className="font-bold text-white">{result.decor.optimalLen} م (هدر {result.decor.wasteCm} سم)</span></div>
-                <div className="flex justify-between"><span className="text-amber-400">عدد الربطات:</span><span className="font-bold text-white">{result.decor.bundles} ربطة</span></div>
-                <div className="flex justify-between"><span className="text-amber-400">البيش:</span><span className="font-bold text-white">{result.beshQty} وحدة</span></div>
+            <ResultBox>
+              <div className="grid grid-cols-2 gap-2">
+                {input.withDecor && (
+                  <>
+                    <div className="flex justify-between"><span className="text-purple-700 font-bold">طول الديكور:</span><span className="font-bold text-ink">{Math.min(input.length, input.width)} م</span></div>
+                    <div className="flex justify-between"><span className="text-purple-700 font-bold">اللوح المناسب:</span><span className="font-bold text-ink">{result.decor.optimalLen} م (هدر {result.decor.wasteCm} سم)</span></div>
+                    <div className="flex justify-between"><span className="text-purple-700 font-bold">عدد الربطات:</span><span className="font-bold text-ink">{result.decor.bundles} ربطة</span></div>
+                  </>
+                )}
+                <div className="flex justify-between"><span className="text-purple-700 font-bold">البيش:</span><span className="font-bold text-ink">{result.beshQty} وحدة</span></div>
+                {result.borders.sections?.length ? (
+                  result.borders.sections.map((sec, i) => (
+                    <div key={i} className="col-span-2">
+                      <p className="text-[10px] font-bold text-purple-800 border-b border-purple-200 pb-1 mb-1">الضلع {i + 1} ({sec.requiredLength}م):</p>
+                      {Object.entries(sec.lengths).map(([len, count]) => (
+                        <div key={len} className="flex justify-between pr-3"><span className="text-purple-700 font-bold">شراشف {len}م:</span><span className="font-bold text-ink">{count} شريحة</span></div>
+                      ))}
+                      {(sec.waste || 0) > 0 && (
+                        <div className="flex justify-between pr-3"><span className="text-purple-600 text-[10px]">هدر:</span><span className="text-ink text-[10px]">{sec.waste}م ({sec.wastePercent}%)</span></div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    {Object.entries(result.borders.lengths || {}).map(([len, count]) => (
+                      <div key={len} className="flex justify-between"><span className="text-purple-700 font-bold">شراشف {len}م:</span><span className="font-bold text-ink">{count} شريحة</span></div>
+                    ))}
+                    {(result.borders.waste || 0) > 0 && (
+                      <div className="flex justify-between"><span className="text-purple-700 font-bold">هدر شراشف:</span><span className="font-bold text-ink">{result.borders.waste}م ({result.borders.wastePercent}%)</span></div>
+                    )}
+                  </>
+                )}
+                <div className="flex justify-between"><span className="text-purple-700 font-bold">أسس الخشب:</span><span className="font-bold text-ink">{result.woodBases} قطعة</span></div>
               </div>
-            )}
-          </StepBox>
+            </ResultBox>
+          </Card>
+        );
 
-          <StepBox stepKey="sharshef" icon="fa-vector-polygon" label="الشراشف والأسس" color="from-emerald-500 to-teal-500">
-            <div className="grid grid-cols-2 gap-3">
-            </div>
-            <div className="bg-gradient-to-r from-emerald-600/10 to-teal-600/10 border border-emerald-500/10 rounded-xl p-3 space-y-1 text-xs">
-              <div className="flex justify-between">
-                <span className="text-emerald-400">الشراشف (تجميع ذكي):</span>
-                <span className="font-bold text-white">
-                  {Object.entries(result.borders.lengths).map(([len, qty]) => `${qty}×${len}م`).join(" + ") || "0"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-emerald-400">مجموع أطوال الشراشف:</span>
-                <span className="font-bold text-white">{result.borders.total} م</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-emerald-400">أسس الخشب:</span>
-                <span className="font-bold text-white">{result.woodBases} قطعة</span>
-              </div>
-            </div>
-          </StepBox>
-
-          <StepBox stepKey="insulation" icon="fa-shield-water" label="العزل المائي" color="from-blue-500 to-indigo-500">
-            <label className="flex items-center justify-between p-3 bg-slate-900/40 border border-white/5 rounded-2xl cursor-pointer">
+      case 3:
+        return (
+          <Card icon="fa-water" colorFrom="from-cyan-500" colorTo="to-cyan-600" label="العزل المائي">
+            <label className="flex items-center justify-between p-3 bg-surface-subtle border border-line rounded-2xl cursor-pointer">
               <div>
                 <div className="font-bold text-sm">عزل مائي كامل</div>
-                <div className="text-[10px] text-slate-400">زفتة + لاتي + مساطير + مشمع</div>
+                <div className="text-[10px] text-ink-muted">زفتة + لاتي + مساطير + مشمع</div>
               </div>
               <div className="relative">
                 <input type="checkbox" checked={input.enableInsulation} onChange={h("enableInsulation")} className="sr-only peer" />
-                <div className="w-12 h-7 bg-slate-800 rounded-full peer peer-checked:bg-blue-500 transition"></div>
-                <div className="absolute w-5 h-5 bg-white rounded-full top-1 right-1 transition peer-checked:translate-x-[-20px]"></div>
+                <div className="w-12 h-7 bg-gray-300 rounded-full peer peer-checked:bg-cyan-500 transition"></div>
+                <div className="absolute w-5 h-5 bg-surface rounded-full top-1 right-1 transition peer-checked:translate-x-[-20px]"></div>
               </div>
             </label>
-            {input.enableInsulation && result.insulation && (
-              <div className="bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border border-blue-500/10 rounded-xl p-3 grid grid-cols-2 gap-2 text-xs">
-                <div className="flex justify-between"><span className="text-blue-400">رولات الزفتة:</span><span className="font-bold text-white">{result.insulation.zaftaRolls} رول</span></div>
-                <div className="flex justify-between"><span className="text-blue-400">ألواح اللاتي:</span><span className="font-bold text-white">{result.insulation.latiSheets} لوح</span></div>
-                <div className="flex justify-between"><span className="text-blue-400">مساطر الزفتة:</span><span className="font-bold text-white">{result.insulation.zaftaRulers} م</span></div>
-                <div className="flex justify-between"><span className="text-blue-400">المشمع:</span><span className="font-bold text-white">{result.tarpaulin.text}</span></div>
+            <ResultBox>
+              <div className="grid grid-cols-2 gap-2">
+                {result.insulation && (
+                  <>
+                    <div className="flex justify-between"><span className="text-cyan-700 font-bold">رولات الزفتة:</span><span className="font-bold text-ink">{result.insulation.zaftaRolls} رول</span></div>
+                    <div className="flex justify-between"><span className="text-cyan-700 font-bold">ألواح اللاتي:</span><span className="font-bold text-ink">{result.insulation.latiSheets} لوح</span></div>
+                    <div className="flex justify-between"><span className="text-cyan-700 font-bold">مساطر الزفتة:</span><span className="font-bold text-ink">{result.insulation.zaftaRulers} م</span></div>
+                  </>
+                )}
+                <div className="flex justify-between"><span className="text-cyan-700 font-bold">المشمع:</span><span className="font-bold text-ink">{result.tarpaulin.text}</span></div>
               </div>
-            )}
-          </StepBox>
+            </ResultBox>
+          </Card>
+        );
 
-          <StepBox stepKey="tile" icon="fa-house-chimney-crack" label="القرميد" color="from-rose-500 to-pink-500">
+      case 4:
+        return (
+          <Card icon="fa-cube" colorFrom="from-emerald-500" colorTo="to-emerald-600" label="القرميد">
             <Field label="نوع القرميد">
               <select value={input.tileIndex} onChange={hSel("tileIndex")}
-                className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2.5 px-3 text-white outline-none focus:border-rose-500 transition">
+                className="w-full bg-surface-input border border-line rounded-xl py-2.5 px-3 text-ink outline-none focus:border-emerald-500 transition">
                 {TILES_CATALOG.map((t, i) => (
                   <option key={i} value={i}>{t.name}</option>
                 ))}
               </select>
             </Field>
-            <div className="bg-gradient-to-r from-rose-600/10 to-pink-600/10 border border-rose-500/10 rounded-xl p-3 text-center">
-              <span className="text-[10px] text-rose-400 block font-bold">عدد حبات القرميد</span>
-              <span className="text-3xl font-black text-white">{result.totalTiles}</span>
-              <span className="text-rose-400 text-xs block">{tile.name}</span>
-            </div>
-          </StepBox>
-
-          <StepBox stepKey="extra" icon="fa-plus-circle" label="مواد إضافية وحقول مخصصة" color="from-slate-500 to-slate-400">
-
-            <p className="text-xs text-slate-400">أضف مواد إضافية وحقول حسب رغبتك (تظهر في كشف المواد PDF)</p>
-            {customFields.map((cf, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input placeholder="اسم المادة" value={cf.name} onChange={(e) => {
-                  const c = [...customFields];
-                  c[i].name = e.target.value;
-                  setCustomFields(c);
-                }} className="flex-1 bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-brand-500" />
-                <input placeholder="الكمية" type="number" value={cf.value} onChange={(e) => {
-                  const c = [...customFields];
-                  c[i].value = Number(e.target.value);
-                  setCustomFields(c);
-                }} className="w-16 bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-brand-500 text-center" />
-                <input placeholder="وحدة" value={cf.unit || ""} onChange={(e) => {
-                  const c = [...customFields];
-                  c[i].unit = e.target.value;
-                  setCustomFields(c);
-                }} className="w-16 bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white outline-none focus:border-brand-500 text-center" />
-                <button onClick={() => setCustomFields(customFields.filter((_, idx) => idx !== i))}
-                  className="text-red-400 hover:text-red-300 text-xs p-2">
-                  <i className="fa-solid fa-trash-can"></i>
-                </button>
+            <ResultBox>
+              <div className="text-center">
+                <span className="text-[10px] text-emerald-700 font-bold block">عدد حبات القرميد</span>
+                <span className="text-3xl font-black text-ink">{result.totalTiles}</span>
+                <span className="text-emerald-700 text-xs block">{tile.name}</span>
               </div>
-            ))}
-            <button onClick={() => setCustomFields([...customFields, { name: "", value: 0, unit: "" }])}
-              className="w-full border border-dashed border-white/10 rounded-xl py-3 text-xs text-slate-400 hover:text-white hover:border-white/20 transition flex items-center justify-center gap-1">
-              <i className="fa-solid fa-plus"></i> إضافة مادة إضافية
-            </button>
-          </StepBox>
+            </ResultBox>
+            {result.tileStarts > 0 && (
+              <ResultBox>
+                <div className="flex justify-between"><span className="text-emerald-700 font-bold">بداية القرميد:</span><span className="font-bold text-ink">{result.tileStarts} حبة</span></div>
+              </ResultBox>
+            )}
+          </Card>
+        );
 
-          <div className="bg-[#0f172a] border border-white/5 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold flex items-center gap-2 text-sm">
-                <i className="fa-solid fa-tags text-emerald-500"></i> التسعير
-              </h3>
-              <label className="relative inline-flex items-center cursor-pointer">
+      case 5:
+        return (
+          <Card icon="fa-tags" colorFrom="from-emerald-600" colorTo="from-amber-500" label="التسعير والإضافات">
+            <label className="flex items-center justify-between p-3 bg-surface-subtle border border-line rounded-2xl cursor-pointer">
+              <div>
+                <div className="font-bold text-sm">التسعير</div>
+                <div className="text-[10px] text-ink-muted">فعّل لحساب التكاليف</div>
+              </div>
+              <div className="relative">
                 <input type="checkbox" checked={showPrices} onChange={() => setShowPrices(!showPrices)} className="sr-only peer" />
-                <div className="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:bg-emerald-500 after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-[-18px]"></div>
-              </label>
-            </div>
+                <div className="w-12 h-7 bg-gray-300 rounded-full peer peer-checked:bg-amber-500 transition"></div>
+                <div className="absolute w-5 h-5 bg-surface rounded-full top-1 right-1 transition peer-checked:translate-x-[-20px]"></div>
+              </div>
+            </label>
             {showPrices && (
               <div className="grid grid-cols-2 gap-3">
                 {[
@@ -311,172 +389,402 @@ export default function CalculatorPage() {
                   { key: "sharshef", label: "الشراشف (م)" },
                 ].map(({ key, label }) => (
                   <div key={key} className="space-y-1">
-                    <label className="text-[10px] text-slate-400 font-bold">{label}</label>
-                    <input type="number" value={prices[key]} onChange={(e) => setPrices((f) => ({ ...f, [key]: Number(e.target.value) }))} step="0.5"
-                      className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-white outline-none focus:border-emerald-500 transition" />
+                    <label className="text-[10px] text-ink-muted font-bold">{label}</label>
+                    <Input type="number" value={prices[key]} onChange={(e) => setPrices((f) => ({ ...f, [key]: Number(e.target.value) }))} step="0.5" />
                   </div>
                 ))}
                 <div className="col-span-2 space-y-1">
-                  <label className="text-[10px] text-slate-400 font-bold">نثريات ومصاريف إضافية (د.أ)</label>
-                  <input type="number" value={prices.nathrayat} onChange={(e) => setPrices((f) => ({ ...f, nathrayat: Number(e.target.value) }))} step="10"
-                    className="w-full bg-[#1e293b] border border-white/10 rounded-xl py-2 px-3 text-white outline-none focus:border-emerald-500 transition" />
+                  <label className="text-[10px] text-ink-muted font-bold">نثريات ومصاريف إضافية (د.أ)</label>
+                  <Input type="number" value={prices.nathrayat} onChange={(e) => setPrices((f) => ({ ...f, nathrayat: Number(e.target.value) }))} step="10" />
                 </div>
               </div>
             )}
+
+            <hr className="border-line" />
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] text-ink-muted font-bold">بداية قرميد (حبة)</label>
+                <Input type="number" value={extraTileStarts} onChange={(e) => setExtraTileStarts(Number(e.target.value))} min="0" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-ink-muted font-bold">طرابيش (حبة)</label>
+                <Input type="number" value={extraTarabeesh} onChange={(e) => setExtraTarabeesh(Number(e.target.value))} min="0" />
+              </div>
+            </div>
+
+            <hr className="border-line" />
+
+            <div>
+              <p className="text-[10px] font-bold text-ink-muted mb-2">مواد إضافية (تظهر في PDF)</p>
+              {customFields.map((cf, i) => (
+                <div key={i} draggable
+                  onDragStart={() => setDragIdx(i)}
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={() => {
+                    if (dragIdx === null || dragIdx === i) return;
+                    const c = [...customFields];
+                    const [moved] = c.splice(dragIdx, 1);
+                    c.splice(i, 0, moved);
+                    setCustomFields(c);
+                    setDragIdx(null);
+                  }}
+                  onDragEnd={() => setDragIdx(null)}
+                  className={`flex items-center gap-2 p-1 rounded-xl transition ${dragIdx === i ? "opacity-40" : ""}`}>
+                  <span className="text-ink-muted cursor-grab text-xs"><i className="fa-solid fa-grip-lines"></i></span>
+                  <input placeholder="اسم المادة" value={cf.name} onChange={(e) => {
+                    const c = [...customFields];
+                    c[i] = { ...c[i], name: e.target.value };
+                    setCustomFields(c);
+                  }} className="flex-1 bg-surface-input border border-line rounded-xl py-2 px-3 text-xs text-ink outline-none focus:border-amber-500 transition" />
+                  <input placeholder="كمية" inputMode="decimal" value={cf.value} onChange={(e) => {
+                    const c = [...customFields];
+                    c[i] = { ...c[i], value: e.target.value };
+                    setCustomFields(c);
+                  }} className="w-16 bg-surface-input border border-line rounded-xl py-2 px-3 text-xs text-ink outline-none focus:border-amber-500 transition text-center" />
+                  <input placeholder="وحدة" value={cf.unit || ""} onChange={(e) => {
+                    const c = [...customFields];
+                    c[i] = { ...c[i], unit: e.target.value };
+                    setCustomFields(c);
+                  }} className="w-16 bg-surface-input border border-line rounded-xl py-2 px-3 text-xs text-ink outline-none focus:border-amber-500 transition text-center" />
+                  <button onClick={() => setCustomFields(customFields.filter((_, idx) => idx !== i))}
+                    className="text-red-400 hover:text-red-600 text-xs p-1.5">
+                    <i className="fa-solid fa-trash-can"></i>
+                  </button>
+                </div>
+              ))}
+              <button onClick={() => setCustomFields([...customFields, { name: "", value: "0", unit: "" }])}
+                className="w-full border border-dashed border-line rounded-xl py-3 text-xs text-ink-muted hover:text-ink hover:border-slate-300 transition flex items-center justify-center gap-1 mt-2">
+                <i className="fa-solid fa-plus"></i> إضافة مادة إضافية
+              </button>
+            </div>
+
+          </Card>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto">
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+          <i className="fa-solid fa-calculator text-white text-xl"></i>
+        </div>
+        <div>
+          <h1 className="text-2xl font-black">حساب البضاعة</h1>
+          <p className="text-sm text-ink-muted">حساب دقيق لكميات الورشة مع تقليل الهدر</p>
+        </div>
+      </div>
+
+      <>
+        <div className="flex gap-1 mb-4">
+          {STEPS.map((s, i) => (
+            <div key={s.key} className="flex-1">
+              <button onClick={() => setStep(i)}
+                className={`w-full py-2 rounded-xl text-[10px] font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  i === step
+                    ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg"
+                    : i < step
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      : "bg-surface border border-line text-ink-muted hover:text-ink"
+                }`}>
+                <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[8px] font-black ${
+                  i < step ? "bg-emerald-600 text-white" : i === step ? "bg-white/20 text-white" : "bg-surface/20"
+                }`}>
+                  {i < step ? <i className="fa-solid fa-check"></i> : i + 1}
+                </span>
+                <span className="hidden sm:inline">{s.label}</span>
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mb-6">
+          <div className="h-1.5 rounded-full bg-gradient-to-l from-amber-500 to-amber-600 transition-all duration-500" style={{ width: `${progress}%` }}></div>
+        </div>
+      </>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3">
+          {renderStep()}
+
+          <div className="flex justify-between mt-4">
+            <button onClick={prevStep} disabled={step === 0}
+              className={`px-6 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2 ${
+                step === 0 ? "bg-surface border border-line text-ink-muted opacity-50 cursor-not-allowed" : "bg-surface border border-line text-ink hover:bg-surface-subtle"
+              }`}>
+              <i className="fa-solid fa-arrow-right"></i> السابق
+            </button>
+
+            {step < totalSteps - 1 ? (
+              <button onClick={nextStep}
+                className="px-6 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg hover:shadow-xl">
+                التالي <i className="fa-solid fa-arrow-left"></i>
+              </button>
+            ) : (
+              <button onClick={() => setStep(0)}
+                className="px-6 py-2.5 rounded-xl font-bold text-sm transition flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg hover:shadow-xl">
+                <i className="fa-solid fa-rotate"></i> حساب جديد
+              </button>
+            )}
           </div>
+
         </div>
 
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white rounded-2xl p-5 text-slate-900 shadow-xl border-2 border-slate-100" dir="rtl">
-            <div className="text-center pb-3 border-b-2 border-slate-200 relative">
-              <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gradient-to-r from-brand-600 to-amber-500 text-white text-[10px] font-bold px-4 py-1 rounded-full shadow-lg">النتائج</div>
-              <h2 className="text-lg font-black mt-2">كشف المواد</h2>
-              <p className="text-[10px] text-slate-500 font-bold">تقدير كميات الورشة</p>
+          <div className="bg-surface rounded-2xl p-3 sm:p-5 text-ink shadow-xl border-2 border-line" dir="rtl">
+            <div className="text-center pb-3 border-b-2 border-line">
+              <h2 className="text-base sm:text-lg font-black">تقدير كميات الورشة</h2>
+              <p className="text-[9px] sm:text-[10px] text-ink-muted font-bold">كشف المواد حسب المقاسات المدخلة</p>
             </div>
 
-            <div className="space-y-3 py-3 text-sm font-semibold">
-              <div className="flex justify-between bg-slate-100 p-2.5 rounded-xl">
-                <span>المساحة الأرضية:</span>
-                <span className="font-extrabold">{result.flatArea.toFixed(2)} م²</span>
-              </div>
-              <div className="flex justify-between bg-amber-50 p-2.5 rounded-xl border border-amber-200">
-                <span>مع الميل ({input.slope}%):</span>
-                <span className="font-extrabold">{result.actualArea.toFixed(2)} م²</span>
-              </div>
-
-              <div className="border-t border-slate-200 pt-3">
-                <h4 className="text-[10px] font-black text-slate-400 mb-2 flex items-center gap-1">
-                  <i className="fa-solid fa-border-all text-violet-500"></i> هيكل الحديد
-                </h4>
-                <div className="flex justify-between py-1"><span>حديد 4×8:</span><span className="font-bold">{result.iron4x8} تيوب</span></div>
-                <div className="flex justify-between py-1"><span>حديد 10×10 فريم:</span><span className="font-bold">{result.iron10x10.frame} تيوب</span></div>
-                <div className="flex justify-between py-1"><span>حديد 10×10 أرجل:</span><span className="font-bold">{result.iron10x10.legs} تيوب</span></div>
-                <div className="flex justify-between py-1 text-emerald-600 bg-emerald-50 p-2 rounded-lg">
-                  <span>إجمالي 10×10:</span><span className="font-bold">{result.iron10x10.total} تيوب</span>
+            <div className="py-3">
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="bg-surface-subtle rounded-xl p-2.5 text-center">
+                  <p className="text-[9px] text-ink-muted font-bold">المساحة الأرضية</p>
+                  <p className="text-lg font-black">{result.flatArea.toFixed(2)} م²</p>
+                </div>
+                <div className="bg-amber-50 rounded-xl p-2.5 text-center border border-amber-200">
+                  <p className="text-[9px] text-amber-700 font-bold">بعد الميل ({input.slope}%)</p>
+                  <p className="text-lg font-black text-amber-800">{result.actualArea.toFixed(2)} م²</p>
                 </div>
               </div>
 
-              <div className="border-t border-slate-200 pt-3">
-                <h4 className="text-[10px] font-black text-slate-400 mb-2 flex items-center gap-1">
-                  <i className="fa-solid fa-palette text-amber-500"></i> الأخشاب والتشطيب
-                </h4>
-                <div className="flex justify-between py-1">
-                  <span>ديكور:</span>
-                  <span className="font-bold">{input.withDecor ? `${result.decor.bundles} ربطة (${result.decor.optimalLen}م)` : "بدون"}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span>البيش:</span>
-                  <span className="font-bold">{result.beshQty} وحدة</span>
-                </div>
-                <div className="flex justify-between py-1">
-                  <span>أسس خشب:</span>
-                  <span className="font-bold">{result.woodBases} قطعة</span>
-                </div>
-                <div className="mt-2 bg-slate-100 rounded-xl p-3">
-                  <div className="text-[10px] text-slate-500 font-bold mb-1">الشراشف (تجميع ذكي):</div>
-                  <div className="font-bold text-xs text-brand-700">
-                    {Object.entries(result.borders.lengths).map(([len, qty]) => `${qty} لوح (${len}م)`).join(" + ") || "0"}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-1">المجموع: {result.borders.total} م</div>
-                </div>
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+              <div className="border border-line rounded-xl overflow-hidden text-xs sm:text-sm min-w-[300px] sm:min-w-0">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gradient-to-l from-amber-600 to-amber-700 text-white text-[10px]">
+                      <th className="py-2.5 px-2 font-bold text-center w-8">#</th>
+                      <th className="py-2.5 px-2 font-bold text-right">المادة</th>
+                      <th className="py-2.5 px-2 font-bold text-center">الكمية</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {(() => {
+                      const rows = [];
+                      rows.push({ type: "group", label: "🧱 القرميد" });
+                      rows.push({ n: tile.name, v: `${result.totalTiles} حبة` });
+                      rows.push({ type: "group", label: "🔩 الحديد" });
+                      rows.push({ n: "حديد 4×8", v: `${result.iron4x8} تيوب` });
+                      rows.push({ n: "حديد 10×10 فريم", v: `${result.iron10x10.frame} تيوب` });
+                      rows.push({ n: "حديد 10×10 أرجل", v: `${result.iron10x10.legs} تيوب` });
+                      rows.push({ n: "إجمالي 10×10", v: `${result.iron10x10.total} تيوب`, bold: true });
+                      rows.push({ type: "group", label: "🪵 الخشب" });
+                      if (input.withDecor) rows.push({ n: "ديكور", v: `${result.decor.bundles} ربطة (${result.decor.optimalLen}م)` });
+                      rows.push({ n: "البيش", v: `${result.beshQty} وحدة` });
+                      rows.push({ n: "أسس خشب", v: `${result.woodBases} قطعة` });
+                      if (result.borders.sections?.length) {
+                        result.borders.sections.forEach((sec, i) => {
+                          Object.entries(sec.lengths).forEach(([len, count]) => {
+                            rows.push({ n: `الضلع ${i+1} - شراشف ${len}م`, v: `${count} شريحة` });
+                          });
+                          if ((sec.waste || 0) > 0) rows.push({ n: `هدر الضلع ${i+1}`, v: `${sec.waste}م (${sec.wastePercent}%)` });
+                        });
+                      } else {
+                        Object.entries(result.borders.lengths || {}).forEach(([len, count]) => {
+                          rows.push({ n: `شراشف ${len}م`, v: `${count} شريحة` });
+                        });
+                        if ((result.borders.waste || 0) > 0) rows.push({ n: "هدر شراشف", v: `${result.borders.waste}م (${result.borders.wastePercent}%)` });
+                      }
+                      rows.push({ type: "group", label: "💧 عزل" });
+                      rows.push({ n: "مشمع", v: result.tarpaulin.text });
+                      if (result.insulation) {
+                        rows.push({ n: "زفتة", v: `${result.insulation.zaftaRolls} رول` });
+                        rows.push({ n: "لاتي", v: `${result.insulation.latiSheets} لوح` });
+                        rows.push({ n: "مساطر زفتة", v: `${result.insulation.zaftaRulers} م` });
+                      }
+                      const extraItems = [];
+                      if (extraTileStarts > 0) extraItems.push({ n: "بداية قرميد", v: `${extraTileStarts} حبة` });
+                      if (extraTarabeesh > 0) extraItems.push({ n: "طرابيش", v: `${extraTarabeesh} حبة` });
+                      customFields.forEach((cf) => extraItems.push({ n: cf.name, v: `${cf.value} ${cf.unit || ""}` }));
+                      if (extraItems.length > 0) {
+                        rows.push({ type: "group", label: "📦 مواد إضافية" });
+                        extraItems.forEach((ei) => rows.push({ n: ei.n, v: ei.v }));
+                      }
+                      let dataIdx = 0;
+                      return rows.map((r, i) => {
+                        if (r.type === "group") {
+                          return (
+                            <tr key={`g${i}`} className="bg-amber-50">
+                              <td colSpan={3} className="py-1.5 px-2 text-[10px] font-bold text-amber-800">{r.label}</td>
+                            </tr>
+                          );
+                        }
+                        dataIdx++;
+                        return (
+                          <tr key={i} className={dataIdx % 2 === 0 ? "" : "bg-surface-subtle"}>
+                            <td className="py-2 px-2 text-center text-ink-muted text-[10px]">{dataIdx}</td>
+                            <td className={`py-2 px-2 text-xs sm:text-sm ${r.bold ? "font-black text-amber-700" : "font-semibold"}`}>{r.n}</td>
+                            <td className="py-2 px-2 text-center font-bold text-xs sm:text-sm">{r.v}</td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
               </div>
-
-              <div className="border-t border-slate-200 pt-3">
-                <h4 className="text-[10px] font-black text-slate-400 mb-2 flex items-center gap-1">
-                  <i className="fa-solid fa-water text-blue-500"></i> الحماية والكسوة
-                </h4>
-                <div className="flex justify-between bg-amber-50 p-2 rounded-xl mb-2">
-                  <span>مشمع:</span>
-                  <span className="font-bold">{result.tarpaulin.text}</span>
-                </div>
-                {result.insulation && (
-                  <div className="bg-emerald-50 p-2 rounded-xl space-y-1 text-xs">
-                    <div className="flex justify-between"><span>زفتة:</span><span>{result.insulation.zaftaRolls} رول</span></div>
-                    <div className="flex justify-between"><span>لاتي:</span><span>{result.insulation.latiSheets} لوح</span></div>
-                    <div className="flex justify-between"><span>مساطر:</span><span>{result.insulation.zaftaRulers} م</span></div>
-                  </div>
-                )}
-              </div>
-
-              {result.tileStarts > 0 && (
-                <div className="flex justify-between bg-orange-50 p-2 rounded-xl">
-                  <span>بداية قرميد:</span>
-                  <span className="font-bold">{result.tileStarts} حبة</span>
-                </div>
-              )}
-
-              {customFields.length > 0 && (
-                <div className="border-t border-slate-200 pt-3">
-                  <h4 className="text-[10px] font-black text-slate-400 mb-2 flex items-center gap-1">
-                    <i className="fa-solid fa-plus-circle text-orange-500"></i> مواد إضافية
-                  </h4>
-                  {customFields.map((cf, i) => (
-                    <div key={i} className="flex justify-between py-1 text-xs">
-                      <span>{cf.name}:</span>
-                      <span className="font-bold">{cf.value} {cf.unit || ""}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-4 flex justify-between items-center shadow-lg">
-                <div>
-                  <span className="block text-[9px] text-slate-400 font-bold">القرميد</span>
-                  <span className="block text-lg font-black text-amber-400">{result.totalTiles} حبة</span>
-                </div>
-                <span className="text-[10px] text-slate-300 text-left max-w-[50%]">{tile.name}</span>
               </div>
             </div>
 
             {costResult && (
-              <div className="border-t border-slate-200 pt-3 mt-3">
-                <h4 className="text-[10px] font-black text-emerald-800 mb-2 flex items-center gap-1">
-                  <i className="fa-solid fa-coins text-emerald-500"></i> التقرير المالي
+              <div className="border-t border-line pt-3 mt-2">
+                <h4 className="text-[10px] font-black text-amber-800 mb-2 flex items-center gap-1">
+                  <i className="fa-solid fa-coins text-amber-600"></i> التقرير المالي
                 </h4>
-                <div className="space-y-1 text-xs">
-                  {costResult.items.filter((i) => i.cost > 0).map((item, idx) => (
-                    <div key={idx} className="flex justify-between">
-                      <span>{item.label}:</span>
-                      <span>{item.cost.toFixed(1)} د.أ</span>
-                    </div>
-                  ))}
-                  <div className="flex justify-between text-amber-800">
-                    <span>نثريات:</span>
-                    <span>{prices.nathrayat.toFixed(1)} د.أ</span>
-                  </div>
+                <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <div className="border border-line rounded-xl overflow-hidden text-xs min-w-[250px] sm:min-w-0">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-amber-100 text-amber-900 text-[9px]">
+                        <th className="py-1.5 px-2 font-bold text-right">البند</th>
+                        <th className="py-1.5 px-2 font-bold text-center">التكلفة</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                      {costResult.items.filter((i) => i.cost > 0).map((item, idx) => (
+                        <tr key={idx} className={idx % 2 === 0 ? "bg-surface-subtle" : "bg-surface"}>
+                          <td className="py-1.5 px-2">{item.label}</td>
+                          <td className="py-1.5 px-2 text-center font-bold">{item.cost.toFixed(1)} د.أ</td>
+                        </tr>
+                      ))}
+                      <tr className="bg-amber-50">
+                        <td className="py-1.5 px-2 text-amber-800">نثريات</td>
+                        <td className="py-1.5 px-2 text-center font-bold text-amber-800">{prices.nathrayat.toFixed(1)} د.أ</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-                <div className="flex justify-between font-black text-sm border-t border-slate-200 mt-2 pt-2">
+                </div>
+                <div className="flex justify-between font-black text-xs sm:text-sm bg-gradient-to-l from-amber-600 to-amber-700 text-white rounded-xl p-3 mt-2 shadow-lg">
                   <span>المجموع التقديري:</span>
-                  <span className="text-emerald-700">{costResult.totalWithNathrayat.toFixed(1)} د.أ</span>
+                  <span className="text-amber-300">{costResult.totalWithNathrayat.toFixed(1)} د.أ</span>
                 </div>
               </div>
             )}
-          </div>
 
-          <button onClick={() => {
-            const msg = `📋 *كشف مواد تقديري*\n` +
-              `المساحة: ${result.actualArea.toFixed(2)} م²\n` +
-              `حديد 4×8: ${result.iron4x8} تيوب\n` +
-              `حديد 10×10: ${result.iron10x10.total} تيوب\n` +
-              `قرميد: ${result.totalTiles} حبة (${tile.name})\n` +
-              `مشمع: ${result.tarpaulin.text}\n` +
-              (costResult ? `💰 التكلفة: ${costResult.totalWithNathrayat.toFixed(1)} د.أ` : "");
-            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, "_blank");
-          }}
-            className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-extrabold py-3.5 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 text-lg">
-            <i className="fa-brands fa-whatsapp text-2xl"></i> إرسال واتساب
-          </button>
+            {showPrices && (
+              <div className="border-t border-line pt-3 mt-3">
+                <h4 className="text-[10px] font-black text-ink mb-2 flex items-center gap-1">
+                  <i className="fa-solid fa-truck text-emerald-600"></i> مقارنة أسعار الموردين
+                </h4>
+                {loadingSuppliers ? (
+                  <p className="text-[10px] text-ink-muted text-center py-3"><i className="fa-solid fa-spinner fa-spin ml-1"></i> جاري تحميل أسعار الموردين...</p>
+                ) : supplierPrices.length === 0 ? (
+                  <p className="text-[10px] text-ink-muted text-center py-3">لا يوجد موردون بأسعار حالياً</p>
+                ) : (
+                  <div className="overflow-x-auto -mx-3 sm:mx-0">
+                  <div className="border border-emerald-200 rounded-xl overflow-hidden text-[10px] min-w-[280px] sm:min-w-0">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-emerald-600 text-white text-[9px]">
+                          <th className="py-1.5 px-2 font-bold text-right">المورد</th>
+                          <th className="py-1.5 px-2 font-bold text-center">تقدير التكلفة</th>
+                          <th className="py-1.5 px-2 font-bold text-center"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-line">
+                        {supplierPrices.map((s, i) => (
+                          <tr key={s.uid} className={i === 0 ? "bg-emerald-50" : i % 2 === 0 ? "bg-surface-subtle" : "bg-surface"}>
+                            <td className="py-1.5 px-2">
+                              <span className={`font-bold ${i === 0 ? "text-emerald-700" : "text-ink"}`}>
+                                {i === 0 && <i className="fa-solid fa-crown text-amber-500 ml-1"></i>}
+                                {s.businessName}
+                              </span>
+                              {(s.deliveryAreas || []).length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-0.5">
+                                  {s.deliveryAreas.map((a) => (
+                                    <span key={a} className="text-[7px] font-bold text-ink-muted border border-line rounded px-1">{a}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-1.5 px-2 text-center font-bold">{s.estimatedTotal.toFixed(1)} د.أ</td>
+                            <td className="py-1.5 px-2 text-center">
+                              {s.phone ? (
+                                <a href={`https://wa.me/${s.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`أهلاً، وجدت أسعارك في شموخ ERP وأحتاج ${result.iron4x8} تيوب 4×8 و ${result.iron10x10.total} تيوب 10×10 و ${result.totalTiles} حبة قرميد`)}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="text-emerald-600 hover:text-emerald-700">
+                                  <i className="fa-brands fa-whatsapp text-sm"></i>
+                                </a>
+                              ) : "-"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  </div>
+                )}
+              </div>
+            )}
 
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => downloadMaterialList(result, tile, { client: { name: "ورشة حالية" } }, customFields)}
-              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl transition flex items-center justify-center gap-2 text-sm">
-              <i className="fa-solid fa-file-pdf text-red-400"></i> كشف مواد PDF
-            </button>
-            <button onClick={() => costResult && downloadQuotation(result, costResult, tile, prices, { client: { name: "ورشة حالية" } })}
-              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-              disabled={!costResult}>
-              <i className="fa-solid fa-file-invoice text-amber-400"></i> عرض سعر PDF
-            </button>
+            <div className="flex flex-col gap-2 pt-4 border-t border-line mt-3">
+              <button onClick={() => downloadMaterialList(result, tile, { client: { name: "ورشة حالية" } }, customFields, companyName)}
+                className="w-full bg-surface-subtle hover:bg-surface-input text-ink font-bold py-3 rounded-2xl transition flex items-center justify-center gap-2 text-sm border border-line">
+                <i className="fa-solid fa-file-pdf text-red-500"></i> كشف مواد PDF
+              </button>
+              <button onClick={() => costResult && downloadQuotation(result, costResult, tile, prices, { client: { name: "ورشة حالية" } }, companyName)}
+                className="w-full bg-surface-subtle hover:bg-surface-input text-ink font-bold py-3 rounded-2xl transition flex items-center justify-center gap-2 text-sm border border-line disabled:opacity-50"
+                disabled={!costResult}>
+                <i className="fa-solid fa-file-invoice text-amber-600"></i> عرض سعر PDF
+              </button>
+              <button onClick={() => {
+                const lines = [];
+                lines.push("*🧱 القرميد*");
+                lines.push(`${tile?.name || ""}: ${result.totalTiles} حبة`);
+
+                lines.push("*🔩 الحديد*");
+                lines.push(`حديد 4×8: ${result.iron4x8} تيوب`);
+                lines.push(`حديد 10×10 فريم: ${result.iron10x10.frame} تيوب`);
+                lines.push(`حديد 10×10 أرجل: ${result.iron10x10.legs} تيوب`);
+                lines.push(`إجمالي 10×10: ${result.iron10x10.total} تيوب`);
+
+                lines.push("*🪵 الخشب*");
+                if (input.withDecor) lines.push(`ديكور: ${result.decor.bundles} ربطة (${result.decor.optimalLen}م)`);
+                lines.push(`البيش: ${result.beshQty} وحدة`);
+                lines.push(`أسس خشب: ${result.woodBases} قطعة`);
+                if (result.borders.sections?.length) {
+                  result.borders.sections.forEach((sec, i) => {
+                    Object.entries(sec.lengths).forEach(([len, count]) => {
+                      lines.push(`الضلع ${i+1} - شراشف ${len}م: ${count} شريحة`);
+                    });
+                    if ((sec.waste || 0) > 0) lines.push(`هدر الضلع ${i+1}: ${sec.waste}م (${sec.wastePercent}%)`);
+                  });
+                } else {
+                  Object.entries(result.borders.lengths || {}).forEach(([len, count]) => {
+                    lines.push(`شراشف ${len}م: ${count} شريحة`);
+                  });
+                  if ((result.borders.waste || 0) > 0) lines.push(`هدر شراشف: ${result.borders.waste}م (${result.borders.wastePercent}%)`);
+                }
+
+                lines.push("*💧 عزل*");
+                lines.push(`مشمع: ${result.tarpaulin.text}`);
+                if (result.insulation) {
+                  lines.push(`زفتة: ${result.insulation.zaftaRolls} رول`);
+                  lines.push(`لاتي: ${result.insulation.latiSheets} لوح`);
+                  lines.push(`مساطر زفتة: ${result.insulation.zaftaRulers} م`);
+                }
+
+                const extras = [];
+                if (extraTileStarts > 0) extras.push(`بداية قرميد: ${extraTileStarts} حبة`);
+                if (extraTarabeesh > 0) extras.push(`طرابيش: ${extraTarabeesh} حبة`);
+                customFields.forEach((cf) => extras.push(`${cf.name}: ${cf.value} ${cf.unit || ""}`));
+                if (extras.length > 0) {
+                  lines.push("*📦 مواد إضافية*");
+                  extras.forEach((e) => lines.push(e));
+                }
+
+                const msg = `📋 *كشف المواد حسب المقاسات المدخلة*\n\n${lines.join("\n")}`;
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, "_blank");
+              }}
+                className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-extrabold py-3 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 text-sm">
+                <i className="fa-brands fa-whatsapp text-lg"></i> إرسال واتساب
+              </button>
+            </div>
           </div>
         </div>
       </div>

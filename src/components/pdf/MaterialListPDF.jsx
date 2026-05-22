@@ -12,120 +12,190 @@ Font.register({
   ],
 });
 
+const COLORS = {
+  primary: "#1e293b",
+  accent: "#d97706",
+  accentLight: "#fbbf24",
+  muted: "#94a3b8",
+  text: "#334155",
+  border: "#e2e8f0",
+  bgEven: "#f8fafc",
+  headerBg: "#1e293b",
+  headerText: "#ffffff",
+  groupBg: "#fffbeb",
+  groupText: "#92400e",
+  accentLine: "#d97706",
+};
+
 const styles = StyleSheet.create({
-  page: { fontFamily: "Cairo", padding: 30, direction: "rtl", fontSize: 11 },
-  header: { textAlign: "center", marginBottom: 20, borderBottomWidth: 2, borderBottomColor: "#d97706", paddingBottom: 10 },
-  title: { fontSize: 18, fontWeight: 900 },
-  subtitle: { fontSize: 9, color: "#64748b", marginTop: 4 },
-  badge: { fontSize: 8, color: "#d97706", marginTop: 6, fontWeight: 700 },
-  row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 4, paddingHorizontal: 8 },
-  rowEven: { backgroundColor: "#f8fafc" },
-  label: { color: "#475569" },
-  value: { fontWeight: 700 },
-  sectionTitle: { fontSize: 10, fontWeight: 900, color: "#94a3b8", marginTop: 12, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: "#e2e8f0", paddingBottom: 3 },
-  totalBox: { backgroundColor: "#0f172a", color: "white", padding: 12, borderRadius: 8, marginTop: 12, flexDirection: "row", justifyContent: "space-between" },
-  totalText: { fontSize: 14, fontWeight: 900, color: "#f59e0b" },
-  footer: { textAlign: "center", color: "#94a3b8", fontSize: 8, marginTop: 20, borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 10 },
+  page: {
+    fontFamily: "Cairo",
+    padding: 25,
+    fontSize: 9,
+    color: COLORS.text,
+  },
+  header: {
+    textAlign: "center",
+    marginBottom: 14,
+    borderBottomWidth: 3,
+    borderBottomColor: COLORS.accentLine,
+    paddingBottom: 8,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: 900,
+    color: COLORS.primary,
+  },
+  subtitle: {
+    fontSize: 7,
+    color: COLORS.muted,
+    marginTop: 2,
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    fontSize: 8,
+    color: COLORS.text,
+  },
+  table: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  thRow: {
+    flexDirection: "row",
+    backgroundColor: COLORS.headerBg,
+  },
+  th: {
+    padding: 6,
+    fontWeight: 700,
+    color: COLORS.headerText,
+    fontSize: 8,
+    textAlign: "center",
+  },
+  td: {
+    padding: 5,
+    fontSize: 8,
+    textAlign: "center",
+  },
+  groupRow: {
+    backgroundColor: COLORS.groupBg,
+    padding: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  groupText: {
+    fontSize: 8,
+    fontWeight: 700,
+    color: COLORS.groupText,
+    textAlign: "right",
+  },
+  footer: {
+    textAlign: "center",
+    color: COLORS.muted,
+    fontSize: 7,
+    marginTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: 6,
+  },
 });
 
-export default function MaterialListPDF({ result, tile, project, customFields = [] }) {
+export default function MaterialListPDF({ result, tile, project, customFields = [], companyName = "" }) {
   const r = result;
+  const dateStr = new Date().toLocaleDateString("ar-JO");
+
+  const groupedRows = [];
+
+  groupedRows.push({ type: "group", label: "القرميد" });
+  groupedRows.push({ n: tile?.name || "قرميد", v: `${r.totalTiles} حبة` });
+
+  groupedRows.push({ type: "group", label: "الحديد" });
+  groupedRows.push({ n: "حديد 4×8", v: `${r.iron4x8} تيوب` });
+  groupedRows.push({ n: "حديد 10×10 فريم", v: `${r.iron10x10.frame} تيوب` });
+  groupedRows.push({ n: "حديد 10×10 أرجل", v: `${r.iron10x10.legs} تيوب` });
+  groupedRows.push({ n: "إجمالي 10×10", v: `${r.iron10x10.total} تيوب`, bold: true });
+
+  groupedRows.push({ type: "group", label: "الخشب" });
+  if (r.decor?.bundles) groupedRows.push({ n: "ديكور", v: `${r.decor.bundles} ربطة (${r.decor.optimalLen}م)` });
+  groupedRows.push({ n: "البيش", v: `${r.beshQty} وحدة` });
+  groupedRows.push({ n: "أسس خشب", v: `${r.woodBases} قطعة` });
+  if (r.borders.sections?.length) {
+    r.borders.sections.forEach((sec, i) => {
+      Object.entries(sec.lengths).forEach(([len, count]) => {
+        groupedRows.push({ n: `الضلع ${i+1} - شراشف ${len}م`, v: `${count} شريحة` });
+      });
+      if ((sec.waste || 0) > 0) groupedRows.push({ n: `هدر الضلع ${i+1} (${sec.wastePercent}%)`, v: `${sec.waste} م` });
+    });
+  } else {
+    Object.entries(r.borders.lengths || {}).forEach(([len, count]) => {
+      groupedRows.push({ n: `شراشف ${len}م`, v: `${count} شريحة` });
+    });
+    if ((r.borders.waste || 0) > 0) groupedRows.push({ n: `هدر شراشف (${r.borders.wastePercent}%)`, v: `${r.borders.waste} م` });
+  }
+
+  groupedRows.push({ type: "group", label: "عزل" });
+  groupedRows.push({ n: "مشمع", v: r.tarpaulin.text });
+  if (r.insulation) {
+    groupedRows.push({ n: "زفتة", v: `${r.insulation.zaftaRolls} رول` });
+    groupedRows.push({ n: "لاتي", v: `${r.insulation.latiSheets} لوح` });
+    groupedRows.push({ n: "مساطر زفتة", v: `${r.insulation.zaftaRulers} م` });
+  }
+
+  const extras = [];
+  if (r.tileStarts > 0) extras.push({ n: "بداية قرميد", v: `${r.tileStarts} حبة` });
+  if (r.tarabeesh > 0) extras.push({ n: "طرابيش", v: `${r.tarabeesh} حبة` });
+  (customFields || []).forEach((cf) => extras.push({ n: cf.name, v: `${cf.value} ${cf.unit || ""}` }));
+  if (extras.length > 0) {
+    groupedRows.push({ type: "group", label: "مواد إضافية" });
+    extras.forEach((ei) => groupedRows.push({ n: ei.n, v: ei.v }));
+  }
+
+  let dataIdx = 0;
+
   return (
     <Document>
       <Page size="A4" style={styles.page} wrap>
         <View style={styles.header}>
-          <Text style={styles.title}>كشف المواد - {project?.client?.name || "ورشة قرميد"}</Text>
-          <Text style={styles.subtitle}>صادر عن شامخ ERP</Text>
-          <Text style={styles.badge}>تقرير تقديري للمواد المطلوبة</Text>
+          <Text style={styles.title}>كشف المواد حسب المقاسات المدخلة</Text>
+          <Text style={styles.subtitle}>{companyName || "شموخ ERP"}</Text>
         </View>
 
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 10 }}>
-          <Text style={{ fontSize: 9, color: "#64748b" }}>العميل: {project?.client?.name || "-"}</Text>
-          <Text style={{ fontSize: 9, color: "#64748b" }}>التاريخ: {new Date().toLocaleDateString("ar-JO")}</Text>
+        <View style={styles.infoRow}>
+          <Text>العميل: {project?.client?.name || "-"}</Text>
+          <Text>التاريخ: {dateStr}</Text>
         </View>
 
-        <View style={{ backgroundColor: "#fef3c7", padding: 10, borderRadius: 6, marginBottom: 10, flexDirection: "row", justifyContent: "space-between" }}>
-          <Text>المساحة الفعلية (بعد الميل):</Text>
-          <Text style={{ fontWeight: 900 }}>{r.actualArea.toFixed(2)} م²</Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>هيكل الحديد</Text>
-        <View style={[styles.row, styles.rowEven]}>
-          <Text style={styles.label}>حديد 4×8:</Text>
-          <Text style={styles.value}>{r.iron4x8} تيوب</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>حديد 10×10:</Text>
-          <Text style={styles.value}>{r.iron10x10.total} تيوب</Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>الأخشاب والتشطيب</Text>
-        {r.decor.bundles > 0 && (
-          <View style={[styles.row, styles.rowEven]}>
-            <Text style={styles.label}>ديكور:</Text>
-            <Text style={styles.value}>{r.decor.bundles} ربطة (لوح {r.decor.optimalLen}م)</Text>
+        <View style={styles.table}>
+          <View style={styles.thRow}>
+            <Text style={[styles.th, { flex: 0.5 }]}>#</Text>
+            <Text style={[styles.th, { flex: 2.5, textAlign: "right" }]}>المادة</Text>
+            <Text style={[styles.th, { flex: 1.5 }]}>الكمية</Text>
           </View>
-        )}
-        <View style={styles.row}>
-          <Text style={styles.label}>بيش:</Text>
-          <Text style={styles.value}>{r.beshQty} وحدة</Text>
-        </View>
-        <View style={[styles.row, styles.rowEven]}>
-          <Text style={styles.label}>أسس خشب:</Text>
-          <Text style={styles.value}>{r.woodBases} قطعة</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>شراشف:</Text>
-          <Text style={styles.value}>{r.borders.total} م</Text>
-        </View>
 
-        <Text style={styles.sectionTitle}>الحماية والكسوة</Text>
-        <View style={[styles.row, styles.rowEven]}>
-          <Text style={styles.label}>مشمع:</Text>
-          <Text style={styles.value}>{r.tarpaulin.text}</Text>
-        </View>
-        {r.insulation && (
-          <>
-            <View style={styles.row}>
-              <Text style={styles.label}>زفتة:</Text>
-              <Text style={styles.value}>{r.insulation.zaftaRolls} رول</Text>
-            </View>
-            <View style={[styles.row, styles.rowEven]}>
-              <Text style={styles.label}>لاتي:</Text>
-              <Text style={styles.value}>{r.insulation.latiSheets} لوح</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>مساطر زفتة:</Text>
-              <Text style={styles.value}>{r.insulation.zaftaRulers} حبة</Text>
-            </View>
-          </>
-        )}
-
-        {r.tileStarts > 0 && (
-          <View style={[styles.row, styles.rowEven]}>
-            <Text style={styles.label}>بداية قرميد:</Text>
-            <Text style={styles.value}>{r.tileStarts} حبة</Text>
-          </View>
-        )}
-
-        {customFields.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>مواد إضافية</Text>
-            {customFields.map((item, i) => (
-              <View key={i} style={[styles.row, i % 2 === 0 ? styles.rowEven : {}]}>
-                <Text style={styles.label}>{item.name}:</Text>
-                <Text style={styles.value}>{item.value} {item.unit || ""}</Text>
+          {groupedRows.map((row, i) => {
+            if (row.type === "group") {
+              return (
+                <View key={`g${i}`} style={styles.groupRow}>
+                  <Text style={styles.groupText}>{row.label}</Text>
+                </View>
+              );
+            }
+            dataIdx++;
+            return (
+              <View key={i} style={{ flexDirection: "row", backgroundColor: dataIdx % 2 === 0 ? COLORS.bgEven : "white", borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
+                <Text style={[styles.td, { flex: 0.5 }]}>{dataIdx}</Text>
+                <Text style={[styles.td, { flex: 2.5, fontWeight: row.bold ? 900 : 700, textAlign: "right" }]}>{row.n}</Text>
+                <Text style={[styles.td, { flex: 1.5 }]}>{row.v}</Text>
               </View>
-            ))}
-          </>
-        )}
-
-        <View style={[styles.row, { backgroundColor: "#0f172a", color: "white", padding: 10, borderRadius: 6, marginTop: 10 }]}>
-          <Text style={{ color: "white" }}>القرميد:</Text>
-          <Text style={{ color: "#f59e0b", fontWeight: 900 }}>{r.totalTiles} حبة - {tile?.name || "غير محدد"}</Text>
+            );
+          })}
         </View>
 
-        <Text style={styles.footer}>تم الإنشاء بواسطة شامخ ERP - نظام إدارة مشاريع القرميد</Text>
+        <Text style={styles.footer}>{companyName || "شموخ ERP"} - نظام إدارة مشاريع القرميد</Text>
       </Page>
     </Document>
   );

@@ -1,0 +1,6 @@
+{
+  "appId": "com.shamikh.erp",
+  "appName": "شموخ ERP",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
