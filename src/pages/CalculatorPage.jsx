@@ -10,6 +10,7 @@ import { getProgramConfig } from "../services/adminService";
 import SideEditor from "../components/roof/SideEditor";
 import RoofPresets from "../components/roof/RoofPresets";
 import RoofShapeViewer from "../components/roof/RoofShapeViewer";
+import ZoneEditor from "../components/roof/ZoneEditor";
 
 function Field({ label, children }) {
   return (
@@ -58,6 +59,10 @@ export default function CalculatorPage() {
   const [extraTarabeesh, setExtraTarabeesh] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showExtra, setShowExtra] = useState(false);
+  const [inputMode, setInputMode] = useState("sides"); // "sides" | "zones"
+  const [zones, setZones] = useState([
+    { id: 1, name: "القسم الرئيسي", length: 5, width: 4, numFacades: 4 },
+  ]);
 
   useEffect(() => {
     if (!user) return;
@@ -140,13 +145,20 @@ export default function CalculatorPage() {
 
   const tile = TILES_CATALOG[input.tileIndex] || TILES_CATALOG[0];
 
-  const result = useMemo(() => calcAll({
-    sides,
-    area: { length: areaLen, width: areaWid },
-    slopePercent: input.slope, spacingCm: 55,
-    numLegs: input.numLegs, legHeight: input.legHeight,
-    withDecor: input.withDecor, enableInsulation: input.enableInsulation, tile,
-  }), [sides, areaLen, areaWid, input, tile]);
+  const result = useMemo(() => {
+    const common = {
+      slopePercent: input.slope, spacingCm: 55,
+      numLegs: input.numLegs, legHeight: input.legHeight,
+      withDecor: input.withDecor, enableInsulation: input.enableInsulation, tile,
+    };
+    if (inputMode === "zones") {
+      return calcAll({
+        sections: zones.map((z) => ({ length: z.length, width: z.width, numFacades: z.numFacades })),
+        ...common,
+      });
+    }
+    return calcAll({ sides, area: { length: areaLen, width: areaWid }, ...common });
+  }, [inputMode, zones, sides, areaLen, areaWid, input, tile]);
 
   const costResult = useMemo(() => {
     if (!showPrices) return null;
@@ -190,6 +202,28 @@ export default function CalculatorPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left: Sides + Controls */}
         <div className="lg:col-span-3 space-y-4">
+
+          {/* Mode toggle */}
+          <div className="bg-surface border border-line rounded-2xl p-1 flex gap-1 shadow-sm">
+            <button onClick={() => setInputMode("sides")}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                inputMode === "sides"
+                  ? "bg-amber-100 text-amber-800 border border-amber-300 shadow-sm"
+                  : "text-ink-muted hover:text-ink"
+              }`}>
+              <i className="fa-solid fa-draw-polygon"></i> أضلاع
+            </button>
+            <button onClick={() => setInputMode("zones")}
+              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                inputMode === "zones"
+                  ? "bg-amber-100 text-amber-800 border border-amber-300 shadow-sm"
+                  : "text-ink-muted hover:text-ink"
+              }`}>
+              <i className="fa-solid fa-layer-group"></i> أقسام متعددة
+            </button>
+          </div>
+
+          {inputMode === "sides" && (<>
           {/* Roof Shape Viewer */}
           <div className="bg-surface border border-line rounded-2xl overflow-hidden shadow-sm">
             <div className="p-3 sm:p-4">
@@ -208,20 +242,30 @@ export default function CalculatorPage() {
           <div className="bg-surface border border-line rounded-2xl p-3 sm:p-4 shadow-sm">
             <RoofPresets onSelect={applyPreset} current={{ sides }} />
           </div>
+          </>)}
 
-          {/* Quick controls */}
-          <div className="bg-surface border border-line rounded-2xl p-3 sm:p-4 shadow-sm">
-            <p className="text-[11px] font-bold text-ink-muted mb-2 flex items-center gap-1">
-              <i className="fa-solid fa-arrows-alt text-amber-500"></i> المساحة التقريبية
-            </p>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <Field label="الطول (م)">
-                <Input type="number" value={areaLen} onChange={(e) => setAreaLen(Number(e.target.value))} min="0.1" step="0.5" />
-              </Field>
-              <Field label="العرض (م)">
-                <Input type="number" value={areaWid} onChange={(e) => setAreaWid(Number(e.target.value))} min="0.1" step="0.5" />
-              </Field>
+          {/* Zones mode */}
+          {inputMode === "zones" && (
+            <div className="bg-surface border border-line rounded-2xl p-3 sm:p-4 shadow-sm">
+              <ZoneEditor zones={zones} onChange={setZones} />
             </div>
+          )}
+
+          {/* Quick controls (both modes) */}
+          <div className="bg-surface border border-line rounded-2xl p-3 sm:p-4 shadow-sm">
+            {inputMode === "sides" && (<>
+              <p className="text-[11px] font-bold text-ink-muted mb-2 flex items-center gap-1">
+                <i className="fa-solid fa-arrows-alt text-amber-500"></i> المساحة التقريبية
+              </p>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <Field label="الطول (م)">
+                  <Input type="number" value={areaLen} onChange={(e) => setAreaLen(Number(e.target.value))} min="0.1" step="0.5" />
+                </Field>
+                <Field label="العرض (م)">
+                  <Input type="number" value={areaWid} onChange={(e) => setAreaWid(Number(e.target.value))} min="0.1" step="0.5" />
+                </Field>
+              </div>
+            </>)}
             <p className="text-[10px] text-ink-muted mb-3 px-1">
               المساحة: <strong className="text-ink">{result.flatArea.toFixed(1)}</strong> م²
               <span className="mx-1">|</span>
@@ -262,9 +306,16 @@ export default function CalculatorPage() {
               }`} onClick={handleInsulation}>
                 {input.enableInsulation ? "✅ عزل مائي" : "❌ عزل مائي"}
               </span>
-              <span className="text-xs font-bold px-3 py-1.5 rounded-xl border bg-surface border-line text-ink-muted select-none">
-                {facadeCount} أوجه من {sides.length}
-              </span>
+              {inputMode === "sides" && (
+                <span className="text-xs font-bold px-3 py-1.5 rounded-xl border bg-surface border-line text-ink-muted select-none">
+                  {facadeCount} أوجه من {sides.length}
+                </span>
+              )}
+              {inputMode === "zones" && (
+                <span className="text-xs font-bold px-3 py-1.5 rounded-xl border bg-surface border-line text-ink-muted select-none">
+                  {zones.length} قسم
+                </span>
+              )}
             </div>
           </div>
 
