@@ -190,9 +190,15 @@ export function calcCosts(materials, prices, nathrayat = 0) {
     { label: "حديد 4×8", cost: materials.iron4x8 * prices.iron4x8 },
     { label: "حديد 10×10", cost: materials.iron10x10.total * prices.iron10x10 },
     { label: "القرميد", cost: materials.totalTiles * prices.tile },
+    { label: "بداية قرميد", cost: (materials.tileStarts || 0) * (prices.tileStarts || 0) },
     { label: "الديكور", cost: materials.decor.bundles * materials.decor.optimalLen * prices.decor },
     { label: "البيش", cost: materials.beshQty * prices.besh },
     { label: "الشراشف", cost: materials.borders.total * prices.sharshef },
+    { label: "مشمع", cost: ((materials.tarpaulin?.rolls50 || 0) + (materials.tarpaulin?.rolls25 || 0) + (materials.tarpaulin?.rolls75 || 0)) * (prices.tarpaulin || 0) },
+    { label: "زفتة", cost: (materials.insulation?.zaftaRolls || 0) * (prices.zafta || 0) },
+    { label: "الواح لاتي", cost: (materials.insulation?.latiSheets || 0) * (prices.latiSheets || 0) },
+    { label: "أسس خشب", cost: (materials.woodBases || 0) * (prices.woodBases || 0) },
+    { label: "طرابيش", cost: (materials.tarabeesh || 0) * (prices.tarabeesh || 0) },
   ];
   const totalMaterials = items.reduce((s, i) => s + i.cost, 0);
   return { items, totalMaterials, totalWithNathrayat: totalMaterials + nathrayat };
