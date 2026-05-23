@@ -11,6 +11,7 @@ import SideEditor from "../components/roof/SideEditor";
 import RoofPresets from "../components/roof/RoofPresets";
 import RoofShapeViewer from "../components/roof/RoofShapeViewer";
 import ZoneEditor from "../components/roof/ZoneEditor";
+import PolygonBuilder, { getNodes, shoelaceArea } from "../components/roof/PolygonBuilder";
 
 function Field({ label, children }) {
   return (
@@ -59,9 +60,15 @@ export default function CalculatorPage() {
   const [extraTarabeesh, setExtraTarabeesh] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showExtra, setShowExtra] = useState(false);
-  const [inputMode, setInputMode] = useState("sides"); // "sides" | "zones"
+  const [inputMode, setInputMode] = useState("sides"); // "sides" | "draw" | "zones"
   const [zones, setZones] = useState([
     { id: 1, name: "القسم الرئيسي", length: 5, width: 4, numFacades: 4 },
+  ]);
+  const [segments, setSegments] = useState([
+    { id: 1, dir: "right", length: 5, hasFacade: true  },
+    { id: 2, dir: "down",  length: 4, hasFacade: true  },
+    { id: 3, dir: "left",  length: 5, hasFacade: true  },
+    { id: 4, dir: "up",    length: 4, hasFacade: true  },
   ]);
 
   useEffect(() => {
@@ -157,8 +164,17 @@ export default function CalculatorPage() {
         ...common,
       });
     }
+    if (inputMode === "draw") {
+      const nodes = getNodes(segments);
+      const area = Math.max(shoelaceArea(nodes), 0.1);
+      return calcAll({
+        sides: segments.map((s) => ({ length: s.length, hasFacade: s.hasFacade })),
+        area: { length: 1, width: 1, total: area },
+        ...common,
+      });
+    }
     return calcAll({ sides, area: { length: areaLen, width: areaWid }, ...common });
-  }, [inputMode, zones, sides, areaLen, areaWid, input, tile]);
+  }, [inputMode, zones, segments, sides, areaLen, areaWid, input, tile]);
 
   const costResult = useMemo(() => {
     if (!showPrices) return null;
@@ -205,22 +221,20 @@ export default function CalculatorPage() {
 
           {/* Mode toggle */}
           <div className="bg-surface border border-line rounded-2xl p-1 flex gap-1 shadow-sm">
-            <button onClick={() => setInputMode("sides")}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                inputMode === "sides"
-                  ? "bg-amber-100 text-amber-800 border border-amber-300 shadow-sm"
-                  : "text-ink-muted hover:text-ink"
-              }`}>
-              <i className="fa-solid fa-draw-polygon"></i> أضلاع
-            </button>
-            <button onClick={() => setInputMode("zones")}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                inputMode === "zones"
-                  ? "bg-amber-100 text-amber-800 border border-amber-300 shadow-sm"
-                  : "text-ink-muted hover:text-ink"
-              }`}>
-              <i className="fa-solid fa-layer-group"></i> أقسام متعددة
-            </button>
+            {[
+              { key: "sides", icon: "fa-draw-polygon",  label: "أضلاع"    },
+              { key: "draw",  icon: "fa-pen-ruler",     label: "رسم"       },
+              { key: "zones", icon: "fa-layer-group",   label: "أقسام"    },
+            ].map(({ key, icon, label }) => (
+              <button key={key} onClick={() => setInputMode(key)}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  inputMode === key
+                    ? "bg-amber-100 text-amber-800 border border-amber-300 shadow-sm"
+                    : "text-ink-muted hover:text-ink"
+                }`}>
+                <i className={`fa-solid ${icon}`}></i> {label}
+              </button>
+            ))}
           </div>
 
           {inputMode === "sides" && (<>
@@ -243,6 +257,11 @@ export default function CalculatorPage() {
             <RoofPresets onSelect={applyPreset} current={{ sides }} />
           </div>
           </>)}
+
+          {/* Draw mode */}
+          {inputMode === "draw" && (
+            <PolygonBuilder segments={segments} onChange={setSegments} />
+          )}
 
           {/* Zones mode */}
           {inputMode === "zones" && (
