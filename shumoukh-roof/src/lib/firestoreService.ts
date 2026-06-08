@@ -38,13 +38,16 @@ export async function listDocuments(coll: string) {
 }
 
 export async function listDocumentsByUser(coll: string, userId: string) {
-  const q = query(
-    await getCollection(coll),
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc")
-  );
+  // ملاحظة: نتجنب orderBy مع where حتى لا نحتاج composite index في Firestore.
+  // الترتيب يتم في الذاكرة بعد الجلب.
+  const q = query(await getCollection(coll), where("userId", "==", userId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return docs.sort((a: any, b: any) => {
+    const ta = a.createdAt?.toMillis?.() ?? 0;
+    const tb = b.createdAt?.toMillis?.() ?? 0;
+    return tb - ta;
+  });
 }
 
 export async function saveProject(data: any) {
