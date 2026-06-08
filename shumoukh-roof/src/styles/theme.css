@@ -1,0 +1,233 @@
+:root {
+  /* ====== Surface Tokens (Warm Earth) ====== */
+  --surface-bg: #f5f0eb;
+  --surface-card: #faf7f4;
+  --surface-card-border: 2px solid #e0d5c8;
+  --surface-elevated: #faf7f4;
+  --surface-sidebar: #2c2418;
+  --surface-nav: #3d3427;
+
+  /* ====== Ink Tokens ====== */
+  --ink-primary: #3d3427;
+  --ink-secondary: #6b5e4f;
+  --ink-muted: #8a7e6e;
+  --ink-inverse: #faf7f4;
+
+  /* ====== Accent Tokens ====== */
+  --accent-terracotta: #c2703e;
+  --accent-terracotta-soft: #f5e6d8;
+  --accent-terracotta-border: #d4844f;
+  --accent-terracotta-glow: rgba(194, 112, 62, 0.12);
+
+  --accent-olive: #6b7c5e;
+  --accent-olive-soft: #e8ede4;
+  --accent-olive-border: #7d8e6f;
+  --accent-olive-glow: rgba(107, 124, 94, 0.12);
+
+  --accent-amber: #b8860b;
+  --accent-amber-soft: #faf0d0;
+  --accent-amber-border: #d4a017;
+  --accent-amber-glow: rgba(184, 134, 11, 0.12);
+
+  --accent-red: #c44536;
+  --accent-red-soft: #fae4e0;
+  --accent-red-border: #d45a4a;
+
+  /* ====== Typography ====== */
+  --font-sans: 'Noto Kufi Arabic', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+
+  /* ====== Shadows (Industrial - flat, minimal) ====== */
+  --shadow-card: 0 1px 2px rgba(61, 52, 39, 0.04);
+  --shadow-card-hover: 0 2px 6px rgba(61, 52, 39, 0.06);
+  --shadow-sidebar: 4px 0 8px rgba(44, 36, 24, 0.08);
+  --shadow-button: 0 1px 2px rgba(61, 52, 39, 0.06);
+}
+
+body {
+  background: var(--surface-bg);
+  color: var(--ink-primary);
+  font-family: var(--font-sans);
+  direction: rtl;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ====== Safe Area (notch / home indicator) ====== */
+body {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* ====== Selection ====== */
+::selection {
+  background: var(--accent-terracotta-glow);
+  color: var(--ink-primary);
+}
+
+/* ====== Scrollbar (industrial - flat) ====== */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c4b8a8; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #a89888; }
+
+/* ====== Industrial Card (replaces glass-card) ====== */
+.earth-card {
+  background: var(--surface-card);
+  border: 1px solid #e0d5c8;
+  border-right: 3px solid var(--accent-terracotta);
+  border-radius: 6px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.earth-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: #c4b8a8;
+  border-right-color: var(--accent-terracotta-border);
+}
+
+/* ====== Mobile touch target ====== */
+@media (pointer: coarse) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ====== Legacy: glass-card still works but redirects ====== */
+.glass-card {
+  background: var(--surface-card);
+  border: 1px solid #e0d5c8;
+  border-right: 3px solid var(--accent-terracotta);
+  border-radius: 6px;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.glass-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: #c4b8a8;
+  border-right-color: var(--accent-terracotta-border);
+}
+
+/* ====== Industrial icon container ====== */
+.geo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border-left: 3px solid currentColor;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.geo-icon-terracotta {
+  background: rgba(194, 112, 62, 0.08);
+  border-left-color: var(--accent-terracotta);
+  color: var(--accent-terracotta);
+}
+
+.geo-icon-olive {
+  background: rgba(107, 124, 94, 0.08);
+  border-left-color: var(--accent-olive);
+  color: var(--accent-olive);
+}
+
+.geo-icon-amber {
+  background: rgba(184, 134, 11, 0.08);
+  border-left-color: var(--accent-amber);
+  color: var(--accent-amber);
+}
+
+/* ====== Beveled edge ====== */
+.beveled-edge {
+  border-right: 4px solid var(--accent-terracotta);
+  border-right-style: solid;
+}
+
+/* ====== Tags (industrial - flat, no pill shape) ====== */
+.tag-terracotta {
+  background: var(--accent-terracotta-soft);
+  color: var(--accent-terracotta);
+  border: 1px solid var(--accent-terracotta-border);
+  border-radius: 3px;
+}
+
+.tag-olive {
+  background: var(--accent-olive-soft);
+  color: var(--accent-olive);
+  border: 1px solid var(--accent-olive-border);
+  border-radius: 3px;
+}
+
+.tag-amber {
+  background: var(--accent-amber-soft);
+  color: var(--accent-amber);
+  border: 1px solid var(--accent-amber-border);
+  border-radius: 3px;
+}
+
+/* ====== Ambient Grid (dashboard background) ====== */
+.ambient-grid-container {
+  position: relative;
+}
+
+.ambient-grid-pattern {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 47px,
+      rgba(194, 112, 62, 0.018) 47px,
+      rgba(194, 112, 62, 0.018) 48px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 47px,
+      rgba(194, 112, 62, 0.018) 47px,
+      rgba(194, 112, 62, 0.018) 48px
+    );
+  will-change: transform;
+  transition: transform 0.6s ease-out;
+}
+
+.ambient-grid-container > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-grid-pattern {
+    transition: none;
+  }
+}
+
+/* ====== Shimmer Loading Skeleton ====== */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.shimmer-skeleton {
+  background: linear-gradient(
+    90deg,
+    #e8ddd2 25%,
+    #f0ebe4 50%,
+    #e8ddd2 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-skeleton {
+    animation: none;
+    background: #e8ddd2;
+  }
+}
+

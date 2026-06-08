@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // القراءة لأي مستخدم مسجل
+    match /{document=**} {
+      allow read: if request.auth != null;
+    }
+
+    // كل مستخدم يكتب فقط بملفه الشخصي
+    match /users/{userId}/{document=**} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ملف profile/main: المدير يقدر يعدّل على أي مستخدم
+    match /users/{userId}/profile/main {
+      allow write: if request.auth != null && (
+        request.auth.uid == userId ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin')
+      );
+    }
+
+    // users-public
+    match /users-public/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // الموردين
+    match /suppliers/{supplierId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == supplierId;
+      allow update: if request.auth != null && (
+        request.auth.uid == supplierId ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin')
+      );
+      allow delete: if request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin';
+
+      match /products/{productId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == supplierId;
+      }
+
+      match /ratings/{ratingId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+      }
+    }
+
+    // العروض
+    match /offers/{offerId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        get(/databases/$(database)/documents/offers/$(offerId)).data.supplierId == request.auth.uid ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin')
+      );
+    }
+
+    // config - يقرأه الجميع، يكتبه المدير فقط
+    match /config/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin';
+    }
+
+    // زوار الموقع
+    match /visitors/{document} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null;
+    }
+
+    // سجل التدقيق - للمديرين فقط
+    match /audit_logs/{document} {
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin';
+      allow create: if request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin';
+    }
+
+    // حالة الاتصال - عام للجميع
+    match /presence/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- الإعلانات ---
+    match /announcements/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin';
+    }
+
+    // --- إشعارات المستخدمين ---
+    match /users/{uid}/notifications/{notifId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

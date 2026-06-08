@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-08T07:40:00Z",
+  "title": "Design System: Shumoukh ERP",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Baked Terracotta",
+        "canonical": "#c2703e",
+        "tonalRamp": [
+          "#3f210c",
+          "#5e3214",
+          "#7d431c",
+          "#9a5424",
+          "#b0632e",
+          "#c2703e",
+          "#d4a47a",
+          "#e8c9ad",
+          "#f5e6d8",
+          "#fdf3ec"
+        ]
+      },
+      "primary-deep": {
+        "role": "primary",
+        "displayName": "Deep Terracotta",
+        "canonical": "#b0632e",
+        "tonalRamp": ["#3f210c", "#5e3214", "#7d431c", "#9a5424", "#b0632e", "#c2703e", "#d4a47a", "#e8c9ad"]
+      },
+      "primary-soft": {
+        "role": "primary",
+        "displayName": "Soft Terracotta",
+        "canonical": "#f5e6d8",
+        "tonalRamp": ["#e8c9ad", "#f5e6d8", "#fdf3ec", "#faf7f4", "#f5f0eb", "#e0d5c8", "#c4b8a8", "#a89888"]
+      },
+      "olive": {
+        "role": "secondary",
+        "displayName": "Field Olive",
+        "canonical": "#6b7c5e",
+        "tonalRamp": [
+          "#1b2416",
+          "#2f3a28",
+          "#43503a",
+          "#57664c",
+          "#6b7c5e",
+          "#7d8e6f",
+          "#a4b494",
+          "#c8d4bc",
+          "#e8ede4",
+          "#f0f4ec"
+        ]
+      },
+      "olive-deep": {
+        "role": "secondary",
+        "displayName": "Deep Olive",
+        "canonical": "#57664c",
+        "tonalRamp": ["#1b2416", "#2f3a28", "#43503a", "#57664c", "#6b7c5e", "#7d8e6f", "#a4b494", "#c8d4bc"]
+      },
+      "olive-soft": {
+        "role": "secondary",
+        "displayName": "Soft Olive",
+        "canonical": "#e8ede4",
+        "tonalRamp": ["#c8d4bc", "#e8ede4", "#f0f4ec", "#faf7f4", "#f5f0eb", "#e0d5c8", "#c4b8a8", "#a89888"]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "Earth Paper",
+        "canonical": "#f5f0eb",
+        "tonalRamp": [
+          "#2c2418",
+          "#3d3427",
+          "#5e503e",
+          "#7d6b58",
+          "#9a8670",
+          "#b8a68e",
+          "#d4c4b0",
+          "#e8ddd2",
+          "#f5f0eb",
+          "#faf7f4"
+        ]
+      },
+      "neutral-card": {
+        "role": "neutral",
+        "displayName": "Card White",
+        "canonical": "#faf7f4",
+        "tonalRamp": ["#d4c4b0", "#e8ddd2", "#f0ebe4", "#f5f0eb", "#faf7f4", "#ffffff", "#ffffff", "#ffffff"]
+      },
+      "neutral-border": {
+        "role": "neutral",
+        "displayName": "Earth Border",
+        "canonical": "#e0d5c8",
+        "tonalRamp": ["#3d3427", "#5e503e", "#7d6b58", "#9a8670", "#b8a68e", "#d4c4b0", "#e0d5c8", "#f0ebe4"]
+      },
+      "ink-primary": {
+        "role": "neutral",
+        "displayName": "Ink Primary",
+        "canonical": "#3d3427",
+        "tonalRamp": ["#1a1510", "#2c2418", "#3d3427", "#4d4338", "#5e503e", "#7d6b58", "#9a8670", "#c4b8a8"]
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "Ink Secondary",
+        "canonical": "#6b5e4f",
+        "tonalRamp": ["#2c2418", "#4d4338", "#6b5e4f", "#8a7e6e", "#a89888", "#c4b8a8", "#e0d5c8", "#f0ebe4"]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Ink Muted",
+        "canonical": "#8a7e6e",
+        "tonalRamp": ["#4d4338", "#6b5e4f", "#8a7e6e", "#a89888", "#c4b8a8", "#e0d5c8", "#f0ebe4", "#f5f0eb"]
+      },
+      "surface-dark": {
+        "role": "neutral",
+        "displayName": "Dark Earth",
+        "canonical": "#1a1510",
+        "tonalRamp": ["#0a0805", "#1a1510", "#2c2418", "#3d3427", "#4d4338", "#5e503e", "#7d6b58", "#c4b8a8"]
+      },
+      "surface-nav": {
+        "role": "neutral",
+        "displayName": "Nav Earth",
+        "canonical": "#2c2418",
+        "tonalRamp": ["#1a1510", "#2c2418", "#3d3427", "#4d4338", "#5e503e", "#7d6b58", "#9a8670", "#c4b8a8"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page titles — one per screen. The loudest typographic element."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Paragraphs, descriptions, form content. Max 70ch via layout grid."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels, input hints, metadata. 700 weight with 0.05em letter-spacing."
+      },
+      "mono": {
+        "displayName": "Mono Data",
+        "purpose": "All cost, quantity, area, and measurement values. weight-900 for instant visual distinction."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card-rest",
+        "value": "0 1px 2px rgba(61,52,39,0.04)",
+        "purpose": "Barely perceptible baseline for cards. Color contrast does the heavy lifting."
+      },
+      {
+        "name": "card-hover",
+        "value": "0 2px 6px rgba(61,52,39,0.06)",
+        "purpose": "2px lift on hover. Paired with border-color shift."
+      },
+      {
+        "name": "sidebar",
+        "value": "4px 0 8px rgba(44,36,24,0.08)",
+        "purpose": "Structural shadow separating dark sidebar from light content area."
+      },
+      {
+        "name": "button",
+        "value": "0 1px 2px rgba(61,52,39,0.06)",
+        "purpose": "Button press shadow. Sinks on active state."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "150ms ease-out",
+        "purpose": "Default easing for hover states, color transitions, and border shifts."
+      },
+      {
+        "name": "ease-modal",
+        "value": "200ms ease-out",
+        "purpose": "Modal enter/exit. Backdrop (150ms) + panel scale (200ms)."
+      },
+      {
+        "name": "ease-sidebar",
+        "value": "300ms ease-out",
+        "purpose": "Sidebar collapse/expand width transition."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main action on a screen. Olive carries the 'go' signal without terracotta urgency.",
+      "html": "<button class=\"ds-btn-primary\"><span class=\"ds-btn-icon\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></span>حفظ التغييرات</button>",
+      "css": ".ds-btn-primary { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-weight: 700; font-size: 0.875rem; background: #57664c; color: #faf7f4; padding: 10px 16px; border: none; border-right: 3px solid #43503a; border-radius: 4px; cursor: pointer; transition: background 0.15s; } .ds-btn-primary:hover { background: #43503a; } .ds-btn-primary:active { background: #2f3a28; } .ds-btn-primary:disabled { opacity: 0.4; pointer-events: none; } .ds-btn-icon { display: flex; align-items: center; flex-shrink: 0; }"
+    },
+    {
+      "name": "Accent Button",
+      "kind": "button",
+      "refersTo": "button-accent",
+      "description": "High-attention actions. Terracotta signals importance without the alarm of red.",
+      "html": "<button class=\"ds-btn-accent\">حذف المشروع</button>",
+      "css": ".ds-btn-accent { position: relative; display: inline-flex; align-items: center; justify-content: center; font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-weight: 700; font-size: 0.875rem; background: #b0632e; color: #faf7f4; padding: 10px 16px; border: none; border-right: 3px solid #7d431c; border-radius: 4px; cursor: pointer; transition: background 0.15s; } .ds-btn-accent:hover { background: #9a5424; } .ds-btn-accent:active { background: #7d431c; } .ds-btn-accent:disabled { opacity: 0.4; pointer-events: none; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Inline actions, toolbar buttons. Transparent until hover.",
+      "html": "<button class=\"ds-btn-ghost\">إلغاء</button>",
+      "css": ".ds-btn-ghost { position: relative; display: inline-flex; align-items: center; justify-content: center; font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-weight: 700; font-size: 0.875rem; background: transparent; color: #8a7e6e; padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; transition: background 0.15s, color 0.15s; } .ds-btn-ghost:hover { background: #f5f0eb; color: #6b5e4f; } .ds-btn-ghost:active { background: #e8ddd2; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Soft-rounded (12px) white field. The softest corner in the system signals 'type here'.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\">اسم المشروع</label><div class=\"ds-input-wrap\"><svg class=\"ds-input-icon\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input class=\"ds-input\" type=\"text\" placeholder=\"أدخل اسم المشروع\" /></div></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-field-label { font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-size: 0.75rem; font-weight: 700; color: #5e503e; } .ds-input-wrap { position: relative; } .ds-input { width: 100%; box-sizing: border-box; font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-size: 0.875rem; color: #2c2418; background: #faf7f4; border: 2px solid #e0d5c8; border-radius: 12px; padding: 10px 16px; padding-right: 36px; transition: border-color 0.2s; outline: none; } .ds-input::placeholder { color: #a89888; } .ds-input:focus { border-color: #c2703e; box-shadow: 0 0 0 3px rgba(194,112,62,0.12); } .ds-input:disabled { background: #f5f0eb; color: #8a7e6e; cursor: not-allowed; } .ds-input-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #b8a68e; pointer-events: none; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "White surface with terracotta right-border accent. The identifying mark of a Shumoukh card.",
+      "html": "<div class=\"ds-card\"><h4 class=\"ds-card-title\">المشروع الحالي</h4><p class=\"ds-card-body\">فيلا سكنية — ٢٤٠ م٢ قرميد إسباني</p><span class=\"ds-card-value\">٤٨,٥٠٠ ريال</span></div>",
+      "css": ".ds-card { background: #faf7f4; border: 1px solid #e0d5c8; border-right: 3px solid #c2703e; border-radius: 6px; padding: 16px; box-shadow: 0 1px 2px rgba(61,52,39,0.04); transition: box-shadow 0.15s, border-color 0.15s; } .ds-card:hover { box-shadow: 0 2px 6px rgba(61,52,39,0.06); border-color: #c4b8a8; border-right-color: #d4844f; } .ds-card-title { font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-size: 0.875rem; font-weight: 900; color: #3d3427; margin: 0 0 4px 0; } .ds-card-body { font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-size: 0.875rem; color: #6b5e4f; margin: 0 0 8px 0; } .ds-card-value { font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 0.875rem; font-weight: 900; color: #3d3427; }"
+    },
+    {
+      "name": "Sidebar Navigation",
+      "kind": "nav",
+      "refersTo": "sidebar",
+      "description": "Dark sticky sidebar with terracotta active indicator. Desktop-only.",
+      "html": "<nav class=\"ds-sidebar\"><div class=\"ds-sidebar-logo\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#faf7f4\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/><polyline points=\"9 22 9 12 15 12 15 22\"/></svg></div><a class=\"ds-sidebar-item ds-sidebar-item-active\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect width=\"7\" height=\"9\" x=\"3\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"14\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"9\" x=\"14\" y=\"12\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"3\" y=\"16\" rx=\"1\"/></svg><span>الرئيسية</span></a><a class=\"ds-sidebar-item\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect width=\"16\" height=\"16\" x=\"4\" y=\"4\" rx=\"2\"/><path d=\"M9 2v4\"/><path d=\"M15 2v4\"/><path d=\"M9 14h6\"/></svg><span>المشاريع</span></a></nav>",
+      "css": ".ds-sidebar { display: flex; flex-direction: column; background: #1a1510; border-left: 1px solid #3d3427; width: 240px; min-height: 100vh; flex-shrink: 0; } .ds-sidebar-logo { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #b0632e; border-left: 2px solid #d4a47a; border-radius: 4px; flex-shrink: 0; margin: 16px; } .ds-sidebar-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin: 0 8px; border-radius: 4px; font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-size: 0.875rem; font-weight: 700; color: #9a8670; border-right: 2px solid transparent; text-decoration: none; transition: background 0.15s, color 0.15s; } .ds-sidebar-item:hover { background: #2c2418; color: #d4c4b0; } .ds-sidebar-item-active { background: rgba(194,112,62,0.1); color: #c2703e; border-right: 2px solid #b0632e; }"
+    },
+    {
+      "name": "Modal",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Animated dialog with backdrop blur. Scales in from 96% with 10px vertical lift.",
+      "html": "<div class=\"ds-modal-backdrop\"><div class=\"ds-modal-panel\"><div class=\"ds-modal-header\"><h3 class=\"ds-modal-title\">تأكيد الحذف</h3><button class=\"ds-modal-close\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></button></div><div class=\"ds-modal-body\"><p>هل أنت متأكد من حذف هذا المشروع؟ لا يمكن التراجع عن هذا الإجراء.</p></div></div></div>",
+      "css": ".ds-modal-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); } .ds-modal-panel { position: relative; width: 100%; max-width: 448px; background: #faf7f4; border: 1px solid #e0d5c8; border-radius: 4px; box-shadow: 0 4px 12px rgba(61,52,39,0.08); } .ds-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #e0d5c8; } .ds-modal-title { font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-size: 0.875rem; font-weight: 900; color: #2c2418; margin: 0; } .ds-modal-close { display: flex; align-items: center; justify-content: center; padding: 6px; border: none; background: transparent; border-radius: 4px; color: #b8a68e; cursor: pointer; transition: background 0.15s, color 0.15s; } .ds-modal-close:hover { background: #f5f0eb; color: #6b5e4f; } .ds-modal-body { padding: 20px; font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-size: 0.875rem; color: #6b5e4f; }"
+    },
+    {
+      "name": "Empty State",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Centered empty state with icon circle, title, description, and CTA slot.",
+      "html": "<div class=\"ds-empty\"><div class=\"ds-empty-icon\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#b8a68e\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z\"/><polyline points=\"14 2 14 8 20 8\"/></svg></div><h3 class=\"ds-empty-title\">لا توجد مشاريع بعد</h3><p class=\"ds-empty-desc\">أنشئ أول مشروع قرميد للبدء في الحسابات والتقديرات</p><button class=\"ds-btn-primary\">مشروع جديد</button></div>",
+      "css": ".ds-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 64px 24px; text-align: center; } .ds-empty-icon { width: 56px; height: 56px; border-radius: 9999px; background: #f5f0eb; border: 2px solid #e0d5c8; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; } .ds-empty-title { font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-size: 0.875rem; font-weight: 900; color: #5e503e; margin: 0 0 4px 0; } .ds-empty-desc { font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-size: 0.75rem; color: #b8a68e; max-width: 320px; margin: 0 0 16px 0; }"
+    },
+    {
+      "name": "Tag / Chip",
+      "kind": "chip",
+      "refersTo": "card",
+      "description": "Angular 3px-radius tags. Flat and industrial, never pill-shaped.",
+      "html": "<span class=\"ds-tag ds-tag-terracotta\">قيد التنفيذ</span> <span class=\"ds-tag ds-tag-olive\">مكتمل</span>",
+      "css": ".ds-tag { display: inline-flex; align-items: center; font-family: 'Noto Kufi Arabic', 'Segoe UI', system-ui, sans-serif; font-size: 0.625rem; font-weight: 700; padding: 2px 6px; border-radius: 3px; } .ds-tag-terracotta { background: #f5e6d8; color: #c2703e; border: 1px solid #d4844f; } .ds-tag-olive { background: #e8ede4; color: #6b7c5e; border: 1px solid #7d8e6f; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "دفتر المقاول — The Foreman's Logbook",
+    "overview": "Shumoukh ERP is a field tool dressed as an interface. The aesthetic draws from a construction foreman's logbook: ruled, high-contrast, built for fast scanning under harsh site lighting. Numbers lead. Decoration follows strict utility. Every visual choice answers one question: does this help a contractor read a cost, track a worker, or send an invoice faster?\n\nThe palette is material and literal: terracotta for the clay tiles on every roof, olive for the landscape outside the site office, earth tones for the ground the crew walks on. Warmth comes from the physical material palette, not from soft gradients, cream backgrounds, or glass effects. This system explicitly rejects SaaS-generic aesthetics: no glassmorphism, no purple gradients, no bouncing card reveals, no tiny tracked eyebrow labels on every section, no gradient text, no identical icon-card grids.\n\nThe interface is RTL-first. Arabic is the primary language; layout, typography, and motion direction flow right-to-left by default. Mobile-capable means touch targets large enough for a foreman's thumb on a scaffold.",
+    "keyCharacteristics": [
+      "High-contrast, fast-scan typography with font-weight 900 for all headings and numeric data",
+      "Flat by default with faint 1-2px industrial shadows appearing only on hover or state change",
+      "3px accent right-border (RTL: right edge) as the primary card signature, replacing drop shadows",
+      "Warm earth tonality through material colors, not through tinted body backgrounds",
+      "Sharp 4px radius on interactive elements; 6px on cards; no pill shapes",
+      "Monospace for all cost, quantity, and measurement data"
+    ],
+    "rules": [
+      {
+        "name": "The Material Rule",
+        "body": "Every color in the palette maps to a physical roofing material. Terracotta = fired clay tile. Olive = vegetation. Earth = ground. If a new color can't be named after something on a construction site, it doesn't belong in the system.",
+        "section": "colors"
+      },
+      {
+        "name": "The Terracotta Restraint Rule",
+        "body": "The primary accent appears on ≤15% of any given screen area. A terracotta card border is 3px; a terracotta button is one per section. The accent earns attention through scarcity, not saturation.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Cream Rule",
+        "body": "The body background is never cream, sand, bone, linen, parchment, or any warm-neutral band above chroma 0.02. The earth paper (#f5f0eb) is the only allowed page background.",
+        "section": "colors"
+      },
+      {
+        "name": "The Weight-900-Only Rule",
+        "body": "All headings, labels, and data values use font-weight 900 (font-black). font-bold (700) is reserved for interactive elements and sub-labels. Never use font-weight 400 for anything a user needs to read quickly.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two-Font Cap Rule",
+        "body": "Sans (Noto Kufi Arabic) + Mono (JetBrains Mono). No third typeface. The Kufi family carries the entire interface through weight contrast alone.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-At-Rest Rule",
+        "body": "Surfaces are flat at rest. Shadows appear only as a response to state (hover, elevation, focus). The card's 3px accent right-border is the primary depth signal.",
+        "section": "elevation"
+      },
+      {
+        "name": "The No-Soft-Shadow Rule",
+        "body": "Every shadow uses rgba(61,52,39,...) — the earth-800 ink color. Maximum blur radius is 8px. Never use diffuse 24px+ or colored-glow shadows.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Use font-weight 900 (font-black) for all headings, labels, and numeric data values.",
+      "Use the 3px terracotta right-border as the card signature.",
+      "Use monospace for every cost, quantity, area, and measurement value.",
+      "Use rounded-sm (4px) for interactive elements and rounded (6px) for containers.",
+      "Separate surfaces through color contrast, not through drop shadows.",
+      "Respect prefers-reduced-motion: reduce for all animations.",
+      "Keep touch targets ≥48px on mobile.",
+      "Keep max content width at max-w-7xl (1280px) with responsive padding."
+    ],
+    "donts": [
+      "Don't use cream, sand, beige, bone, linen, or any near-white warm-tinted body background.",
+      "Don't use glassmorphism, backdrop-blur decorative cards, or frosted glass effects.",
+      "Don't use gradient text (background-clip: text).",
+      "Don't use border-left or border-right greater than 3px for decorative stripes.",
+      "Don't use tiny uppercase tracked eyebrows above sections.",
+      "Don't use numbered section markers (01/02/03) as default scaffolding.",
+      "Don't use identical icon-card grids.",
+      "Don't use purple, magenta, teal, or any cool-spectrum color.",
+      "Don't use pill-shaped buttons, fully-rounded inputs, or round avatars.",
+      "Don't nest cards inside cards.",
+      "Don't add a third typeface beyond Kufi Arabic + JetBrains Mono."
+    ]
+  }
+}

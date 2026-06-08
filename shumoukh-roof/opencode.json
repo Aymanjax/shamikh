@@ -1,0 +1,51 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "UI Designer",
+  "agent": {
+    "UI Designer": {
+      "mode": "subagent",
+      "description": "تصميم واجهات مستخدم جميلة وعملية"
+    },
+    "UX Architect": {
+      "mode": "subagent",
+      "description": "هندسة تجربة المستخدم وتدفق المعلومات"
+    },
+    "Brand Guardian": {
+      "mode": "subagent",
+      "description": "ضمان تناسق الهوية البصرية"
+    },
+    "Whimsy Injector": {
+      "mode": "subagent",
+      "description": "إضافة لمسات مرحة وتفاعلية"
+    },
+    "UX Researcher": {
+      "mode": "subagent",
+      "description": "إجراء أبحاث المستخدم وتقديم رؤى مبنية على البيانات"
+    },
+    "upd 1": {
+      "mode": "subagent",
+      "description": "تطوير وبرمجة"
+    },
+    "upd 2": {
+      "mode": "subagent",
+      "description": "تطوير وبرمجة"
+    },
+    "upd 3": {
+      "mode": "subagent",
+      "description": "تطوير وبرمجة"
+    },
+    "upd 4": {
+      "mode": "subagent",
+      "description": "تطوير وبرمجة"
+    },
+    "upd 5": {
+      "mode": "subagent",
+      "description": "تطوير وبرمجة"
+    },
+    "upd 6": {
+      "mode": "subagent",
+      "description": "تطوير وبرمجة"
+    }
+  },
+  "instructions": ["AGENTS.md", "README.md"]
+}
