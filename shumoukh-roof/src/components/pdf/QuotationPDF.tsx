@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 import "../../utils/pdfFonts";
 
 const COLORS = {
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function QuotationPDF({ result, costResult, tile, prices, project, companyName = "" }) {
+export default function QuotationPDF({ result, costResult, tile, prices, project, companyName = "", roofPng = null }) {
   const r = result;
   const borderItems = r.borders?.sections?.length
     ? r.borders.sections.flatMap((sec, i) => [
@@ -132,6 +132,13 @@ export default function QuotationPDF({ result, costResult, tile, prices, project
             </View>
           ))}
         </View>
+
+        {roofPng && (
+          <View>
+            <Text style={styles.sectionTitle}>مخطط السقف</Text>
+            <Image style={{ width: "100%", marginVertical: 8, borderRadius: 4 }} src={roofPng} />
+          </View>
+        )}
 
         <Text style={styles.sectionTitle}>تفاصيل المواد والتكلفة</Text>
 

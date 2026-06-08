@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Plus, Phone, MapPin, Calendar, X, Trash2, HardHat } from "lucide-react";
-import { listDocuments, addDocument, deleteDocument } from "../../lib/firestoreService";
+import { listDocumentsByUser, addDocument, deleteDocument } from "../../lib/firestoreService";
+import { useAuthStore } from "../../store/authStore";
 import SubscriptionGuard from "../../components/SubscriptionGuard";
 import GlassButton from "../../components/ui/GlassButton";
 
@@ -29,17 +30,19 @@ const roles = ["مبلط", "حداد", "مساعد", "عامل", "مشرف", "س
 
 export default function WorkersPage() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState<WorkerForm>(defaultForm);
 
   const { data: workers = [], isLoading: loading, error } = useQuery<Worker[]>({
-    queryKey: ["workers"],
-    queryFn: () => listDocuments("workers") as Promise<Worker[]>,
+    queryKey: ["workers", user?.uid],
+    queryFn: () => listDocumentsByUser("workers", user!.uid) as Promise<Worker[]>,
     staleTime: 30_000,
+    enabled: !!user,
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: WorkerForm) => addDocument("workers", data),
+    mutationFn: (data: WorkerForm) => addDocument("workers", { ...data, userId: user!.uid }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workers"] });
       setModal(false);

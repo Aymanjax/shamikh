@@ -11,7 +11,8 @@ import {
 import { TILES_CATALOG } from "../../utils/constants";
 import { calcAll, calcCosts, suggestLegs, buildExtraFields } from "../../utils/calculations";
 import { edgesFromVertices, shoelaceArea, isPolygonClosed, svgToPngDataUrl, fitSvgToBounds, isRectangular } from "../../utils/buildingGeometry";
-import { downloadMaterialList, downloadQuotation } from "../../services/pdfService";
+import { downloadMaterialList, downloadQuotation, downloadIronFramePDF, downloadDistributionPDF } from "../../services/pdfService";
+import WorkshopEstimateModal from "./components/WorkshopEstimateModal";
 import { useAuthStore } from "../../store/authStore";
 import { db } from "../../lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -124,6 +125,9 @@ export default function CalculatorPage() {
 
   const [show3dPreview, setShow3dPreview] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showWAModal, setShowWAModal] = useState(false);
+  const [waItems, setWaItems] = useState([]);
+  const [waClientPhone, setWaClientPhone] = useState("");
   const [saveClient, setSaveClient] = useState({ name: "", phone: "", address: "" });
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(null);
@@ -941,7 +945,19 @@ export default function CalculatorPage() {
             area={area}
             sides={sides}
             projectData={projectData}
-            onPrintQuotation={() => costResult && downloadQuotation(result, costResult, tile, prices, { client: { name: projectData?.client?.name || "ورشة حالية" } }, companyName)}
+            onPrintQuotation={async () => {
+              if (!costResult) return;
+              const svgEl = canvasRef.current?.querySelector("svg");
+              let png = null;
+              if (svgEl && vertices.length > 0) {
+                try {
+                  const clone = svgEl.cloneNode(true);
+                  fitSvgToBounds(clone, vertices);
+                  png = await svgToPngDataUrl(clone, 800);
+                } catch {}
+              }
+              downloadQuotation(result, costResult, tile, prices, { client: { name: projectData?.client?.name || "ورشة حالية" } }, companyName, png);
+            }}
             onPrintDistribution={async () => {
               const svgEl = canvasRef.current?.querySelector("svg");
               let png = null;
@@ -950,8 +966,7 @@ export default function CalculatorPage() {
                 fitSvgToBounds(clone, vertices);
                 png = await svgToPngDataUrl(clone, 800);
               } catch {}
-              localStorage.setItem("distribution_data", JSON.stringify({ result, sides, vertices, input: { numLegs: input.numLegs, legHeight: input.legHeight, slope: input.slope }, companyName, roofPng: png }));
-              navigate("/distribution");
+              downloadDistributionPDF(result, sides, { numLegs: input.numLegs, legHeight: input.legHeight, slope: input.slope }, png, companyName);
             }}
             onPrintIronFrame={async () => {
               const svgEl = canvasRef.current?.querySelector("svg");
@@ -963,31 +978,20 @@ export default function CalculatorPage() {
                   png = await svgToPngDataUrl(clone, 1200);
                 } catch {}
               }
-              localStorage.setItem("iron_frame_data", JSON.stringify({
-                result, sides, vertices, input: { numLegs: input.numLegs, legHeight: input.legHeight, slope: input.slope },
-                companyName, roofPng: png,
-              }));
-              navigate("/iron-print");
+              downloadIronFramePDF(result, sides, vertices, { numLegs: input.numLegs, legHeight: input.legHeight, slope: input.slope }, companyName, png);
             }}
             onWhatsAppSend={() => {
-              const clientName = projectData?.client?.name || saveClient?.name || "";
-              if (projectData?.id) {
-                navigate(`/projects/${projectData.id}/workshop-estimate`);
-              } else {
-                localStorage.setItem("workshop_estimate_data", JSON.stringify({
-                  items: [
-                    { name: tile?.name || "قرميد", qty: result.totalTiles, unit: "حبة" },
-                    { name: "حديد 4×8", qty: result.iron4x8, unit: "تيوب" },
-                    { name: "حديد 10×10", qty: result.iron10x10?.total || 0, unit: "تيوب" },
-                    { name: "ديكور", qty: result.decor?.bundles || 0, unit: "ربطة" },
-                    { name: "البيش", qty: result.beshQty || 0, unit: "وحدة" },
-                    ...customFields.filter((cf) => cf.name).map((cf) => ({ name: cf.name, qty: parseFloat(cf.value) || 0, unit: cf.unit || "" })),
-                  ],
-                  clientName,
-                  clientPhone: saveClient?.phone || projectData?.client?.phone || "",
-                }));
-                navigate("/workshop-estimate");
-              }
+              const items = [
+                { name: tile?.name || "قرميد", qty: result.totalTiles, unit: "حبة" },
+                { name: "حديد 4×8", qty: result.iron4x8, unit: "تيوب" },
+                { name: "حديد 10×10", qty: result.iron10x10?.total || 0, unit: "تيوب" },
+                { name: "ديكور", qty: result.decor?.bundles || 0, unit: "ربطة" },
+                { name: "البيش", qty: result.beshQty || 0, unit: "وحدة" },
+                ...customFields.filter((cf) => cf.name).map((cf) => ({ name: cf.name, qty: parseFloat(cf.value) || 0, unit: cf.unit || "" })),
+              ];
+              setWaItems(items);
+              setWaClientPhone(saveClient?.phone || projectData?.client?.phone || "");
+              setShowWAModal(true);
             }}
             loadingSuppliers={loadingSuppliers}
             supplierPrices={supplierPrices}
@@ -1049,6 +1053,14 @@ export default function CalculatorPage() {
 
       {/* ========== SAVE MODAL ========== */}
       <AnimatePresence>
+        {showWAModal && (
+          <WorkshopEstimateModal
+            items={waItems}
+            clientPhone={waClientPhone}
+            onClose={() => setShowWAModal(false)}
+          />
+        )}
+
         {showSaveModal && (
           <motion.div
             initial={{ opacity: 0 }}

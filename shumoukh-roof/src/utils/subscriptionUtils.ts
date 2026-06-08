@@ -75,7 +75,7 @@ export function checkPermissions(sub?: {
 
   return {
     canView3DRoof: allowed([SUBSCRIPTION_TYPES.FREE_TRIAL, SUBSCRIPTION_TYPES.BASIC, SUBSCRIPTION_TYPES.ADVANCED]),
-    canManageWorkers: allowed([SUBSCRIPTION_TYPES.FREE_TRIAL, SUBSCRIPTION_TYPES.ADVANCED]),
+    canManageWorkers: allowed([SUBSCRIPTION_TYPES.FREE_TRIAL, SUBSCRIPTION_TYPES.BASIC, SUBSCRIPTION_TYPES.ADVANCED]),
     canLinkNationalInvoice: allowed([SUBSCRIPTION_TYPES.FREE_TRIAL, SUBSCRIPTION_TYPES.ADVANCED]),
     subscriptionType: effectiveType,
     daysRemaining: getDaysRemaining(sub?.subscriptionEndDate),

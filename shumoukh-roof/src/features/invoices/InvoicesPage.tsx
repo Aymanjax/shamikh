@@ -2,7 +2,8 @@ import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Plus, Search, Download, Trash2, X, Check, Receipt, User, Hash, DollarSign } from "lucide-react";
-import { listDocuments, addDocument, deleteDocument, updateDocument } from "../../lib/firestoreService";
+import { listDocumentsByUser, addDocument, deleteDocument, updateDocument } from "../../lib/firestoreService";
+import { useAuthStore } from "../../store/authStore";
 import { printInvoice } from "../../lib/printInvoice";
 import GlassButton from "../../components/ui/GlassButton";
 
@@ -41,6 +42,7 @@ const countLabel = (n: number): string => {
 
 export default function InvoicesPage() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState<InvoiceForm>(defaultForm);
@@ -48,13 +50,14 @@ export default function InvoicesPage() {
   const clientInputRef = useRef<HTMLInputElement>(null);
 
   const { data: invoices = [], isLoading: loading, error } = useQuery<Invoice[]>({
-    queryKey: ["invoices"],
-    queryFn: () => listDocuments("invoices") as Promise<Invoice[]>,
+    queryKey: ["invoices", user?.uid],
+    queryFn: () => listDocumentsByUser("invoices", user!.uid) as Promise<Invoice[]>,
     staleTime: 30_000,
+    enabled: !!user,
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: InvoiceForm) => addDocument("invoices", data),
+    mutationFn: (data: InvoiceForm) => addDocument("invoices", { ...data, userId: user!.uid }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       setModal(false);
