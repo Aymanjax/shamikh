@@ -86,11 +86,9 @@ export default function WorkersPage() {
             <p className="text-sm text-earth-500">إدارة العمال والمهام اليومية</p>
           </div>
         </div>
-        <button onClick={() => setModal(true)}>
-          <GlassButton variant="primary" size="sm" icon={<Plus className="w-4 h-4" />}>
-            إضافة عامل
-          </GlassButton>
-        </button>
+        <GlassButton variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setModal(true)}>
+          إضافة عامل
+        </GlassButton>
       </div>
 
       <SubscriptionGuard permission="canManageWorkers">
