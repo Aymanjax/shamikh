@@ -32,10 +32,10 @@ export async function downloadMaterialList(result, tile, project, customFields =
   }
 }
 
-export async function downloadQuotation(result, costResult, tile, prices, project, companyName = "") {
+export async function downloadQuotation(result, costResult, tile, prices, project, companyName = "", roofPng = null) {
   try {
     const blob = await generateBlob(
-      <QuotationPDF result={result} costResult={costResult} tile={tile} prices={prices} project={project} companyName={companyName} />
+      <QuotationPDF result={result} costResult={costResult} tile={tile} prices={prices} project={project} companyName={companyName} roofPng={roofPng} />
     );
     downloadBlob(blob, `عرض_سعر_${project?.client?.name || "ورشة"}.pdf`);
   } catch (e) {

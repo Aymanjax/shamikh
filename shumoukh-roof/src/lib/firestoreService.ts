@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { db } from "./firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, where, Timestamp } from "firebase/firestore";
 import type { Firestore, CollectionReference, DocumentData } from "firebase/firestore";
 
 const collections = {
@@ -33,6 +33,16 @@ export async function getDocument(coll: string, id: string) {
 
 export async function listDocuments(coll: string) {
   const q = query(await getCollection(coll), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function listDocumentsByUser(coll: string, userId: string) {
+  const q = query(
+    await getCollection(coll),
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc")
+  );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
