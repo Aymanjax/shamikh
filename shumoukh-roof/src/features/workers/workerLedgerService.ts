@@ -122,6 +122,29 @@ export function summarize(all: LedgerEntry[], workerId: string): WorkerSummary {
   return { daysPresent, daysAbsent, earned, advances, net: earned - advances };
 }
 
+/** Total net still owed to all workers (sum of positive per-worker nets, unsettled). */
+export function aggregateOwed(all: LedgerEntry[]): number {
+  const byWorker: Record<string, { earned: number; adv: number }> = {};
+  for (const e of all) {
+    if (e.settledAt) continue;
+    const g = (byWorker[e.workerId] ||= { earned: 0, adv: 0 });
+    if (e.type === "day" && e.present) g.earned += e.amount || 0;
+    else if (e.type === "advance") g.adv += e.amount || 0;
+  }
+  return Object.values(byWorker).reduce((s, g) => s + Math.max(0, g.earned - g.adv), 0);
+}
+
+/** Today's attendance count and advances total. */
+export function todayStats(all: LedgerEntry[], date = todayStr()): { presentToday: number; advancesToday: number } {
+  let presentToday = 0, advancesToday = 0;
+  for (const e of all) {
+    if (e.date !== date) continue;
+    if (e.type === "day" && e.present) presentToday++;
+    if (e.type === "advance") advancesToday += e.amount || 0;
+  }
+  return { presentToday, advancesToday };
+}
+
 /** WhatsApp-ready statement text. */
 export function statementText(name: string, s: WorkerSummary): string {
   return [

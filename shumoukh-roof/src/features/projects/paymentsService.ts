@@ -121,6 +121,11 @@ export function reminders(all: Payment[], withinDays = 3): Payment[] {
     .sort((a, b) => (daysUntil(a.dueDate)! - daysUntil(b.dueDate)!));
 }
 
+/** Total still owed by clients (unpaid milestones). */
+export function totalReceivable(all: Payment[]): number {
+  return all.filter((p) => !p.paid).reduce((s, p) => s + (p.amount || 0), 0);
+}
+
 export function reminderText(p: Payment): string {
   const d = daysUntil(p.dueDate);
   const when = d === null ? "" : d < 0 ? `متأخرة ${Math.abs(d)} يوم` : d === 0 ? "مستحقة اليوم" : `بعد ${d} يوم`;
