@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../middleware/auth";
 import { adminOnly } from "../middleware/adminOnly";
 import * as adminService from "../services/adminService";
+import * as themeService from "../services/themeService";
 import type { TodayLogin } from "../services/adminService";
 import { log } from "../services/auditService";
 import { collections } from "../services/firestore";
@@ -27,6 +28,27 @@ router.put("/config", async (req: AuthenticatedRequest, res, next) => {
     await adminService.saveConfig(req.body);
     await log("update_config", req.user.uid, "Updated program config");
     res.json({ message: "تم تحديث الإعدادات" });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Theme & Branding ──
+
+router.get("/theme", async (_req: AuthenticatedRequest, res, next) => {
+  try {
+    const theme = await themeService.getTheme();
+    res.json(theme);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/theme", async (req: AuthenticatedRequest, res, next) => {
+  try {
+    await themeService.saveTheme(req.body);
+    await log("update_theme", req.user.uid, "Updated theme & branding");
+    res.json({ message: "تم تحديث المظهر" });
   } catch (err) {
     next(err);
   }

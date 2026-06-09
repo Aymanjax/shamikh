@@ -2,102 +2,103 @@
 @import "./styles/theme.css";
 
 @theme {
-  /* ====== Warm Earth Palette ====== */
-  --color-earth-50: #faf7f4;
-  --color-earth-100: #f5f0eb;
-  --color-earth-200: #e8ddd2;
-  --color-earth-300: #d4c4b0;
-  --color-earth-400: #b8a68e;
-  --color-earth-500: #9a8670;
-  --color-earth-600: #7d6b58;
-  --color-earth-700: #5e503e;
-  --color-earth-800: #3d3427;
-  --color-earth-900: #2c2418;
+  /* ====== Earth → cool graphite-neutral (working surfaces) ====== */
+  --color-earth-50: #f8fafb;
+  --color-earth-100: #eef1f4;
+  --color-earth-200: #dce1e7;
+  --color-earth-300: #c4cbd3;
+  --color-earth-400: #a3acb6;
+  --color-earth-500: #7e8893;
+  --color-earth-600: #5e6873;
+  --color-earth-700: #44505e;
+  --color-earth-800: #2a333d;
+  --color-earth-900: #15202b;
 
-  /* ====== Terracotta Accent ====== */
-  --color-terracotta-50: #fdf3ec;
-  --color-terracotta-100: #f5e6d8;
-  --color-terracotta-200: #e8c9ad;
-  --color-terracotta-300: #d4a47a;
-  --color-terracotta-400: #c2703e;
-  --color-terracotta-500: #b0632e;
-  --color-terracotta-600: #9a5424;
-  --color-terracotta-700: #7d431c;
-  --color-terracotta-800: #5e3214;
-  --color-terracotta-900: #3f210c;
+  /* ====== Terracotta → Bronze (primary accent) ====== */
+  --color-terracotta-50: #faf3ea;
+  --color-terracotta-100: #f6ecdd;
+  --color-terracotta-200: #ead0ab;
+  --color-terracotta-300: #d9ad74;
+  --color-terracotta-400: #c98e4f;
+  --color-terracotta-500: #b5773a;
+  --color-terracotta-600: #9c6330;
+  --color-terracotta-700: #7d4f27;
+  --color-terracotta-800: #5e3b1d;
+  --color-terracotta-900: #3f2713;
 
-  /* ====== Olive Accent ====== */
-  --color-olive-50: #f0f4ec;
-  --color-olive-100: #e8ede4;
-  --color-olive-200: #c8d4bc;
-  --color-olive-300: #a4b494;
-  --color-olive-400: #7d8e6f;
-  --color-olive-500: #6b7c5e;
-  --color-olive-600: #57664c;
-  --color-olive-700: #43503a;
-  --color-olive-800: #2f3a28;
-  --color-olive-900: #1b2416;
+  /* ====== Olive → Teal-slate (secondary) ====== */
+  --color-olive-50: #eef6f5;
+  --color-olive-100: #d9ecea;
+  --color-olive-200: #b0d6d2;
+  --color-olive-300: #7fbab4;
+  --color-olive-400: #4f9b94;
+  --color-olive-500: #2f6f6a;
+  --color-olive-600: #285d59;
+  --color-olive-700: #204a47;
+  --color-olive-800: #183734;
+  --color-olive-900: #102422;
 
-  /* ====== Warm Gray (for text) ====== */
-  --color-warm-gray-50: #faf7f4;
-  --color-warm-gray-100: #f0ebe4;
-  --color-warm-gray-200: #e0d5c8;
-  --color-warm-gray-300: #c4b8a8;
-  --color-warm-gray-400: #a89888;
-  --color-warm-gray-500: #8a7e6e;
-  --color-warm-gray-600: #6b5e4f;
-  --color-warm-gray-700: #4d4338;
-  --color-warm-gray-800: #3d3427;
-  --color-warm-gray-900: #2c2418;
+  /* ====== Cool Gray (for text) ====== */
+  --color-warm-gray-50: #f8fafb;
+  --color-warm-gray-100: #eef1f4;
+  --color-warm-gray-200: #dce1e7;
+  --color-warm-gray-300: #c4cbd3;
+  --color-warm-gray-400: #a3acb6;
+  --color-warm-gray-500: #6b7682;
+  --color-warm-gray-600: #44505e;
+  --color-warm-gray-700: #333d48;
+  --color-warm-gray-800: #222a33;
+  --color-warm-gray-900: #15202b;
 
-  /* ====== Deep Earth (for sidebar/dark elements) ====== */
-  --color-deep-earth-50: #f0ebe4;
-  --color-deep-earth-100: #d4c4b0;
-  --color-deep-earth-200: #b8a68e;
-  --color-deep-earth-300: #9a8670;
-  --color-deep-earth-400: #7d6b58;
-  --color-deep-earth-500: #5e503e;
-  --color-deep-earth-600: #4d4338;
-  --color-deep-earth-700: #3d3427;
-  --color-deep-earth-800: #2c2418;
-  --color-deep-earth-900: #1a1510;
+  /* ====== Deep Earth → Graphite (sidebar/dark elements) ====== */
+  --color-deep-earth-50: #eef1f4;
+  --color-deep-earth-100: #c4cbd3;
+  --color-deep-earth-200: #a3acb6;
+  --color-deep-earth-300: #7e8893;
+  --color-deep-earth-400: #5e6873;
+  --color-deep-earth-500: #44505e;
+  --color-deep-earth-600: #333d48;
+  --color-deep-earth-700: #28303a;
+  --color-deep-earth-800: #1f2630;
+  --color-deep-earth-900: #161b22;
 
-  /* ====== Legacy aliases (for gradual migration) ====== */
-  --color-slate-50: #faf7f4;
-  --color-slate-100: #f0ebe4;
-  --color-slate-200: #e0d5c8;
-  --color-slate-300: #c4b8a8;
-  --color-slate-400: #a89888;
-  --color-slate-500: #8a7e6e;
-  --color-slate-600: #6b5e4f;
-  --color-slate-700: #4d4338;
-  --color-slate-800: #3d3427;
-  --color-slate-900: #2c2418;
+  /* ====== Legacy aliases → cool gray ====== */
+  --color-slate-50: #f8fafb;
+  --color-slate-100: #eef1f4;
+  --color-slate-200: #dce1e7;
+  --color-slate-300: #c4cbd3;
+  --color-slate-400: #a3acb6;
+  --color-slate-500: #6b7682;
+  --color-slate-600: #44505e;
+  --color-slate-700: #333d48;
+  --color-slate-800: #222a33;
+  --color-slate-900: #15202b;
 
-  --color-gray-50: #faf7f4;
-  --color-gray-100: #f0ebe4;
+  --color-gray-50: #f8fafb;
+  --color-gray-100: #eef1f4;
 
-  --color-deep-steel-50: #f0ebe4;
-  --color-deep-steel-100: #d4c4b0;
-  --color-deep-steel-200: #b8a68e;
-  --color-deep-steel-300: #9a8670;
-  --color-deep-steel-400: #7d6b58;
-  --color-deep-steel-500: #5e503e;
-  --color-deep-steel-600: #4d4338;
-  --color-deep-steel-700: #3d3427;
-  --color-deep-steel-800: #2c2418;
-  --color-deep-steel-900: #1a1510;
+  --color-deep-steel-50: #eef1f4;
+  --color-deep-steel-100: #c4cbd3;
+  --color-deep-steel-200: #a3acb6;
+  --color-deep-steel-300: #7e8893;
+  --color-deep-steel-400: #5e6873;
+  --color-deep-steel-500: #44505e;
+  --color-deep-steel-600: #333d48;
+  --color-deep-steel-700: #28303a;
+  --color-deep-steel-800: #1f2630;
+  --color-deep-steel-900: #161b22;
 
-  --color-ice-blue-50: #f0f4ec;
-  --color-ice-blue-100: #e8ede4;
-  --color-ice-blue-200: #c8d4bc;
-  --color-ice-blue-300: #a4b494;
-  --color-ice-blue-400: #7d8e6f;
-  --color-ice-blue-500: #6b7c5e;
-  --color-ice-blue-600: #57664c;
-  --color-ice-blue-700: #43503a;
-  --color-ice-blue-800: #2f3a28;
-  --color-ice-blue-900: #1b2416;
+  /* ====== ice-blue → Teal (repurposed accent) ====== */
+  --color-ice-blue-50: #eef6f5;
+  --color-ice-blue-100: #d9ecea;
+  --color-ice-blue-200: #b0d6d2;
+  --color-ice-blue-300: #7fbab4;
+  --color-ice-blue-400: #4f9b94;
+  --color-ice-blue-500: #2f6f6a;
+  --color-ice-blue-600: #285d59;
+  --color-ice-blue-700: #204a47;
+  --color-ice-blue-800: #183734;
+  --color-ice-blue-900: #102422;
 
-  --color-white: #faf7f4;
+  --color-white: #ffffff;
 }

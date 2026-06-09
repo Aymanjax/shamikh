@@ -29,10 +29,14 @@ export default function Sidebar({ isAdmin, collapsed, onToggle }: { isAdmin: boo
   };
 
   return (
-    <aside className={`bg-deep-earth-900 border-l border-deep-earth-700 flex flex-col shrink-0 sticky top-0 h-screen transition-all duration-300 ${collapsed ? "w-16" : "w-60"}`}>
+    <aside
+      style={{ background: "var(--surface-sidebar)" }}
+      className={`border-l border-deep-earth-700 flex flex-col shrink-0 sticky top-0 h-screen transition-all duration-300 ${collapsed ? "w-16" : "w-60"}`}>
       {/* Logo */}
       <div className={`border-b border-deep-earth-700 flex items-center ${collapsed ? "justify-center p-3" : "p-4 gap-3"}`}>
-        <div className="w-8 h-8 rounded-sm bg-terracotta-500 flex items-center justify-center shrink-0 border-l-2 border-terracotta-300">
+        <div
+          style={{ background: "var(--accent-terracotta)" }}
+          className="w-8 h-8 rounded-sm flex items-center justify-center shrink-0 border-l-2 border-terracotta-300">
           <Home className="w-4 h-4 text-white" />
         </div>
         {!collapsed && (
@@ -52,12 +56,21 @@ export default function Sidebar({ isAdmin, collapsed, onToggle }: { isAdmin: boo
               key={link.to}
               to={link.to}
               end={link.to === "/"}
+              style={({ isActive }) =>
+                isActive
+                  ? {
+                      background: "var(--accent-terracotta-glow)",
+                      color: "var(--accent-terracotta)",
+                      borderInlineStartColor: "var(--accent-terracotta)",
+                    }
+                  : undefined
+              }
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-sm font-bold transition-all duration-150 ${
                   collapsed ? "justify-center p-2.5" : "px-3 py-2"
                 } ${
                   isActive
-                    ? "bg-terracotta-500/10 text-terracotta-400 border-r-2 border-terracotta-500"
+                    ? "border-r-2"
                     : "text-earth-500 hover:text-earth-300 hover:bg-deep-earth-800 border-r-2 border-transparent"
                 }`
               }

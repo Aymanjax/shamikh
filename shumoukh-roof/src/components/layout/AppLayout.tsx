@@ -8,7 +8,7 @@ export default function AppLayout({ isAdmin }: { isAdmin: boolean }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-surface-bg flex">
+    <div className="min-h-screen flex relative z-10">
       {/* Desktop sidebar - hidden on mobile */}
       <div className="hidden md:block">
         <Sidebar
