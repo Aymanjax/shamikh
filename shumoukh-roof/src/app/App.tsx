@@ -16,6 +16,9 @@ import LoginPage from "../features/auth/LoginPage";
 import RegisterPage from "../features/auth/RegisterPage";
 import ThemeBackgroundLayer from "../features/theme/ThemeBackgroundLayer";
 import { useApplyPageTheme } from "../features/theme/useApplyPageTheme";
+import { loadTheme } from "../features/theme/themeService";
+import { useThemeStore } from "../store/themeStore";
+import { applyTokens } from "../features/theme/applyTheme";
 
 export default function App() {
   // Applies global + per-page theme (colors & background) on every route change,
@@ -41,6 +44,12 @@ export default function App() {
             setCompanyName(profile.companyName || "");
             setSubscription(profile.subscription || null);
           }
+          // Reload theme from Firestore now that the user is authenticated,
+          // so admin-saved colors/backgrounds apply without a backend deploy.
+          loadTheme().then((t) => {
+            useThemeStore.getState().setTheme(t);
+            applyTokens(t.tokens);
+          });
         } else {
           setUser(null);
           setLoading(false);
