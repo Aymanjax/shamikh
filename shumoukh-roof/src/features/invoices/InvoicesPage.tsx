@@ -1,16 +1,18 @@
 import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Plus, Search, Download, Trash2, X, Check, Receipt, User, Hash, DollarSign } from "lucide-react";
+import { FileText, Plus, Search, Download, Trash2, X, Check, Receipt, User, Hash, DollarSign, MessageCircle } from "lucide-react";
 import { listDocumentsByUser, addDocument, deleteDocument, updateDocument } from "../../lib/firestoreService";
 import { useAuthStore } from "../../store/authStore";
 import { printInvoice } from "../../lib/printInvoice";
+import { openWhatsApp } from "../../lib/whatsapp";
 import GlassButton from "../../components/ui/GlassButton";
 
 interface Invoice {
   id: string;
   client?: string;
   project?: string;
+  phone?: string;
   amount?: number;
   status?: string;
   projectId?: string;
@@ -20,11 +22,23 @@ interface Invoice {
 interface InvoiceForm {
   client: string;
   project: string;
+  phone: string;
   amount: number;
   status: string;
 }
 
-const defaultForm: InvoiceForm = { client: "", project: "", amount: 0, status: "draft" };
+const defaultForm: InvoiceForm = { client: "", project: "", phone: "", amount: 0, status: "draft" };
+
+/** WhatsApp message — a price quote for drafts, an invoice otherwise. */
+function invoiceText(inv: Invoice): string {
+  const head = inv.status === "draft" ? "عرض سعر" : "فاتورة";
+  return [
+    head,
+    `العميل: ${inv.client || ""}`,
+    inv.project ? `المشروع: ${inv.project}` : "",
+    `المبلغ: ${inv.amount} د.أ`,
+  ].filter(Boolean).join("\n");
+}
 
 const statusConfig: Record<string, { label: string; color: string; next: string }> = {
   paid: { label: "مدفوعة", color: "tag-olive", next: "draft" },
@@ -221,6 +235,13 @@ export default function InvoicesPage() {
                       {/* Actions */}
                       <div className="shrink-0 flex items-center gap-1">
                         <button
+                          onClick={() => openWhatsApp(inv.phone, invoiceText(inv))}
+                          className="p-1.5 text-earth-500 hover:text-green-600 transition cursor-pointer rounded-sm"
+                          title="إرسال واتساب"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => printInvoice(inv)}
                           className="p-1.5 text-earth-500 hover:text-olive-600 transition cursor-pointer rounded-sm"
                           title="تحميل الفاتورة"
@@ -306,6 +327,18 @@ export default function InvoicesPage() {
                     value={form.project}
                     onChange={(e) => setForm((p) => ({ ...p, project: e.target.value }))}
                     placeholder="اختياري — اسم المشروع"
+                    className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm text-earth-900 outline-none focus:border-terracotta-500 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="invoice-phone" className="block text-xs font-black text-earth-700">
+                    هاتف العميل
+                  </label>
+                  <input
+                    id="invoice-phone"
+                    value={form.phone}
+                    onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                    placeholder="اختياري — لإرسال الفاتورة واتساب" dir="ltr"
                     className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm text-earth-900 outline-none focus:border-terracotta-500 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400"
                   />
                 </div>

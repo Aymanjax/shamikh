@@ -10,7 +10,7 @@ import { applyTokens, computeBackgroundStyle } from "../theme/applyTheme";
 import { DEFAULT_TOKENS } from "../theme/defaultTheme";
 import { TOKEN_GROUPS } from "../theme/colorTokenMeta";
 import { PAGES, PRESET_PATTERNS } from "../theme/themeTypes";
-import { compressImageToDataUrl, dataUrlSizeKb } from "../theme/imageCompress";
+import { compressImageToDataUrl, dataUrlSizeKb, isTooLarge } from "../theme/imageCompress";
 
 type SubTab = "global" | "backgrounds" | "overrides";
 
@@ -88,9 +88,8 @@ export default function ThemeBrandingTab() {
     setError("");
     try {
       const dataUrl = await compressImageToDataUrl(file);
-      const kb = dataUrlSizeKb(dataUrl);
-      if (kb > 900) {
-        setError(`الصورة كبيرة (${kb}KB). جرّب صورة أصغر.`);
+      if (isTooLarge(dataUrl)) {
+        setError(`الصورة كبيرة جداً (${dataUrlSizeKb(dataUrl)}KB) ولا تتسع في الحد. جرّب صورة أصغر أو بأبعاد أقل.`);
         return;
       }
       setBackground({ type: "image", imageDataUrl: dataUrl, size: "cover", opacity: 1 });

@@ -38,13 +38,15 @@ export async function listDocuments(coll: string) {
 }
 
 export async function listDocumentsByUser(coll: string, userId: string) {
-  const q = query(
-    await getCollection(coll),
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc")
-  );
+  // Filter by user only; sort client-side. A where(userId) + orderBy(createdAt)
+  // compound query needs a Firestore composite index — without it the query
+  // throws FAILED_PRECONDITION and the page shows a load error. Per-user lists
+  // are small, so JS sorting is cheap and removes the index dependency.
+  const q = query(await getCollection(coll), where("userId", "==", userId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const ms = (v: any) => (v?.toMillis ? v.toMillis() : v?.seconds ? v.seconds * 1000 : 0);
+  return docs.sort((a: any, b: any) => ms(b.createdAt) - ms(a.createdAt));
 }
 
 export async function saveProject(data: any) {

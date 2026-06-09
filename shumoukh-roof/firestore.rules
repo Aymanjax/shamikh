@@ -104,5 +104,19 @@ service cloud.firestore {
     match /users/{uid}/notifications/{notifId} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+
+    // --- سجل العمال (الحضور/السلف/اليوميات) ---
+    match /workerLedger/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // --- دفعات المشاريع ---
+    match /projectPayments/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
   }
 }
