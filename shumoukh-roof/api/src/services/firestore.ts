@@ -37,6 +37,7 @@ export const collections = {
   offers: db.collection("offers"),
   announcements: db.collection("announcements"),
   config: db.doc("config/program"),
+  theme: db.doc("config/theme"),
   invoices: db.collection("invoices"),
   workers: db.collection("workers"),
   visitors: db.collection("visitors"),

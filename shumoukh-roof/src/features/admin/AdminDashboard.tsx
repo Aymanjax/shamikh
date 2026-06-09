@@ -4,7 +4,7 @@ import {
   ShieldCheck, Users, Bell, FolderOpen, FileText,
   Truck, HardHat, Settings, History, Activity,
   Search, RotateCw, Ban, UserCheck, Shield,
-  AlertCircle, Clock, CreditCard,
+  AlertCircle, Clock, CreditCard, Palette,
 } from "lucide-react";
 import { SUBSCRIPTION_TYPES, PLAN_OPTIONS, getSubscriptionLabel, getDaysRemaining } from "../../utils/subscriptionUtils";
 import { listAllUsers, updateUserRole, toggleBan, setSubscriptionByDays } from "./adminUserService";
@@ -17,9 +17,10 @@ import InvoicesTab from "./InvoicesTab";
 import SuppliersTab from "./SuppliersTab";
 import WorkersTab from "./WorkersTab";
 import SystemConfigTab from "./SystemConfigTab";
+import ThemeBrandingTab from "./ThemeBrandingTab";
 import AuditLogsTab from "./AuditLogsTab";
 
-type TabKey = "dashboard" | "users" | "projects" | "invoices" | "suppliers" | "workers" | "announcements" | "config" | "audit";
+type TabKey = "dashboard" | "users" | "projects" | "invoices" | "suppliers" | "workers" | "announcements" | "config" | "theme" | "audit";
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: "dashboard", label: "لوحة", icon: ShieldCheck },
@@ -30,6 +31,7 @@ const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: "workers", label: "العمال", icon: HardHat },
   { key: "announcements", label: "الإعلانات", icon: Bell },
   { key: "config", label: "الإعدادات", icon: Settings },
+  { key: "theme", label: "المظهر والهوية", icon: Palette },
   { key: "audit", label: "السجل", icon: History },
 ];
 
@@ -295,6 +297,7 @@ export default function AdminDashboard() {
       {tab === "workers" && <WorkersTab />}
       {tab === "announcements" && <AnnouncementsTab />}
       {tab === "config" && <SystemConfigTab />}
+      {tab === "theme" && <ThemeBrandingTab />}
       {tab === "audit" && <AuditLogsTab />}
     </div>
   );

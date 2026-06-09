@@ -1,47 +1,51 @@
 :root {
-  /* ====== Surface Tokens (Warm Earth) ====== */
-  --surface-bg: #f5f0eb;
-  --surface-card: #faf7f4;
-  --surface-card-border: 2px solid #e0d5c8;
-  --surface-elevated: #faf7f4;
-  --surface-sidebar: #2c2418;
-  --surface-nav: #3d3427;
+  /* ====== Surface Tokens (Shamikh — graphite + bronze) ====== */
+  --surface-bg: #eef1f4;
+  --surface-card: #ffffff;
+  --surface-card-border: 1px solid #dce1e7;
+  --surface-elevated: #ffffff;
+  --surface-sidebar: #161b22;
+  --surface-nav: #1f2630;
 
   /* ====== Ink Tokens ====== */
-  --ink-primary: #3d3427;
-  --ink-secondary: #6b5e4f;
-  --ink-muted: #8a7e6e;
-  --ink-inverse: #faf7f4;
+  --ink-primary: #15202b;
+  --ink-secondary: #44505e;
+  --ink-muted: #6b7682;
+  --ink-inverse: #f5f7fa;
 
   /* ====== Accent Tokens ====== */
-  --accent-terracotta: #c2703e;
-  --accent-terracotta-soft: #f5e6d8;
-  --accent-terracotta-border: #d4844f;
-  --accent-terracotta-glow: rgba(194, 112, 62, 0.12);
+  /* primary: bronze (var name kept for compatibility) */
+  --accent-terracotta: #b5773a;
+  --accent-terracotta-soft: #f6ecdd;
+  --accent-terracotta-border: #c98e4f;
+  --accent-terracotta-glow: rgba(181, 119, 58, 0.14);
 
-  --accent-olive: #6b7c5e;
-  --accent-olive-soft: #e8ede4;
-  --accent-olive-border: #7d8e6f;
-  --accent-olive-glow: rgba(107, 124, 94, 0.12);
+  /* secondary: deep teal-slate */
+  --accent-olive: #2f6f6a;
+  --accent-olive-soft: #d9ecea;
+  --accent-olive-border: #3c8a83;
+  --accent-olive-glow: rgba(47, 111, 106, 0.14);
 
-  --accent-amber: #b8860b;
-  --accent-amber-soft: #faf0d0;
-  --accent-amber-border: #d4a017;
-  --accent-amber-glow: rgba(184, 134, 11, 0.12);
+  /* tertiary: gold */
+  --accent-amber: #c79111;
+  --accent-amber-soft: #faf0cf;
+  --accent-amber-border: #dca81f;
+  --accent-amber-glow: rgba(199, 145, 17, 0.14);
 
-  --accent-red: #c44536;
-  --accent-red-soft: #fae4e0;
-  --accent-red-border: #d45a4a;
+  /* danger */
+  --accent-red: #c2362b;
+  --accent-red-soft: #fae3e0;
+  --accent-red-border: #d4564a;
 
   /* ====== Typography ====== */
   --font-sans: 'Noto Kufi Arabic', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
 
   /* ====== Shadows (Industrial - flat, minimal) ====== */
-  --shadow-card: 0 1px 2px rgba(61, 52, 39, 0.04);
-  --shadow-card-hover: 0 2px 6px rgba(61, 52, 39, 0.06);
-  --shadow-sidebar: 4px 0 8px rgba(44, 36, 24, 0.08);
-  --shadow-button: 0 1px 2px rgba(61, 52, 39, 0.06);
+  --shadow-card: 0 1px 2px rgba(21, 32, 43, 0.05);
+  --shadow-card-hover: 0 2px 8px rgba(21, 32, 43, 0.08);
+  --shadow-sidebar: 4px 0 8px rgba(15, 20, 28, 0.10);
+  --shadow-button: 0 1px 2px rgba(21, 32, 43, 0.07);
 }
 
 body {
@@ -68,13 +72,13 @@ body {
 /* ====== Scrollbar (industrial - flat) ====== */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #c4b8a8; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #a89888; }
+::-webkit-scrollbar-thumb { background: #c4cbd3; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #a3acb6; }
 
 /* ====== Industrial Card (replaces glass-card) ====== */
 .earth-card {
   background: var(--surface-card);
-  border: 1px solid #e0d5c8;
+  border: 1px solid #dce1e7;
   border-right: 3px solid var(--accent-terracotta);
   border-radius: 6px;
   box-shadow: var(--shadow-card);
@@ -83,7 +87,7 @@ body {
 
 .earth-card:hover {
   box-shadow: var(--shadow-card-hover);
-  border-color: #c4b8a8;
+  border-color: #c4cbd3;
   border-right-color: var(--accent-terracotta-border);
 }
 
@@ -98,7 +102,7 @@ body {
 /* ====== Legacy: glass-card still works but redirects ====== */
 .glass-card {
   background: var(--surface-card);
-  border: 1px solid #e0d5c8;
+  border: 1px solid #dce1e7;
   border-right: 3px solid var(--accent-terracotta);
   border-radius: 6px;
   box-shadow: var(--shadow-card);
@@ -107,7 +111,7 @@ body {
 
 .glass-card:hover {
   box-shadow: var(--shadow-card-hover);
-  border-color: #c4b8a8;
+  border-color: #c4cbd3;
   border-right-color: var(--accent-terracotta-border);
 }
 
@@ -122,19 +126,19 @@ body {
 }
 
 .geo-icon-terracotta {
-  background: rgba(194, 112, 62, 0.08);
+  background: rgba(181, 119, 58, 0.08);
   border-left-color: var(--accent-terracotta);
   color: var(--accent-terracotta);
 }
 
 .geo-icon-olive {
-  background: rgba(107, 124, 94, 0.08);
+  background: rgba(47, 111, 106, 0.08);
   border-left-color: var(--accent-olive);
   color: var(--accent-olive);
 }
 
 .geo-icon-amber {
-  background: rgba(184, 134, 11, 0.08);
+  background: rgba(199, 145, 17, 0.08);
   border-left-color: var(--accent-amber);
   color: var(--accent-amber);
 }
@@ -182,15 +186,15 @@ body {
       0deg,
       transparent,
       transparent 47px,
-      rgba(194, 112, 62, 0.018) 47px,
-      rgba(194, 112, 62, 0.018) 48px
+      rgba(21, 32, 43, 0.025) 47px,
+      rgba(21, 32, 43, 0.025) 48px
     ),
     repeating-linear-gradient(
       90deg,
       transparent,
       transparent 47px,
-      rgba(194, 112, 62, 0.018) 47px,
-      rgba(194, 112, 62, 0.018) 48px
+      rgba(21, 32, 43, 0.025) 47px,
+      rgba(21, 32, 43, 0.025) 48px
     );
   will-change: transform;
   transition: transform 0.6s ease-out;
@@ -216,9 +220,9 @@ body {
 .shimmer-skeleton {
   background: linear-gradient(
     90deg,
-    #e8ddd2 25%,
-    #f0ebe4 50%,
-    #e8ddd2 75%
+    #e2e7ec 25%,
+    #eef1f4 50%,
+    #e2e7ec 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.8s ease-in-out infinite;
@@ -227,7 +231,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .shimmer-skeleton {
     animation: none;
-    background: #e8ddd2;
+    background: #e2e7ec;
   }
 }
 

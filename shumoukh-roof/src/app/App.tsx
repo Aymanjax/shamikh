@@ -14,8 +14,14 @@ import SettingsPage from "../features/settings/SettingsPage";
 import AdminDashboard from "../features/admin/AdminDashboard";
 import LoginPage from "../features/auth/LoginPage";
 import RegisterPage from "../features/auth/RegisterPage";
+import ThemeBackgroundLayer from "../features/theme/ThemeBackgroundLayer";
+import { useApplyPageTheme } from "../features/theme/useApplyPageTheme";
 
 export default function App() {
+  // Applies global + per-page theme (colors & background) on every route change,
+  // incl. /login and /register which live outside AppLayout.
+  useApplyPageTheme();
+
   const setUser = useAuthStore((s) => s.setUser);
   const setRole = useAuthStore((s) => s.setRole);
   const setCompanyName = useAuthStore((s) => s.setCompanyName);
@@ -48,7 +54,9 @@ export default function App() {
   }, []);
 
   return (
-    <Routes>
+    <>
+      <ThemeBackgroundLayer />
+      <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
       <Route
@@ -68,6 +76,7 @@ export default function App() {
         <Route path="admin" element={<AdminDashboard />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }
