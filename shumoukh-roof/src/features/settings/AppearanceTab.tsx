@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
-import { Palette, Sun, Moon, ArrowRight } from "lucide-react";
+import { Palette, Sun, Moon, ArrowRight, Languages } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useT, useLang, type Lang } from "../../i18n";
 
 export default function AppearanceTab() {
+  const t = useT();
+  const [lang, setLang] = useLang();
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("darkMode") === "true");
   const [fontSize, setFontSize] = useState(() => localStorage.getItem("fontSize") || "normal");
 
@@ -25,8 +28,8 @@ export default function AppearanceTab() {
             <Palette className="w-6 h-6 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl font-black text-ink-primary tracking-tight">المظهر</h1>
-            <p className="text-sm text-ink-muted">الوضع الليلي، حجم الخط</p>
+            <h1 className="text-xl font-black text-ink-primary tracking-tight">{t("appearance.title")}</h1>
+            <p className="text-sm text-ink-muted">{t("appearance.subtitle")}</p>
           </div>
         </div>
         <Link to="/settings" className="text-ink-muted hover:text-ink-secondary transition p-2 touch-target">
@@ -39,8 +42,8 @@ export default function AppearanceTab() {
           <div className="flex items-center gap-3 min-w-0">
             {darkMode ? <Moon className="w-5 h-5 shrink-0 text-ink-secondary" /> : <Sun className="w-5 h-5 shrink-0 text-ink-secondary" />}
             <div className="min-w-0">
-              <h3 className="text-sm font-black text-ink-primary">الوضع الليلي</h3>
-              <p className="text-xs text-ink-muted">تغيير مظهر التطبيق إلى الوضع الداكن</p>
+              <h3 className="text-sm font-black text-ink-primary">{t("appearance.darkMode")}</h3>
+              <p className="text-xs text-ink-muted">{t("appearance.darkModeDesc")}</p>
             </div>
           </div>
           <button onClick={() => setDarkMode(!darkMode)}
@@ -50,12 +53,12 @@ export default function AppearanceTab() {
         </div>
 
         <div className="border-t-2 border-earth-200 pt-6">
-          <h3 className="text-sm font-black text-ink-primary mb-3">حجم الخط</h3>
+          <h3 className="text-sm font-black text-ink-primary mb-3">{t("appearance.fontSize")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
-              { key: "small", label: "صغير", size: "14px" },
-              { key: "normal", label: "وسط", size: "16px" },
-              { key: "large", label: "كبير", size: "18px" },
+              { key: "small", label: t("appearance.fontSmall"), size: "14px" },
+              { key: "normal", label: t("appearance.fontNormal"), size: "16px" },
+              { key: "large", label: t("appearance.fontLarge"), size: "18px" },
             ].map((opt) => (
               <button key={opt.key} onClick={() => setFontSize(opt.key)}
                 className={`py-3 px-4 rounded-sm border-2 text-sm font-black transition min-h-[48px] ${
@@ -64,6 +67,31 @@ export default function AppearanceTab() {
                     : "border-earth-200 bg-white text-ink-muted hover:border-earth-300"
                 }`}
                 style={{ fontSize: opt.size }}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t-2 border-earth-200 pt-6">
+          <div className="flex items-center gap-3 mb-3">
+            <Languages className="w-5 h-5 shrink-0 text-ink-secondary" />
+            <div className="min-w-0">
+              <h3 className="text-sm font-black text-ink-primary">{t("appearance.language")}</h3>
+              <p className="text-xs text-ink-muted">{t("appearance.languageDesc")}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {([
+              { key: "ar", label: t("common.language.ar") },
+              { key: "en", label: t("common.language.en") },
+            ] as { key: Lang; label: string }[]).map((opt) => (
+              <button key={opt.key} onClick={() => setLang(opt.key)}
+                className={`py-3 px-4 rounded-sm border-2 text-sm font-black transition min-h-[48px] ${
+                  lang === opt.key
+                    ? "border-terracotta-400 bg-terracotta-100 text-terracotta-500"
+                    : "border-earth-200 bg-white text-ink-muted hover:border-earth-300"
+                }`}>
                 {opt.label}
               </button>
             ))}
