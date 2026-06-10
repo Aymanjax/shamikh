@@ -16,6 +16,7 @@ import WorkshopEstimateModal from "./components/WorkshopEstimateModal";
 import { useAuthStore } from "../../store/authStore";
 import { db } from "../../lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { addDocument } from "../../lib/firestoreService";
 import { getSuppliersWithPrices } from "../../services/supplierService";
 import { getProgramConfig } from "../../services/adminService";
 import { createProject, updateProject, fetchProject } from "../../services/projectService";
@@ -386,6 +387,29 @@ export default function CalculatorPage() {
     }
     setSaveSuccess(null);
     setShowSaveModal(true);
+  };
+
+  // Transfer the current estimate's materials into a new draft invoice.
+  const createInvoiceFromEstimate = async () => {
+    if (!user) return;
+    const items = [
+      { name: tile?.name || "قرميد", qty: result.totalTiles || 0, unit: "حبة", price: 0 },
+      { name: "حديد 4×8", qty: result.iron4x8 || 0, unit: "تيوب", price: 0 },
+      { name: "حديد 10×10", qty: result.iron10x10?.total || 0, unit: "تيوب", price: 0 },
+      { name: "ديكور", qty: result.decor?.bundles || 0, unit: "ربطة", price: 0 },
+      { name: "البيش", qty: result.beshQty || 0, unit: "وحدة", price: 0 },
+      ...customFields.filter((cf) => cf.name).map((cf) => ({ name: cf.name, qty: parseFloat(cf.value) || 0, unit: cf.unit || "", price: 0 })),
+    ].filter((it) => it.qty > 0);
+    await addDocument("invoices", {
+      client: saveClient?.name?.trim() || projectData?.client?.name || "عميل",
+      project: projectData?.name || "",
+      phone: saveClient?.phone || projectData?.client?.phone || "",
+      items,
+      amount: costResult?.total || 0,
+      status: "draft",
+      userId: user.uid,
+    });
+    navigate("/invoices");
   };
 
   const handleSaveProject = async (e) => {
@@ -993,6 +1017,7 @@ export default function CalculatorPage() {
               setWaClientPhone(saveClient?.phone || projectData?.client?.phone || "");
               setShowWAModal(true);
             }}
+            onCreateInvoice={createInvoiceFromEstimate}
             loadingSuppliers={loadingSuppliers}
             supplierPrices={supplierPrices}
           />

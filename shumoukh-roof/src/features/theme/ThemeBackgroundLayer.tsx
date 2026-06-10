@@ -22,7 +22,7 @@ export default function ThemeBackgroundLayer() {
         inset: 0,
         zIndex: 0,
         pointerEvents: "none",
-        background: custom ? undefined : "var(--surface-bg)",
+        backgroundColor: "var(--surface-bg)",
         ...(custom || {}),
       }}
     />

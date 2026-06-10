@@ -1,29 +1,19 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Users, Plus, MapPin, X, Trash2, HardHat,
+  Users, Plus, MapPin, X, Trash2, HardHat, Pencil,
   Wallet, CalendarCheck, CalendarX, FileText, MessageCircle, CheckCircle2,
 } from "lucide-react";
-import { listDocumentsByUser, addDocument, deleteDocument } from "../../lib/firestoreService";
+import { listDocumentsByUser, addDocument, deleteDocument, updateDocument } from "../../lib/firestoreService";
 import { useAuthStore } from "../../store/authStore";
 import SubscriptionGuard from "../../components/SubscriptionGuard";
 import GlassButton from "../../components/ui/GlassButton";
 import { openWhatsApp } from "../../lib/whatsapp";
 import {
-  listLedger, setAttendance, addAdvance, settleWorker, summarize,
-  findToday, statementText, entriesForWorker, deleteEntry,
-  type LedgerEntry,
+  setAttendance, addAdvance, settleWorker, summarize,
+  todayEntry, statementText, sortedEntries, deleteEntry,
+  type WorkerDoc,
 } from "./workerLedgerService";
-
-interface Worker {
-  id: string;
-  name?: string;
-  role?: string;
-  phone?: string;
-  project?: string;
-  wage?: number;
-  days?: number;
-}
 
 interface WorkerForm {
   name: string;
@@ -41,32 +31,28 @@ export default function WorkersPage() {
   const user = useAuthStore((s) => s.user);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState<WorkerForm>(defaultForm);
-  const [advanceFor, setAdvanceFor] = useState<Worker | null>(null);
+  const [editFor, setEditFor] = useState<WorkerDoc | null>(null);
+  const [advanceFor, setAdvanceFor] = useState<WorkerDoc | null>(null);
   const [advanceForm, setAdvanceForm] = useState({ amount: 20, note: "" });
-  const [statementFor, setStatementFor] = useState<Worker | null>(null);
+  const [statementId, setStatementId] = useState<string | null>(null);
 
-  const { data: workers = [], isLoading: loading, error } = useQuery<Worker[]>({
+  const { data: workers = [], isLoading: loading, error } = useQuery<WorkerDoc[]>({
     queryKey: ["workers", user?.uid],
-    queryFn: () => listDocumentsByUser("workers", user!.uid) as Promise<Worker[]>,
+    queryFn: () => listDocumentsByUser("workers", user!.uid) as Promise<WorkerDoc[]>,
     staleTime: 30_000,
     enabled: !!user,
   });
 
-  const { data: ledger = [] } = useQuery<LedgerEntry[]>({
-    queryKey: ["workerLedger", user?.uid],
-    queryFn: () => listLedger(user!.uid),
-    staleTime: 15_000,
-    enabled: !!user,
-  });
-
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["workers"] });
-    queryClient.invalidateQueries({ queryKey: ["workerLedger"] });
-  };
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["workers"] });
 
   const createMutation = useMutation({
-    mutationFn: (data: WorkerForm) => addDocument("workers", { ...data, days: 0, userId: user!.uid }),
+    mutationFn: (data: WorkerForm) => addDocument("workers", { ...data, ledger: [], userId: user!.uid }),
     onSuccess: () => { invalidate(); setModal(false); setForm(defaultForm); },
+  });
+
+  const editMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: WorkerForm }) => updateDocument("workers", id, data),
+    onSuccess: () => { invalidate(); setEditFor(null); },
   });
 
   const deleteMutation = useMutation({
@@ -75,24 +61,24 @@ export default function WorkersPage() {
   });
 
   const attendMutation = useMutation({
-    mutationFn: ({ worker, present }: { worker: Worker; present: boolean }) =>
-      setAttendance(user!.uid, worker, present, findToday(ledger, worker.id)),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workerLedger"] }),
+    mutationFn: ({ worker, present }: { worker: WorkerDoc; present: boolean }) => setAttendance(worker, present),
+    onSuccess: invalidate,
   });
 
   const advanceMutation = useMutation({
-    mutationFn: ({ worker, amount, note }: { worker: Worker; amount: number; note: string }) =>
-      addAdvance(user!.uid, worker, amount, note),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workerLedger"] });
-      setAdvanceFor(null);
-      setAdvanceForm({ amount: 20, note: "" });
-    },
+    mutationFn: ({ worker, amount, note }: { worker: WorkerDoc; amount: number; note: string }) =>
+      addAdvance(worker, amount, note),
+    onSuccess: () => { invalidate(); setAdvanceFor(null); setAdvanceForm({ amount: 20, note: "" }); },
   });
 
   const settleMutation = useMutation({
-    mutationFn: (workerId: string) => settleWorker(ledger, workerId),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["workerLedger"] }); setStatementFor(null); },
+    mutationFn: (worker: WorkerDoc) => settleWorker(worker),
+    onSuccess: () => { invalidate(); setStatementId(null); },
+  });
+
+  const delEntryMutation = useMutation({
+    mutationFn: ({ worker, entryId }: { worker: WorkerDoc; entryId: string }) => deleteEntry(worker, entryId),
+    onSuccess: invalidate,
   });
 
   const handleCreate = useCallback(() => {
@@ -105,6 +91,11 @@ export default function WorkersPage() {
     deleteMutation.mutate(id);
   }, [deleteMutation]);
 
+  const openEdit = (w: WorkerDoc) => {
+    setForm({ name: w.name || "", role: w.role || "مبلط", phone: w.phone || "", project: w.project || "", wage: w.wage ?? 25 });
+    setEditFor(w);
+  };
+
   if (error) {
     return (
       <div className="py-16 text-center">
@@ -113,6 +104,8 @@ export default function WorkersPage() {
       </div>
     );
   }
+
+  const statementWorker = statementId ? workers.find((w) => w.id === statementId) : null;
 
   return (
     <div className="space-y-5">
@@ -126,7 +119,7 @@ export default function WorkersPage() {
             <p className="text-sm text-earth-500">الحضور · السلف · حساب اليوميات</p>
           </div>
         </div>
-        <GlassButton variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setModal(true)}>
+        <GlassButton variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => { setForm(defaultForm); setModal(true); }}>
           إضافة عامل
         </GlassButton>
       </div>
@@ -134,9 +127,7 @@ export default function WorkersPage() {
       <SubscriptionGuard permission="canManageWorkers">
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-52 bg-earth-200 rounded-sm animate-pulse" />
-            ))}
+            {[1, 2, 3].map((i) => (<div key={i} className="h-52 bg-earth-200 rounded-sm animate-pulse" />))}
           </div>
         ) : workers.length === 0 ? (
           <div className="glass-card py-16 text-center text-earth-500">
@@ -147,8 +138,8 @@ export default function WorkersPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {workers.map((w) => {
-              const s = summarize(ledger, w.id);
-              const today = findToday(ledger, w.id);
+              const s = summarize(w);
+              const today = todayEntry(w);
               return (
                 <div key={w.id} className="glass-card p-4 transition-all duration-150 hover:shadow-card-hover">
                   <div className="flex items-center gap-3 mb-3">
@@ -160,11 +151,10 @@ export default function WorkersPage() {
                       <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-sm">{w.role}</span>
                       {w.project && <span className="text-[10px] text-earth-400 mr-1"><MapPin className="w-3 h-3 inline" /> {w.project}</span>}
                     </div>
-                    <button
-                      onClick={() => handleDelete(w.id, w.name || "")}
-                      className="text-earth-500 hover:text-red-500 transition cursor-pointer p-1 rounded-sm"
-                      aria-label={`حذف العامل ${w.name}`}
-                    >
+                    <button onClick={() => openEdit(w)} className="text-earth-500 hover:text-olive-600 transition p-1 rounded-sm" aria-label="تعديل العامل">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button onClick={() => handleDelete(w.id, w.name || "")} className="text-earth-500 hover:text-red-500 transition p-1 rounded-sm" aria-label={`حذف العامل ${w.name}`}>
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -172,21 +162,15 @@ export default function WorkersPage() {
                   {/* Today's attendance */}
                   <div className="flex items-center gap-1.5 mb-3">
                     <span className="text-[10px] font-bold text-earth-400 ml-1">اليوم:</span>
-                    <button
-                      onClick={() => attendMutation.mutate({ worker: w, present: true })}
+                    <button onClick={() => attendMutation.mutate({ worker: w, present: true })} disabled={attendMutation.isPending}
                       className={`flex-1 text-xs font-black py-1.5 rounded-sm transition flex items-center justify-center gap-1 border-2 ${
-                        today?.present
-                          ? "bg-olive-600 text-white border-olive-600"
-                          : "bg-white text-earth-500 border-earth-200 hover:border-olive-300"
+                        today?.present ? "bg-olive-600 text-white border-olive-600" : "bg-white text-earth-500 border-earth-200 hover:border-olive-300"
                       }`}>
                       <CalendarCheck className="w-3.5 h-3.5" /> حاضر
                     </button>
-                    <button
-                      onClick={() => attendMutation.mutate({ worker: w, present: false })}
+                    <button onClick={() => attendMutation.mutate({ worker: w, present: false })} disabled={attendMutation.isPending}
                       className={`flex-1 text-xs font-black py-1.5 rounded-sm transition flex items-center justify-center gap-1 border-2 ${
-                        today && today.present === false
-                          ? "bg-red-600 text-white border-red-600"
-                          : "bg-white text-earth-500 border-earth-200 hover:border-red-300"
+                        today && today.present === false ? "bg-red-600 text-white border-red-600" : "bg-white text-earth-500 border-earth-200 hover:border-red-300"
                       }`}>
                       <CalendarX className="w-3.5 h-3.5" /> غائب
                     </button>
@@ -194,18 +178,9 @@ export default function WorkersPage() {
 
                   {/* Summary */}
                   <div className="grid grid-cols-3 gap-1.5 mb-3 text-center">
-                    <div className="bg-earth-50 rounded-sm py-1.5">
-                      <div className="text-sm font-black text-earth-900 font-mono">{s.daysPresent}</div>
-                      <div className="text-[9px] text-earth-500">يوم</div>
-                    </div>
-                    <div className="bg-earth-50 rounded-sm py-1.5">
-                      <div className="text-sm font-black text-amber-600 font-mono">{s.advances}</div>
-                      <div className="text-[9px] text-earth-500">سلف د.أ</div>
-                    </div>
-                    <div className="bg-olive-50 rounded-sm py-1.5">
-                      <div className="text-sm font-black text-olive-700 font-mono">{s.net}</div>
-                      <div className="text-[9px] text-earth-500">الصافي</div>
-                    </div>
+                    <div className="bg-earth-50 rounded-sm py-1.5"><div className="text-sm font-black text-earth-900 font-mono">{s.daysPresent}</div><div className="text-[9px] text-earth-500">يوم</div></div>
+                    <div className="bg-earth-50 rounded-sm py-1.5"><div className="text-sm font-black text-amber-600 font-mono">{s.advances}</div><div className="text-[9px] text-earth-500">سلف د.أ</div></div>
+                    <div className="bg-olive-50 rounded-sm py-1.5"><div className="text-sm font-black text-olive-700 font-mono">{s.net}</div><div className="text-[9px] text-earth-500">الصافي</div></div>
                   </div>
 
                   {/* Quick actions */}
@@ -214,7 +189,7 @@ export default function WorkersPage() {
                       className="flex-1 text-xs font-black text-amber-700 bg-amber-50 hover:bg-amber-100 py-1.5 rounded-sm transition flex items-center justify-center gap-1 border-2 border-amber-200">
                       <Wallet className="w-3.5 h-3.5" /> سلفة
                     </button>
-                    <button onClick={() => setStatementFor(w)}
+                    <button onClick={() => setStatementId(w.id)}
                       className="flex-1 text-xs font-black text-earth-700 bg-earth-100 hover:bg-earth-200 py-1.5 rounded-sm transition flex items-center justify-center gap-1 border-2 border-earth-200">
                       <FileText className="w-3.5 h-3.5" /> كشف
                     </button>
@@ -226,13 +201,13 @@ export default function WorkersPage() {
         )}
       </SubscriptionGuard>
 
-      {/* Add worker modal */}
-      {modal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setModal(false)}>
+      {/* Add / Edit worker modal */}
+      {(modal || editFor) && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setModal(false); setEditFor(null); }}>
           <div className="bg-white rounded-sm border border-earth-200 p-6 w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-black text-earth-900">إضافة عامل</h3>
-              <button onClick={() => setModal(false)} className="text-earth-500 hover:text-earth-700 p-1 rounded-sm" aria-label="إغلاق">
+              <h3 className="font-black text-earth-900">{editFor ? "تعديل عامل" : "إضافة عامل"}</h3>
+              <button onClick={() => { setModal(false); setEditFor(null); }} className="text-earth-500 hover:text-earth-700 p-1 rounded-sm" aria-label="إغلاق">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -253,8 +228,7 @@ export default function WorkersPage() {
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold text-earth-700">الهاتف</label>
-                <input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-                  dir="ltr"
+                <input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} dir="ltr"
                   className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition" />
               </div>
               <div className="space-y-1">
@@ -267,9 +241,11 @@ export default function WorkersPage() {
                 <input type="number" value={form.wage} onChange={(e) => setForm((p) => ({ ...p, wage: +e.target.value }))}
                   className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition font-mono" />
               </div>
-              <button onClick={handleCreate} disabled={!form.name.trim() || createMutation.isPending}
+              <button
+                onClick={() => editFor ? editMutation.mutate({ id: editFor.id, data: form }) : handleCreate()}
+                disabled={!form.name.trim() || createMutation.isPending || editMutation.isPending}
                 className="w-full bg-olive-700 hover:bg-olive-800 disabled:opacity-40 text-white font-black py-2.5 rounded-sm transition text-sm border-r-3 border-olive-900">
-                {createMutation.isPending ? "جارٍ الإضافة..." : "إضافة"}
+                {createMutation.isPending || editMutation.isPending ? "جارٍ الحفظ..." : editFor ? "حفظ التعديلات" : "إضافة"}
               </button>
             </div>
           </div>
@@ -304,8 +280,7 @@ export default function WorkersPage() {
                   placeholder="سلفة على السريع / للجمعة..."
                   className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-3 text-sm text-earth-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100 transition" />
               </div>
-              <button
-                onClick={() => advanceMutation.mutate({ worker: advanceFor, amount: advanceForm.amount, note: advanceForm.note })}
+              <button onClick={() => advanceMutation.mutate({ worker: advanceFor, amount: advanceForm.amount, note: advanceForm.note })}
                 disabled={advanceForm.amount <= 0 || advanceMutation.isPending}
                 className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white font-black py-2.5 rounded-sm transition text-sm border-r-3 border-amber-800">
                 {advanceMutation.isPending ? "جارٍ التسجيل..." : "تسجيل السلفة"}
@@ -315,16 +290,16 @@ export default function WorkersPage() {
         </div>
       )}
 
-      {/* Statement modal */}
-      {statementFor && (() => {
-        const s = summarize(ledger, statementFor.id);
-        const entries = entriesForWorker(ledger, statementFor.id).sort((a, b) => (a.date < b.date ? 1 : -1));
+      {/* Statement / days log modal */}
+      {statementWorker && (() => {
+        const s = summarize(statementWorker);
+        const entries = sortedEntries(statementWorker);
         return (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setStatementFor(null)}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setStatementId(null)}>
             <div className="bg-white rounded-sm border border-earth-200 p-6 w-full max-w-md shadow-xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-black text-earth-900 flex items-center gap-2"><FileText className="w-4 h-4 text-earth-600" /> كشف حساب {statementFor.name}</h3>
-                <button onClick={() => setStatementFor(null)} className="text-earth-500 hover:text-earth-700 p-1 rounded-sm" aria-label="إغلاق">
+                <h3 className="font-black text-earth-900 flex items-center gap-2"><FileText className="w-4 h-4 text-earth-600" /> كشف حساب {statementWorker.name}</h3>
+                <button onClick={() => setStatementId(null)} className="text-earth-500 hover:text-earth-700 p-1 rounded-sm" aria-label="إغلاق">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -335,6 +310,7 @@ export default function WorkersPage() {
                 <div className="bg-olive-50 rounded-sm py-2"><div className="text-base font-black text-olive-700 font-mono">{s.net}</div><div className="text-[10px] text-earth-500">الصافي</div></div>
               </div>
 
+              <p className="text-[11px] font-black text-earth-500 mb-1">سجل الأيام والحركات</p>
               <div className="space-y-1 mb-4 max-h-52 overflow-y-auto">
                 {entries.length === 0 && <p className="text-xs text-earth-400 text-center py-4">لا توجد حركات</p>}
                 {entries.map((e) => (
@@ -344,18 +320,15 @@ export default function WorkersPage() {
                         ? <Wallet className="w-3.5 h-3.5 text-amber-600" />
                         : e.present ? <CalendarCheck className="w-3.5 h-3.5 text-olive-600" /> : <CalendarX className="w-3.5 h-3.5 text-red-500" />}
                       <span className="text-earth-700 font-bold">
-                        {e.type === "advance" ? "سلفة" : e.present ? "حضور" : "غياب"}
-                        {e.note ? ` · ${e.note}` : ""}
+                        {e.type === "advance" ? "سلفة" : e.present ? "حضور" : "غياب"}{e.note ? ` · ${e.note}` : ""}
                       </span>
                     </span>
                     <span className="flex items-center gap-2">
                       <span className="text-earth-400 font-mono text-[10px]">{e.date}</span>
-                      {e.type !== "day" || e.present ? (
-                        <span className={`font-mono font-black ${e.type === "advance" ? "text-amber-600" : "text-olive-700"}`}>
-                          {e.type === "advance" ? "−" : "+"}{e.amount} د.أ
-                        </span>
-                      ) : <span className="font-mono text-red-400">غائب</span>}
-                      <button onClick={() => deleteEntry(e.id).then(() => queryClient.invalidateQueries({ queryKey: ["workerLedger"] }))}
+                      {e.type === "advance"
+                        ? <span className="font-mono font-black text-amber-600">−{e.amount} د.أ</span>
+                        : e.present ? <span className="font-mono font-black text-olive-700">+{e.amount} د.أ</span> : <span className="font-mono text-red-400">غائب</span>}
+                      <button onClick={() => delEntryMutation.mutate({ worker: statementWorker, entryId: e.id })}
                         className="opacity-0 group-hover:opacity-100 text-earth-400 hover:text-red-500 transition" aria-label="حذف الحركة">
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -365,13 +338,11 @@ export default function WorkersPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => openWhatsApp(statementFor.phone, statementText(statementFor.name || "العامل", s))}
+                <button onClick={() => openWhatsApp(statementWorker.phone, statementText(statementWorker.name || "العامل", s))}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1.5">
                   <MessageCircle className="w-4 h-4" /> إرسال واتساب
                 </button>
-                <button
-                  onClick={() => { if (confirm(`تصفية حساب ${statementFor.name}؟ سيُصفّر الصافي ويُحفظ السجل.`)) settleMutation.mutate(statementFor.id); }}
+                <button onClick={() => { if (confirm(`تصفية حساب ${statementWorker.name}؟ سيُصفّر الصافي ويُحفظ السجل.`)) settleMutation.mutate(statementWorker); }}
                   disabled={settleMutation.isPending || (s.daysPresent === 0 && s.advances === 0)}
                   className="flex-1 bg-earth-800 hover:bg-earth-900 disabled:opacity-40 text-white font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" /> تصفية الحساب

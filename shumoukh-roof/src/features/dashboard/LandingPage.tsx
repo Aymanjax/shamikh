@@ -5,8 +5,8 @@ import { Calculator, FileText, Users, FolderOpen, Trash2, TrendingUp, DollarSign
 import { Link } from "react-router-dom";
 import { listDocuments, deleteDocument } from "../../lib/firestoreService";
 import { useAuthStore } from "../../store/authStore";
-import { listLedger, aggregateOwed, todayStats, type LedgerEntry } from "../workers/workerLedgerService";
-import { listPayments, totalReceivable, reminders, type Payment } from "../projects/paymentsService";
+import { aggregateOwed, todayStats, summarize } from "../workers/workerLedgerService";
+import { totalReceivable, reminders } from "../projects/paymentsService";
 
 import DepthHero from "../../components/ui/DepthHero";
 import CountUp from "../../components/ui/CountUp";
@@ -59,20 +59,6 @@ export default function LandingPage() {
     staleTime: 30_000,
   });
 
-  const { data: ledger = [] } = useQuery<LedgerEntry[]>({
-    queryKey: ["workerLedger", user?.uid],
-    queryFn: () => listLedger(user!.uid),
-    staleTime: 15_000,
-    enabled: !!user,
-  });
-
-  const { data: payments = [] } = useQuery<Payment[]>({
-    queryKey: ["projectPayments", user?.uid],
-    queryFn: () => listPayments(user!.uid),
-    staleTime: 15_000,
-    enabled: !!user,
-  });
-
   /* ── Delete Mutation ── */
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteDocument("projects", id),
@@ -93,13 +79,13 @@ export default function LandingPage() {
     .filter((i) => i.status === "pending")
     .reduce((s, i) => s + (i.amount ?? 0), 0);
 
-  const workerCost = workers.reduce((s, w) => s + (w.days ?? 0) * (w.wage ?? 0), 0);
+  const workerCost = workers.reduce((s, w) => s + summarize(w as any).earned, 0);
 
   /* ── Today summary + receivables ── */
-  const { presentToday, advancesToday } = todayStats(ledger);
-  const dueSoon = reminders(payments, 3);
-  const receivable = totalReceivable(payments);
-  const owedToWorkers = aggregateOwed(ledger);
+  const { presentToday, advancesToday } = todayStats(workers as any);
+  const dueSoon = reminders(projects as any, 3);
+  const receivable = totalReceivable(projects as any);
+  const owedToWorkers = aggregateOwed(workers as any);
 
   const stats = [
     { icon: FolderOpen,  label: "المشاريع",     count: projects.length,                        accent: "amber" as const },
@@ -213,7 +199,7 @@ export default function LandingPage() {
           {dueSoon.length > 0 && (
             <p className="text-[11px] text-earth-600 mt-3 flex items-center gap-1.5">
               <Bell className="w-3 h-3 text-amber-600 shrink-0" />
-              {dueSoon[0].label} لمشروع {dueSoon[0].projectName} — {dueSoon[0].amount} د.أ
+              {dueSoon[0].payment.label} لمشروع {dueSoon[0].project.name} — {dueSoon[0].payment.amount} د.أ
             </p>
           )}
         </div>

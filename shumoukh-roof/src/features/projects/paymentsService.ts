@@ -1,62 +1,49 @@
 // @ts-nocheck
-// Project payment milestones (الدفعات): e.g. 40% at contract, 30% at iron/wood,
-// 30% at delivery — each with a due date that drives on-screen reminders.
-import {
-  addDocument,
-  updateDocument,
-  deleteDocument,
-  listDocumentsByUser,
-} from "../../lib/firestoreService";
+// Payment milestones embedded INSIDE the project document (projects/{id}.payments).
+// Reuses the projects collection's existing write permissions — works without a
+// new Firestore rule.
+import { updateDocument } from "../../lib/firestoreService";
 
 export interface Payment {
   id: string;
-  userId: string;
-  projectId: string;
-  projectName?: string;
-  clientName?: string;
-  clientPhone?: string;
   label: string;
   amount: number;
   dueDate?: string; // yyyy-mm-dd
   paid?: boolean;
   paidDate?: string;
-  createdAt?: unknown;
 }
 
-const COLL = "projectPayments";
-
-export function listPayments(userId: string): Promise<Payment[]> {
-  return listDocumentsByUser(COLL, userId) as Promise<Payment[]>;
-}
-
-export function paymentsForProject(all: Payment[], projectId: string): Payment[] {
-  return all
-    .filter((p) => p.projectId === projectId)
-    .sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"));
-}
-
-interface ProjectLike {
+export interface ProjectDoc {
   id: string;
   name?: string;
   client?: { name?: string; phone?: string };
+  result?: { totalCost?: number };
+  payments?: Payment[];
+}
+
+function uid(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function persist(projectId: string, payments: Payment[]): Promise<void> {
+  return updateDocument("projects", projectId, { payments }) as Promise<void>;
+}
+
+export function paymentsOf(project: ProjectDoc): Payment[] {
+  return (project.payments || [])
+    .slice()
+    .sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"));
 }
 
 export async function addPayment(
-  userId: string,
-  project: ProjectLike,
+  project: ProjectDoc,
   data: { label: string; amount: number; dueDate?: string }
 ): Promise<void> {
-  await addDocument(COLL, {
-    userId,
-    projectId: project.id,
-    projectName: project.name || "",
-    clientName: project.client?.name || "",
-    clientPhone: project.client?.phone || "",
-    label: data.label,
-    amount: data.amount,
-    dueDate: data.dueDate || "",
-    paid: false,
-  });
+  const payments = [
+    ...(project.payments || []),
+    { id: uid(), label: data.label, amount: data.amount, dueDate: data.dueDate || "", paid: false },
+  ];
+  await persist(project.id, payments);
 }
 
 /** Default Jordanian roofing schedule: 40% / 30% / 30%. */
@@ -66,27 +53,23 @@ export const DEFAULT_TEMPLATE = [
   { label: "دفعة أخيرة (عند التسليم)", pct: 0.3 },
 ];
 
-export async function generateFromTemplate(
-  userId: string,
-  project: ProjectLike,
-  total: number
-): Promise<void> {
-  await Promise.all(
-    DEFAULT_TEMPLATE.map((m) =>
-      addPayment(userId, project, { label: m.label, amount: Math.round(total * m.pct) })
-    )
+export async function generateFromTemplate(project: ProjectDoc, total: number): Promise<void> {
+  const payments = [
+    ...(project.payments || []),
+    ...DEFAULT_TEMPLATE.map((m) => ({ id: uid(), label: m.label, amount: Math.round(total * m.pct), dueDate: "", paid: false })),
+  ];
+  await persist(project.id, payments);
+}
+
+export async function togglePaid(project: ProjectDoc, paymentId: string): Promise<void> {
+  const payments = (project.payments || []).map((p) =>
+    p.id === paymentId ? { ...p, paid: !p.paid, paidDate: !p.paid ? new Date().toISOString().slice(0, 10) : "" } : p
   );
+  await persist(project.id, payments);
 }
 
-export async function togglePaid(p: Payment): Promise<void> {
-  await updateDocument(COLL, p.id, {
-    paid: !p.paid,
-    paidDate: !p.paid ? new Date().toISOString().slice(0, 10) : "",
-  });
-}
-
-export async function deletePayment(id: string): Promise<void> {
-  await deleteDocument(COLL, id);
+export async function deletePayment(project: ProjectDoc, paymentId: string): Promise<void> {
+  await persist(project.id, (project.payments || []).filter((p) => p.id !== paymentId));
 }
 
 // ── Reminder / status helpers ──
@@ -110,27 +93,34 @@ export function statusOf(p: Payment): PayStatus {
   return "upcoming";
 }
 
-/** Unpaid milestones with a due date, sorted by urgency (overdue/soon first). */
-export function reminders(all: Payment[], withinDays = 3): Payment[] {
-  return all
-    .filter((p) => !p.paid && p.dueDate)
-    .filter((p) => {
-      const d = daysUntil(p.dueDate);
-      return d !== null && d <= withinDays;
-    })
-    .sort((a, b) => (daysUntil(a.dueDate)! - daysUntil(b.dueDate)!));
+export interface DueItem { project: ProjectDoc; payment: Payment; }
+
+/** Unpaid milestones (with due date) within N days, across all projects, urgent first. */
+export function reminders(projects: ProjectDoc[], withinDays = 3): DueItem[] {
+  const items: DueItem[] = [];
+  for (const project of projects) {
+    for (const payment of project.payments || []) {
+      if (payment.paid || !payment.dueDate) continue;
+      const d = daysUntil(payment.dueDate);
+      if (d !== null && d <= withinDays) items.push({ project, payment });
+    }
+  }
+  return items.sort((a, b) => (daysUntil(a.payment.dueDate)! - daysUntil(b.payment.dueDate)!));
 }
 
-/** Total still owed by clients (unpaid milestones). */
-export function totalReceivable(all: Payment[]): number {
-  return all.filter((p) => !p.paid).reduce((s, p) => s + (p.amount || 0), 0);
+/** Total still owed by clients (unpaid milestones across all projects). */
+export function totalReceivable(projects: ProjectDoc[]): number {
+  return projects.reduce(
+    (s, p) => s + (p.payments || []).filter((x) => !x.paid).reduce((t, x) => t + (x.amount || 0), 0),
+    0
+  );
 }
 
-export function reminderText(p: Payment): string {
+export function reminderText(project: ProjectDoc, p: Payment): string {
   const d = daysUntil(p.dueDate);
   const when = d === null ? "" : d < 0 ? `متأخرة ${Math.abs(d)} يوم` : d === 0 ? "مستحقة اليوم" : `بعد ${d} يوم`;
   return [
-    `تذكير دفعة — مشروع ${p.projectName || ""}`.trim(),
+    `تذكير دفعة — مشروع ${project.name || ""}`.trim(),
     `${p.label}: ${p.amount} د.أ`,
     p.dueDate ? `تاريخ الاستحقاق: ${p.dueDate} (${when})` : "",
   ].filter(Boolean).join("\n");

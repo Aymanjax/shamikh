@@ -56,6 +56,8 @@ export function applyTokens(
 
 /**
  * Compute the inline style for a page background layer.
+ * Uses longhand properties only (no `background` shorthand) so it can be safely
+ * merged/removed across rerenders without React's shorthand-conflict warning.
  * Returns null when there is no custom background (fall back to --surface-bg).
  */
 export function computeBackgroundStyle(bg?: PageBackground): CSSProperties | null {
@@ -64,11 +66,11 @@ export function computeBackgroundStyle(bg?: PageBackground): CSSProperties | nul
   const opacity = bg.opacity ?? 1;
 
   if (bg.type === "color" && bg.color) {
-    return { background: bg.color, opacity };
+    return { backgroundColor: bg.color, opacity };
   }
 
   if (bg.type === "gradient" && bg.gradient) {
-    return { background: bg.gradient, opacity };
+    return { backgroundImage: bg.gradient, opacity };
   }
 
   if (bg.type === "image" && bg.imageDataUrl) {
@@ -87,7 +89,8 @@ export function computeBackgroundStyle(bg?: PageBackground): CSSProperties | nul
     if (pat) {
       return {
         backgroundImage: pat.backgroundImage,
-        backgroundSize: pat.backgroundSize,
+        backgroundSize: pat.backgroundSize || "auto",
+        backgroundRepeat: "repeat",
         opacity,
       };
     }

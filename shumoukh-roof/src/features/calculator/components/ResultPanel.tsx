@@ -24,7 +24,7 @@ const groupAccent = {
 export default function ResultPanel({
   result, tile, input, customFields, hiddenItems, toggleHiddenItem,
   costResult, prices, showPrices, closed, area, sides, projectData,
-  onPrintQuotation, onPrintDistribution, onPrintIronFrame, onWhatsAppSend,
+  onPrintQuotation, onPrintDistribution, onPrintIronFrame, onWhatsAppSend, onCreateInvoice,
   loadingSuppliers, supplierPrices,
 }) {
   const grouped = [
@@ -161,6 +161,12 @@ export default function ResultPanel({
             className="justify-center text-[11px]">
             واتساب
           </GlassButton>
+          {onCreateInvoice && (
+            <GlassButton variant="secondary" size="sm" icon={<FileText className="w-3.5 h-3.5" />} onClick={onCreateInvoice}
+              className="justify-center text-[11px]">
+              فاتورة
+            </GlassButton>
+          )}
         </div>
       )}
 

@@ -1,29 +1,34 @@
 // @ts-nocheck
-// Worker ledger: attendance (حضور/غياب) + daily wages (يوميات) + advances (سلف).
-// Net due = wages of present days − advances, over unsettled entries.
-import {
-  addDocument,
-  updateDocument,
-  deleteDocument,
-  listDocumentsByUser,
-} from "../../lib/firestoreService";
+// Worker ledger embedded INSIDE the worker document (workers/{id}.ledger).
+// This reuses the workers collection's existing write permissions, so it works
+// without deploying any new Firestore rule — and gives a per-worker day log.
+import { updateDocument } from "../../lib/firestoreService";
 
 export type LedgerType = "day" | "advance";
 
 export interface LedgerEntry {
   id: string;
-  userId: string;
-  workerId: string;
-  workerName?: string;
   type: LedgerType;
   date: string; // yyyy-mm-dd (local)
   amount: number; // day → wage snapshot; advance → amount taken
   present?: boolean; // for type "day"
   note?: string;
-  settledAt?: unknown | null;
+  settledAt?: string | null;
 }
 
-const COLL = "workerLedger";
+export interface WorkerDoc {
+  id: string;
+  name?: string;
+  role?: string;
+  phone?: string;
+  project?: string;
+  wage?: number;
+  ledger?: LedgerEntry[];
+}
+
+function uid(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
 
 /** Local yyyy-mm-dd (Jordan day, not UTC). */
 export function todayStr(d: Date = new Date()): string {
@@ -32,72 +37,45 @@ export function todayStr(d: Date = new Date()): string {
   ).padStart(2, "0")}`;
 }
 
-export function listLedger(userId: string): Promise<LedgerEntry[]> {
-  return listDocumentsByUser(COLL, userId) as Promise<LedgerEntry[]>;
+function persist(workerId: string, ledger: LedgerEntry[]): Promise<void> {
+  return updateDocument("workers", workerId, { ledger }) as Promise<void>;
 }
 
-/** Unsettled entries for one worker. */
-export function entriesForWorker(all: LedgerEntry[], workerId: string): LedgerEntry[] {
-  return all.filter((e) => e.workerId === workerId && !e.settledAt);
+export function openEntries(w: WorkerDoc): LedgerEntry[] {
+  return (w.ledger || []).filter((e) => !e.settledAt);
 }
 
-export function findToday(all: LedgerEntry[], workerId: string, date = todayStr()): LedgerEntry | undefined {
-  return all.find((e) => e.workerId === workerId && e.type === "day" && e.date === date && !e.settledAt);
+export function sortedEntries(w: WorkerDoc): LedgerEntry[] {
+  return openEntries(w).slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+
+export function todayEntry(w: WorkerDoc, date = todayStr()): LedgerEntry | undefined {
+  return (w.ledger || []).find((e) => e.type === "day" && e.date === date && !e.settledAt);
 }
 
 /** Mark today's attendance (present/absent). Upserts a single day entry. */
-export async function setAttendance(
-  userId: string,
-  worker: { id: string; name?: string; wage?: number },
-  present: boolean,
-  existing?: LedgerEntry,
-  date = todayStr()
-): Promise<void> {
-  if (existing) {
-    await updateDocument(COLL, existing.id, {
-      present,
-      amount: present ? worker.wage ?? 0 : 0,
-    });
-  } else {
-    await addDocument(COLL, {
-      userId,
-      workerId: worker.id,
-      workerName: worker.name || "",
-      type: "day",
-      date,
-      present,
-      amount: present ? worker.wage ?? 0 : 0,
-    });
-  }
+export async function setAttendance(w: WorkerDoc, present: boolean, date = todayStr()): Promise<void> {
+  const ledger = [...(w.ledger || [])];
+  const idx = ledger.findIndex((e) => e.type === "day" && e.date === date && !e.settledAt);
+  const amount = present ? w.wage ?? 0 : 0;
+  if (idx >= 0) ledger[idx] = { ...ledger[idx], present, amount };
+  else ledger.push({ id: uid(), type: "day", date, present, amount });
+  await persist(w.id, ledger);
 }
 
-export async function addAdvance(
-  userId: string,
-  worker: { id: string; name?: string },
-  amount: number,
-  note = "",
-  date = todayStr()
-): Promise<void> {
-  await addDocument(COLL, {
-    userId,
-    workerId: worker.id,
-    workerName: worker.name || "",
-    type: "advance",
-    date,
-    amount,
-    note,
-  });
+export async function addAdvance(w: WorkerDoc, amount: number, note = "", date = todayStr()): Promise<void> {
+  const ledger = [...(w.ledger || []), { id: uid(), type: "advance", date, amount, note }];
+  await persist(w.id, ledger);
 }
 
-export async function deleteEntry(id: string): Promise<void> {
-  await deleteDocument(COLL, id);
+export async function deleteEntry(w: WorkerDoc, entryId: string): Promise<void> {
+  await persist(w.id, (w.ledger || []).filter((e) => e.id !== entryId));
 }
 
-/** Stamp all current unsettled entries of a worker as settled (history kept, balance resets). */
-export async function settleWorker(all: LedgerEntry[], workerId: string): Promise<void> {
+/** Stamp current unsettled entries as settled (history kept, balance resets). */
+export async function settleWorker(w: WorkerDoc): Promise<void> {
   const now = new Date().toISOString();
-  const open = entriesForWorker(all, workerId);
-  await Promise.all(open.map((e) => updateDocument(COLL, e.id, { settledAt: now })));
+  await persist(w.id, (w.ledger || []).map((e) => (e.settledAt ? e : { ...e, settledAt: now })));
 }
 
 export interface WorkerSummary {
@@ -108,10 +86,9 @@ export interface WorkerSummary {
   net: number;
 }
 
-export function summarize(all: LedgerEntry[], workerId: string): WorkerSummary {
-  const open = entriesForWorker(all, workerId);
+export function summarize(w: WorkerDoc): WorkerSummary {
   let daysPresent = 0, daysAbsent = 0, earned = 0, advances = 0;
-  for (const e of open) {
+  for (const e of openEntries(w)) {
     if (e.type === "day") {
       if (e.present) { daysPresent++; earned += e.amount || 0; }
       else daysAbsent++;
@@ -122,25 +99,19 @@ export function summarize(all: LedgerEntry[], workerId: string): WorkerSummary {
   return { daysPresent, daysAbsent, earned, advances, net: earned - advances };
 }
 
-/** Total net still owed to all workers (sum of positive per-worker nets, unsettled). */
-export function aggregateOwed(all: LedgerEntry[]): number {
-  const byWorker: Record<string, { earned: number; adv: number }> = {};
-  for (const e of all) {
-    if (e.settledAt) continue;
-    const g = (byWorker[e.workerId] ||= { earned: 0, adv: 0 });
-    if (e.type === "day" && e.present) g.earned += e.amount || 0;
-    else if (e.type === "advance") g.adv += e.amount || 0;
-  }
-  return Object.values(byWorker).reduce((s, g) => s + Math.max(0, g.earned - g.adv), 0);
+// ── Dashboard aggregates (operate on the full workers list) ──
+export function aggregateOwed(workers: WorkerDoc[]): number {
+  return workers.reduce((s, w) => s + Math.max(0, summarize(w).net), 0);
 }
 
-/** Today's attendance count and advances total. */
-export function todayStats(all: LedgerEntry[], date = todayStr()): { presentToday: number; advancesToday: number } {
+export function todayStats(workers: WorkerDoc[], date = todayStr()): { presentToday: number; advancesToday: number } {
   let presentToday = 0, advancesToday = 0;
-  for (const e of all) {
-    if (e.date !== date) continue;
-    if (e.type === "day" && e.present) presentToday++;
-    if (e.type === "advance") advancesToday += e.amount || 0;
+  for (const w of workers) {
+    for (const e of w.ledger || []) {
+      if (e.date !== date || e.settledAt) continue;
+      if (e.type === "day" && e.present) presentToday++;
+      if (e.type === "advance") advancesToday += e.amount || 0;
+    }
   }
   return { presentToday, advancesToday };
 }
