@@ -1,6 +1,5 @@
-// English dictionary — flat dotted keys (namespace.key)
-// Plural values are objects { zero, one, two, few, many, other } selected by language rules
-export const en = {
+// Shared keys — app identity, navigation, common actions, appearance
+export const common = {
   // Identity
   "app.name": "Shumoukh ERP",
   "app.tagline": "Roof Tile Project Management",
@@ -15,6 +14,8 @@ export const en = {
   "nav.settings": "Settings",
   "nav.admin": "Admin",
   "nav.logout": "Log out",
+  "nav.collapseMenu": "Collapse menu",
+  "nav.user": "User",
 
   // Common actions
   "common.save": "Save",
@@ -27,10 +28,21 @@ export const en = {
   "common.confirm": "Confirm",
   "common.back": "Back",
   "common.loading": "Loading…",
+  "common.saving": "Saving…",
+  "common.all": "All",
+  "common.yes": "Yes",
+  "common.no": "No",
+  "common.optional": "Optional",
+  "common.required": "Required",
+  "common.notAvailable": "Not available",
+  "common.currency": "JOD",
+  "common.day": "day",
+  "common.days": { zero: "0 days", one: "1 day", other: "{n} days" },
+  "common.expired": "Expired",
   "common.language.ar": "العربية",
   "common.language.en": "English",
 
-  // Appearance & settings
+  // Appearance
   "appearance.title": "Appearance",
   "appearance.subtitle": "Dark mode, font size, language",
   "appearance.darkMode": "Dark mode",
@@ -41,12 +53,4 @@ export const en = {
   "appearance.fontLarge": "Large",
   "appearance.language": "Language",
   "appearance.languageDesc": "Application interface language",
-
-  // Auth
-  "auth.email": "Email",
-  "auth.password": "Password",
-
-  // Plural & interpolation samples
-  "common.itemsCount": { zero: "No items", one: "One item", other: "{n} items" },
-  "common.greeting": "Hello {name}",
 } as const;

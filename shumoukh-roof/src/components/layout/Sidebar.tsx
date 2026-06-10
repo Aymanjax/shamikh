@@ -81,7 +81,7 @@ export default function Sidebar({ isAdmin, collapsed, onToggle }: { isAdmin: boo
                 {user.displayName?.charAt(0) || user.email?.charAt(0) || "?"}
               </div>
               <div className="flex-1 min-w-0 overflow-hidden">
-                <p className="text-xs font-bold text-white truncate" title={user.displayName || ""}>{user.displayName || "مستخدم"}</p>
+                <p className="text-xs font-bold text-white truncate" title={user.displayName || ""}>{user.displayName || t("nav.user")}</p>
                 <p className="text-[9px] text-earth-500 truncate" title={user.email || ""}>{user.email}</p>
               </div>
             </div>
@@ -91,7 +91,7 @@ export default function Sidebar({ isAdmin, collapsed, onToggle }: { isAdmin: boo
                 <span className="text-[9px] font-bold text-terracotta-400">{getSubscriptionLabel(subscription.subscriptionType)}</span>
                 {subscription.subscriptionEndDate && (
                   <span className={`text-[8px] ${getDaysRemaining(subscription.subscriptionEndDate) > 0 ? "text-earth-500" : "text-red-400"}`}>
-                    · {getDaysRemaining(subscription.subscriptionEndDate) > 0 ? `${getDaysRemaining(subscription.subscriptionEndDate)} يوم` : "منتهي"}
+                    · {getDaysRemaining(subscription.subscriptionEndDate) > 0 ? t("common.days", { n: getDaysRemaining(subscription.subscriptionEndDate) }) : t("common.expired")}
                   </span>
                 )}
               </NavLink>
@@ -113,7 +113,7 @@ export default function Sidebar({ isAdmin, collapsed, onToggle }: { isAdmin: boo
             collapsed ? "justify-center p-2.5" : "px-3 py-2 text-sm"
           }`}>
           <ChevronRight className={`w-4 h-4 shrink-0 transition-transform ${collapsed ? "rotate-180" : ""}`} />
-          {!collapsed && <span>طي القائمة</span>}
+          {!collapsed && <span>{t("nav.collapseMenu")}</span>}
         </button>
       </div>
     </aside>

@@ -5,6 +5,7 @@ import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { LogIn, HardHat, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import { loginUser, loginWithGoogle } from "./authService";
 import { useAuthStore } from "../../store/authStore";
+import { useT } from "../../i18n";
 
 const easing = [0.22, 1, 0.36, 1];
 
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const setUser = useAuthStore((s) => s.setUser);
   const reducedMotion = useReducedMotion();
+  const t = useT();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,12 +30,12 @@ export default function LoginPage() {
       navigate("/");
     } catch (err: any) {
       const msg =
-        err.code === "auth/user-not-found" ? "البريد الإلكتروني غير مسجل" :
-        err.code === "auth/wrong-password" ? "كلمة السر خطأ" :
-        err.code === "auth/invalid-credential" ? "البريد أو كلمة السر خطأ" :
-        err.code === "auth/invalid-email" ? "البريد الإلكتروني غير صالح" :
-        err.code === "auth/too-many-requests" ? "محاولات كثيرة جداً، حاول لاحقاً" :
-        err.message || "فشل تسجيل الدخول";
+        err.code === "auth/user-not-found" ? t("auth.error.userNotFound") :
+        err.code === "auth/wrong-password" ? t("auth.error.wrongPassword") :
+        err.code === "auth/invalid-credential" ? t("auth.error.invalidCredential") :
+        err.code === "auth/invalid-email" ? t("auth.error.invalidEmail") :
+        err.code === "auth/too-many-requests" ? t("auth.error.tooManyRequests") :
+        err.message || t("auth.error.loginFailed");
       setError(msg);
     } finally {
       setLoading(false);
@@ -48,7 +50,7 @@ export default function LoginPage() {
       useAuthStore.getState().setUser(user);
       navigate("/");
     } catch (err: any) {
-      setError(err.message || "فشل تسجيل الدخول بقوقل");
+      setError(err.message || t("auth.error.googleLoginFailed"));
     } finally {
       setLoading(false);
     }
@@ -76,8 +78,8 @@ export default function LoginPage() {
           >
             <HardHat className="w-8 h-8 text-white" />
           </motion.div>
-          <h1 className="text-xl font-black text-earth-800 tracking-tight">تسجيل الدخول</h1>
-          <p className="text-sm text-earth-500 mt-1">شموخ ERP — إدارة مشاريع القرميد</p>
+          <h1 className="text-xl font-black text-earth-800 tracking-tight">{t("auth.loginTitle")}</h1>
+          <p className="text-sm text-earth-500 mt-1">{t("app.name")} — {t("app.tagline")}</p>
         </motion.div>
 
         <AnimatePresence mode="wait">
@@ -107,7 +109,7 @@ export default function LoginPage() {
           }}
         >
           {[
-            { label: "البريد الإلكتروني", type: "email", value: email, setter: setEmail, placeholder: "info@example.com", dir: "ltr" },
+            { label: t("auth.email"), type: "email", value: email, setter: setEmail, placeholder: "info@example.com", dir: "ltr" },
           ].map((field) => (
             <motion.div
               key={field.label}
@@ -135,7 +137,7 @@ export default function LoginPage() {
             transition={{ duration: reducedMotion ? 0 : 0.25, ease: easing }}
             className="space-y-1"
           >
-            <label className="text-xs font-bold text-earth-600">كلمة السر</label>
+            <label className="text-xs font-bold text-earth-600">{t("auth.password")}</label>
             <div className="relative">
               <input type={showPw ? "text" : "password"} value={password}
                 onChange={(e) => setPassword(e.target.value)} required dir="ltr"
@@ -207,7 +209,7 @@ export default function LoginPage() {
                     exit={{ opacity: 0, x: reducedMotion ? 0 : -8 }}
                     transition={{ duration: reducedMotion ? 0 : 0.15 }}
                   >
-                    جارٍ تسجيل الدخول...
+                    {t("auth.loggingIn")}
                   </motion.span>
                 ) : (
                   <motion.span
@@ -217,7 +219,7 @@ export default function LoginPage() {
                     exit={{ opacity: 0, x: reducedMotion ? 0 : -8 }}
                     transition={{ duration: reducedMotion ? 0 : 0.15 }}
                   >
-                    دخول
+                    {t("auth.loginButton")}
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -235,7 +237,7 @@ export default function LoginPage() {
             <div className="w-full border-t border-earth-200" />
           </div>
           <div className="relative flex justify-center text-xs">
-            <span className="bg-earth-50 px-3 text-earth-400 font-bold">أو</span>
+            <span className="bg-earth-50 px-3 text-earth-400 font-bold">{t("auth.or")}</span>
           </div>
         </motion.div>
 
@@ -255,7 +257,7 @@ export default function LoginPage() {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          قوقل
+          {t("auth.google")}
         </motion.button>
 
         <motion.div
@@ -264,8 +266,8 @@ export default function LoginPage() {
           transition={{ duration: reducedMotion ? 0 : 0.3, delay: reducedMotion ? 0 : 0.6 }}
           className="mt-6 text-center text-xs text-earth-500 font-bold"
         >
-          ليس لديك حساب؟{" "}
-          <Link to="/register" className="text-terracotta-600 hover:text-terracotta-700 font-black transition-colors">إنشاء حساب</Link>
+          {t("auth.noAccount")}{" "}
+          <Link to="/register" className="text-terracotta-600 hover:text-terracotta-700 font-black transition-colors">{t("auth.createAccount")}</Link>
         </motion.div>
       </motion.div>
     </div>

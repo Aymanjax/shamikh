@@ -1,6 +1,5 @@
-// القاموس العربي — مفاتيح مسطّحة بنقاط (namespace.key)
-// قيم الجمع تُكتب ككائن { zero, one, two, few, many, other } ويُختار حسب قواعد اللغة
-export const ar = {
+// المفاتيح المشتركة — هوية التطبيق، التنقّل، الإجراءات العامة، المظهر
+export const common = {
   // الهوية
   "app.name": "شموخ ERP",
   "app.tagline": "إدارة مشاريع القرميد",
@@ -14,7 +13,9 @@ export const ar = {
   "nav.subscription": "الاشتراك",
   "nav.settings": "الإعدادات",
   "nav.admin": "التحكم",
-  "nav.logout": "تسجيل الخروج",
+  "nav.logout": "تسجيل خروج",
+  "nav.collapseMenu": "طي القائمة",
+  "nav.user": "مستخدم",
 
   // إجراءات عامة
   "common.save": "حفظ",
@@ -27,10 +28,21 @@ export const ar = {
   "common.confirm": "تأكيد",
   "common.back": "رجوع",
   "common.loading": "جارٍ التحميل…",
+  "common.saving": "جارٍ الحفظ…",
+  "common.all": "الكل",
+  "common.yes": "نعم",
+  "common.no": "لا",
+  "common.optional": "اختياري",
+  "common.required": "مطلوب",
+  "common.notAvailable": "غير متوفر",
+  "common.currency": "د.أ",
+  "common.day": "يوم",
+  "common.days": { zero: "0 يوم", one: "يوم واحد", two: "يومان", few: "{n} أيام", many: "{n} يومًا", other: "{n} يوم" },
+  "common.expired": "منتهي",
   "common.language.ar": "العربية",
   "common.language.en": "English",
 
-  // المظهر والإعدادات
+  // المظهر
   "appearance.title": "المظهر",
   "appearance.subtitle": "الوضع الليلي، حجم الخط، اللغة",
   "appearance.darkMode": "الوضع الليلي",
@@ -41,12 +53,4 @@ export const ar = {
   "appearance.fontLarge": "كبير",
   "appearance.language": "اللغة",
   "appearance.languageDesc": "لغة واجهة التطبيق",
-
-  // المصادقة
-  "auth.email": "البريد الإلكتروني",
-  "auth.password": "كلمة المرور",
-
-  // أمثلة على الجمع والتعويض
-  "common.itemsCount": { zero: "لا توجد عناصر", one: "عنصر واحد", two: "عنصران", few: "{n} عناصر", many: "{n} عنصرًا", other: "{n} عنصر" },
-  "common.greeting": "مرحبًا {name}",
 } as const;

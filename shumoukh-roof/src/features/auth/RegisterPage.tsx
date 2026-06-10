@@ -5,6 +5,7 @@ import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { UserPlus, Eye, EyeOff, AlertCircle, Loader2, Gift } from "lucide-react";
 import { registerUser, getUserProfile } from "./authService";
 import { useAuthStore } from "../../store/authStore";
+import { useT } from "../../i18n";
 
 const easing = [0.22, 1, 0.36, 1];
 
@@ -20,16 +21,17 @@ export default function RegisterPage() {
   const setRole = useAuthStore((s) => s.setRole);
   const setSubscription = useAuthStore((s) => s.setSubscription);
   const reducedMotion = useReducedMotion();
+  const t = useT();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     if (!name.trim()) {
-      setError("يرجى إدخال الاسم");
+      setError(t("auth.error.nameRequired"));
       return;
     }
     if (password.length < 6) {
-      setError("كلمة السر يجب أن تكون 6 أحرف على الأقل");
+      setError(t("auth.error.passwordTooShort"));
       return;
     }
     setLoading(true);
@@ -44,7 +46,7 @@ export default function RegisterPage() {
       setUser(user);
       navigate("/");
     } catch (err: any) {
-      setError(err.message || "فشل إنشاء الحساب");
+      setError(err.message || t("auth.error.registerFailed"));
     } finally {
       setLoading(false);
     }
@@ -72,11 +74,11 @@ export default function RegisterPage() {
           >
             <UserPlus className="w-8 h-8 text-white" />
           </motion.div>
-          <h1 className="text-xl font-black text-earth-800 tracking-tight">إنشاء حساب</h1>
-          <p className="text-sm text-earth-500 mt-1">انضم إلى شموخ ERP</p>
+          <h1 className="text-xl font-black text-earth-800 tracking-tight">{t("auth.createAccount")}</h1>
+          <p className="text-sm text-earth-500 mt-1">{t("auth.registerSubtitle")}</p>
           <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-olive-700 bg-olive-100 border border-olive-200 px-3 py-1.5 rounded-sm">
             <Gift className="w-3.5 h-3.5" />
-            اشتراك مجاني كامل الميزات لمدة 6 أشهر
+            {t("auth.freeTrialBanner")}
           </p>
         </motion.div>
 
@@ -107,8 +109,8 @@ export default function RegisterPage() {
           }}
         >
           {[
-            { label: "الاسم", type: "text", value: name, setter: setName, placeholder: "محمد أحمد", dir: "rtl" },
-            { label: "البريد الإلكتروني", type: "email", value: email, setter: setEmail, placeholder: "info@example.com", dir: "ltr" },
+            { label: t("auth.name"), type: "text", value: name, setter: setName, placeholder: t("auth.namePlaceholder"), dir: "rtl" },
+            { label: t("auth.email"), type: "email", value: email, setter: setEmail, placeholder: "info@example.com", dir: "ltr" },
           ].map((field) => (
             <motion.div
               key={field.label}
@@ -140,7 +142,7 @@ export default function RegisterPage() {
             transition={{ duration: reducedMotion ? 0 : 0.25, ease: easing }}
             className="space-y-1"
           >
-            <label className="text-xs font-bold text-earth-600">كلمة السر</label>
+            <label className="text-xs font-bold text-earth-600">{t("auth.password")}</label>
             <div className="relative">
               <input type={showPw ? "text" : "password"} value={password}
                 onChange={(e) => setPassword(e.target.value)} required dir="ltr" minLength={6}
@@ -212,7 +214,7 @@ export default function RegisterPage() {
                     exit={{ opacity: 0, x: reducedMotion ? 0 : -8 }}
                     transition={{ duration: reducedMotion ? 0 : 0.15 }}
                   >
-                    جارٍ إنشاء الحساب...
+                    {t("auth.creatingAccount")}
                   </motion.span>
                 ) : (
                   <motion.span
@@ -222,7 +224,7 @@ export default function RegisterPage() {
                     exit={{ opacity: 0, x: reducedMotion ? 0 : -8 }}
                     transition={{ duration: reducedMotion ? 0 : 0.15 }}
                   >
-                    إنشاء حساب
+                    {t("auth.createAccount")}
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -236,8 +238,8 @@ export default function RegisterPage() {
           transition={{ duration: reducedMotion ? 0 : 0.3, delay: reducedMotion ? 0 : 0.5 }}
           className="mt-6 text-center text-xs text-earth-500 font-bold"
         >
-          لديك حساب؟{" "}
-          <Link to="/login" className="text-terracotta-600 hover:text-terracotta-700 font-black transition-colors">تسجيل دخول</Link>
+          {t("auth.haveAccount")}{" "}
+          <Link to="/login" className="text-terracotta-600 hover:text-terracotta-700 font-black transition-colors">{t("auth.loginLink")}</Link>
         </motion.div>
       </motion.div>
     </div>
