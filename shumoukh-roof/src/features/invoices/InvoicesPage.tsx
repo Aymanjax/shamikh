@@ -2,8 +2,10 @@ import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { FileText, Plus, Search, Download, Trash2, X, Check, Receipt, User, Hash, DollarSign } from "lucide-react";
+import { Link } from "react-router-dom";
 import { listDocuments, addDocument, deleteDocument, updateDocument } from "../../lib/firestoreService";
 import { printInvoice } from "../../lib/printInvoice";
+import { useAuthStore } from "../../store/authStore";
 import GlassButton from "../../components/ui/GlassButton";
 
 interface Invoice {
@@ -41,6 +43,7 @@ const countLabel = (n: number): string => {
 
 export default function InvoicesPage() {
   const queryClient = useQueryClient();
+  const uid = useAuthStore((s) => s.user?.uid);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState<InvoiceForm>(defaultForm);
@@ -48,15 +51,16 @@ export default function InvoicesPage() {
   const clientInputRef = useRef<HTMLInputElement>(null);
 
   const { data: invoices = [], isLoading: loading, error } = useQuery<Invoice[]>({
-    queryKey: ["invoices"],
+    queryKey: ["invoices", uid],
     queryFn: () => listDocuments("invoices") as Promise<Invoice[]>,
+    enabled: !!uid,
     staleTime: 30_000,
   });
 
   const createMutation = useMutation({
     mutationFn: (data: InvoiceForm) => addDocument("invoices", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices", uid] });
       setModal(false);
       setForm(defaultForm);
       setClientError(false);
@@ -65,13 +69,13 @@ export default function InvoicesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteDocument("invoices", id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["invoices", uid] }),
   });
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       updateDocument("invoices", id, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["invoices", uid] }),
   });
 
   const handleCreate = useCallback(() => {
@@ -188,10 +192,17 @@ export default function InvoicesPage() {
                           <span className="text-sm font-black text-earth-900 truncate">{inv.client}</span>
                         </div>
                         {inv.project && (
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <Hash className="w-2.5 h-2.5 text-earth-400 shrink-0" />
-                            <span className="text-[10px] text-earth-500 truncate">{inv.project}</span>
-                          </div>
+                          inv.projectId ? (
+                            <Link to={`/calculator/${inv.projectId}`} className="flex items-center gap-1.5 mt-0.5 hover:text-terracotta-500 transition-colors w-fit" title="فتح المشروع في الحاسبة">
+                              <Hash className="w-2.5 h-2.5 text-earth-400 shrink-0" />
+                              <span className="text-[10px] text-earth-500 truncate underline underline-offset-2 decoration-earth-300">{inv.project}</span>
+                            </Link>
+                          ) : (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <Hash className="w-2.5 h-2.5 text-earth-400 shrink-0" />
+                              <span className="text-[10px] text-earth-500 truncate">{inv.project}</span>
+                            </div>
+                          )
                         )}
                       </div>
 

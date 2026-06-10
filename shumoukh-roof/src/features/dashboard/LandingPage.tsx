@@ -1,24 +1,27 @@
-import { useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Calculator, FileText, Users, FolderOpen, Trash2, TrendingUp, DollarSign, ArrowLeft, BarChart3, HardHat, Plus } from "lucide-react";
+import {
+  Calculator, FileText, Users, FolderOpen, TrendingUp, DollarSign,
+  ArrowLeft, HardHat, Plus, PencilRuler, Receipt, ShieldAlert,
+} from "lucide-react";
 import { Link } from "react-router-dom";
-import { listDocuments, deleteDocument } from "../../lib/firestoreService";
+import { listDocuments } from "../../lib/firestoreService";
+import { fetchProjects } from "../../services/projectService";
 import { useAuthStore } from "../../store/authStore";
+import { checkPermissions } from "../../utils/subscriptionUtils";
+import { projectStatusInfo, projectName, projectArea, projectDate } from "../../utils/projectDisplay";
+import type { SavedProject } from "../../utils/projectDisplay";
 
 import DepthHero from "../../components/ui/DepthHero";
 import CountUp from "../../components/ui/CountUp";
 import RoofEmptyState from "../../components/ui/RoofEmptyState";
 
-/* ── Firestore Document Shapes ── */
-interface DocBase { id: string; [key: string]: unknown; }
-interface Invoice extends DocBase { status?: string; amount?: number; }
-interface Worker extends DocBase { days?: number; wage?: number; }
-interface Project extends DocBase { client?: { name?: string }; name?: string; result?: { totalTiles?: number; actualArea?: number; totalCost?: number; }; }
+interface Invoice { id: string; client?: string; project?: string; status?: string; amount?: number; }
+interface Worker { id: string; days?: number; wage?: number; }
 
 type Accent = "terracotta" | "olive" | "amber" | "red";
 
-/* ── Accent Color Config (CSS Variables) ── */
 const accent = {
   terracotta: { c: "var(--accent-terracotta)", bg: "var(--accent-terracotta-soft)" },
   olive:      { c: "var(--accent-olive)",      bg: "var(--accent-olive-soft)" },
@@ -26,46 +29,41 @@ const accent = {
   red:        { c: "var(--accent-red)",        bg: "var(--accent-red-soft)" },
 } satisfies Record<Accent, { c: string; bg: string }>;
 
-/* ── Static Navigation Cards ── */
-const cards: { to: string; icon: typeof Calculator; label: string; desc: string; accent: Accent }[] = [
-  { to: "/calculator", icon: Calculator, label: "حساب البضاعة", desc: "حساب كميات القرميد والحديد", accent: "terracotta" },
-  { to: "/projects",  icon: FolderOpen, label: "المشاريع",     desc: "عرض المشاريع المحفوظة",        accent: "olive" },
-  { to: "/invoices",  icon: FileText,   label: "الفواتير",     desc: "إدارة الفواتير وعروض السعر",   accent: "amber" },
-  { to: "/workers",   icon: Users,      label: "العمال",       desc: "إدارة العمال والمهام",         accent: "red" },
-];
+const invoiceStatus: Record<string, { label: string; className: string }> = {
+  paid:    { label: "مدفوعة",      className: "tag-olive" },
+  pending: { label: "قيد الانتظار", className: "tag-amber" },
+  draft:   { label: "مسودة",       className: "bg-earth-100 text-earth-700 border border-earth-300 rounded-[3px]" },
+};
 
 export default function LandingPage() {
   const user = useAuthStore((s) => s.user);
+  const subscription = useAuthStore((s) => s.subscription);
+  const uid = user?.uid;
   const queryClient = useQueryClient();
 
-  /* ── Parallel Firestore Queries via React Query ── */
-  const { data: projects = [], isLoading: pLoad } = useQuery<Project[]>({
-    queryKey: ["projects"],
-    queryFn: () => listDocuments("projects") as Promise<Project[]>,
+  const perms = useMemo(() => checkPermissions(subscription ?? undefined), [subscription]);
+  const showSubscriptionAlert = perms.isExpired || (perms.daysRemaining > 0 && perms.daysRemaining <= 30);
+
+  const { data: projects = [], isLoading: pLoad } = useQuery<SavedProject[]>({
+    queryKey: ["projects", uid],
+    queryFn: () => fetchProjects(uid) as Promise<SavedProject[]>,
+    enabled: !!uid,
     staleTime: 30_000,
   });
 
   const { data: invoices = [], isLoading: iLoad } = useQuery<Invoice[]>({
-    queryKey: ["invoices"],
+    queryKey: ["invoices", uid],
     queryFn: () => listDocuments("invoices") as Promise<Invoice[]>,
+    enabled: !!uid,
     staleTime: 30_000,
   });
 
   const { data: workers = [], isLoading: wLoad, error } = useQuery<Worker[]>({
-    queryKey: ["workers"],
+    queryKey: ["workers", uid],
     queryFn: () => listDocuments("workers") as Promise<Worker[]>,
+    enabled: !!uid,
     staleTime: 30_000,
   });
-
-  /* ── Delete Mutation ── */
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteDocument("projects", id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
-  });
-
-  const handleDeleteProject = useCallback((id: string) => {
-    deleteMutation.mutate(id);
-  }, [deleteMutation]);
 
   const loading = pLoad || iLoad || wLoad;
 
@@ -79,16 +77,15 @@ export default function LandingPage() {
 
   const workerCost = workers.reduce((s, w) => s + (w.days ?? 0) * (w.wage ?? 0), 0);
 
-  const stats = [
-    { icon: FolderOpen,  label: "المشاريع",     count: projects.length,                        accent: "amber" as const },
-    { icon: FileText,    label: "الفواتير",     count: invoices.length,                        accent: "terracotta" as const },
-    { icon: DollarSign,  label: "المدفوع",      count: totalRevenue,      suffix: " د.أ",      accent: "olive" as const },
-    { icon: TrendingUp,  label: "قيد الانتظار",  count: pendingRevenue,    suffix: " د.أ",      accent: "amber" as const },
-    { icon: Users,       label: "العمال",       count: workers.length,                         accent: "red" as const },
-    { icon: Calculator,  label: "تكلفة العمال",  count: workerCost,        suffix: " د.أ",      accent: "olive" as const },
+  const stats: { icon: typeof FolderOpen; label: string; count: number; suffix?: string; accent: Accent; to: string }[] = [
+    { icon: FolderOpen,  label: "المشاريع",     count: projects.length,                   accent: "amber",      to: "/projects" },
+    { icon: FileText,    label: "الفواتير",     count: invoices.length,                   accent: "terracotta", to: "/invoices" },
+    { icon: DollarSign,  label: "المدفوع",      count: totalRevenue,   suffix: " د.أ",    accent: "olive",      to: "/invoices" },
+    { icon: TrendingUp,  label: "قيد الانتظار",  count: pendingRevenue, suffix: " د.أ",    accent: "amber",      to: "/invoices" },
+    { icon: Users,       label: "العمال",       count: workers.length,                    accent: "red",        to: "/workers" },
+    { icon: Calculator,  label: "تكلفة العمال",  count: workerCost,     suffix: " د.أ",    accent: "olive",      to: "/workers" },
   ];
 
-  /* ── Loading Skeleton ── */
   if (loading) {
     return (
       <div className="space-y-6">
@@ -98,16 +95,15 @@ export default function LandingPage() {
             <div key={i} className="h-24 rounded-sm shimmer-skeleton" />
           ))}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="h-28 rounded-sm shimmer-skeleton" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {Array.from({ length: 2 }, (_, i) => (
+            <div key={i} className="h-64 rounded-sm shimmer-skeleton" />
           ))}
         </div>
       </div>
     );
   }
 
-  /* ── Error State ── */
   if (error) {
     return (
       <div className="py-16 text-center">
@@ -126,6 +122,8 @@ export default function LandingPage() {
     );
   }
 
+  const recentInvoices = invoices.slice(0, 5);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -133,7 +131,29 @@ export default function LandingPage() {
       transition={{ duration: 0.25 }}
       className="space-y-6"
     >
-      {/* ── Welcome Hero ── */}
+      {/* تنبيه الاشتراك */}
+      {showSubscriptionAlert && (
+        <Link
+          to="/subscription"
+          className={`flex items-center justify-between gap-3 px-4 py-3 rounded-sm border transition-colors ${
+            perms.isExpired
+              ? "bg-red-50 border-red-200 hover:bg-red-100"
+              : "bg-amber-50 border-amber-200 hover:bg-amber-100"
+          }`}
+        >
+          <span className={`flex items-center gap-2 text-xs font-bold ${perms.isExpired ? "text-red-700" : "text-amber-800"}`}>
+            <ShieldAlert className="w-4 h-4 shrink-0" />
+            {perms.isExpired
+              ? "انتهى اشتراكك، بياناتك محفوظة. جدد الآن لاستعادة كل الميزات."
+              : `اشتراكك ينتهي خلال ${perms.daysRemaining} يوم.`}
+          </span>
+          <span className={`text-[10px] font-black inline-flex items-center gap-1 shrink-0 ${perms.isExpired ? "text-red-700" : "text-amber-800"}`}>
+            التفاصيل <ArrowLeft className="w-3 h-3" />
+          </span>
+        </Link>
+      )}
+
+      {/* الترحيب */}
       <DepthHero className="earth-card depth-hero-accent p-6 md:p-8">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
@@ -150,7 +170,10 @@ export default function LandingPage() {
                   متصل
                 </span>
               </div>
-              <p className="text-sm text-earth-500 mt-1">ادِر مشاريع القرميد: حساب الكميات، العمال، والفواتير</p>
+              <p className="text-sm text-earth-500 mt-1">
+                {new Date().toLocaleDateString("ar-JO", { weekday: "long", day: "numeric", month: "long" })}
+                {" — "}دفترك اليوم: المشاريع، العمال، والفواتير في مكان واحد
+              </p>
             </div>
           </div>
           <Link
@@ -163,13 +186,15 @@ export default function LandingPage() {
         </div>
       </DepthHero>
 
-      {/* ── Stats Grid ── */}
+      {/* الإحصائيات — كل رقم يفتح صفحته */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {stats.map((s) => (
-          <div
+          <Link
             key={s.label}
-            className="bg-white border border-earth-200 rounded-sm p-3 transition-all duration-150 hover:shadow-card-hover hover:-translate-y-0.5"
+            to={s.to}
+            className="bg-white border border-earth-200 rounded-sm p-3 transition-all duration-150 hover:shadow-card-hover hover:-translate-y-0.5 hover:border-earth-300 block"
             style={{ borderRight: `3px solid ${accent[s.accent].c}` }}
+            aria-label={`${s.label}: ${s.count}${s.suffix || ""}`}
           >
             <div
               className="w-8 h-8 rounded-sm border-l-2 flex items-center justify-center mb-2"
@@ -182,87 +207,119 @@ export default function LandingPage() {
               {s.suffix}
             </p>
             <p className="text-[10px] text-earth-500 font-bold">{s.label}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
-      {/* ── Quick Actions ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {cards.map((card) => (
-          <Link
-            key={card.to}
-            to={card.to}
-            className="bg-white border border-earth-200 rounded-sm p-5 block hover:border-earth-300 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-150"
-            style={{ borderRight: `3px solid ${accent[card.accent].c}` }}
-          >
-            <div
-              className="w-10 h-10 rounded-sm flex items-center justify-center mb-3 border-l-3"
-              style={{
-                backgroundColor: accent[card.accent].bg,
-                borderLeftColor: accent[card.accent].c,
-              }}
-            >
-              <card.icon className="w-5 h-5" style={{ color: accent[card.accent].c }} />
+      {/* سجلا العمل: المشاريع والفواتير جنباً إلى جنب */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* آخر المشاريع */}
+        <div className="bg-white border border-earth-200 rounded-sm overflow-hidden" style={{ borderRight: "3px solid var(--accent-amber)" }}>
+          <div className="px-5 py-3.5 border-b border-earth-200 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FolderOpen className="w-4 h-4" style={{ color: "var(--accent-amber)" }} />
+              <h2 className="text-xs font-black text-earth-900">آخر المشاريع</h2>
             </div>
-            <h3 className="font-black text-earth-900 mb-1 text-sm">{card.label}</h3>
-            <p className="text-[10px] text-earth-500 font-medium">{card.desc}</p>
-          </Link>
-        ))}
-      </div>
-
-      {/* ── Recent Projects ── */}
-      <div className="bg-white border border-earth-200 rounded-sm overflow-hidden" style={{ borderRight: "3px solid var(--accent-amber)" }}>
-        <div className="px-5 py-3.5 border-b border-earth-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" style={{ color: "var(--accent-amber)" }} />
-            <h2 className="text-xs font-black text-earth-900">آخر المشاريع</h2>
+            <Link
+              to="/projects"
+              className="text-[10px] font-bold flex items-center gap-1 transition-colors hover:opacity-80 group"
+              style={{ color: "var(--accent-olive)" }}
+            >
+              عرض الكل <ArrowLeft className="w-3 h-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
+            </Link>
           </div>
-          <Link
-            to="/projects"
-            className="text-[10px] font-bold flex items-center gap-1 transition-colors hover:opacity-80 group"
-            style={{ color: "var(--accent-olive)" }}
-          >
-            عرض الكل <ArrowLeft className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" />
-          </Link>
+
+          {projects.length === 0 ? (
+            <RoofEmptyState />
+          ) : (
+            <div className="divide-y divide-earth-100">
+              {projects.slice(0, 5).map((p) => {
+                const status = projectStatusInfo(p.status);
+                const area = projectArea(p);
+                return (
+                  <Link
+                    key={p.id}
+                    to={`/calculator/${p.id}`}
+                    className="px-5 py-3 flex items-center justify-between gap-3 transition-colors hover:bg-earth-50 group"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-black text-earth-900 truncate">{projectName(p)}</p>
+                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-[3px] border shrink-0 ${status.className}`}>
+                          {status.label}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-earth-500 font-mono mt-0.5">
+                        {area > 0 ? `${area.toFixed(1)} م²` : "بدون رسم"}
+                        {p.summary?.totalTiles ? ` · ${p.summary.totalTiles} حبة` : ""}
+                        {projectDate(p) ? ` · ${projectDate(p)}` : ""}
+                      </p>
+                    </div>
+                    <span className="flex items-center gap-1.5 shrink-0 text-[10px] font-bold text-earth-400 group-hover:text-olive-600 transition-colors">
+                      {p.summary?.totalCost ? (
+                        <span className="font-black font-mono" style={{ color: "var(--accent-olive)" }}>
+                          {p.summary.totalCost} د.أ
+                        </span>
+                      ) : null}
+                      <PencilRuler className="w-3.5 h-3.5" />
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {projects.length === 0 ? (
-          <RoofEmptyState />
-        ) : (
-          <div className="divide-y divide-earth-100">
-            {projects.slice(0, 5).map((p) => (
-              <div
-                key={p.id}
-                className="px-5 py-3 flex items-center justify-between transition-colors hover:bg-earth-50 group"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-black text-earth-900 truncate">
-                    {(p.client && typeof p.client === "object" && "name" in p.client
-                      ? (p.client as { name?: string }).name
-                      : p.name) || "مشروع"}
-                  </p>
-                  <p className="text-[10px] text-earth-500 font-mono mt-0.5">
-                    {p.result?.totalTiles || 0} tiles · {p.result?.actualArea?.toFixed(1) || "?"} م²
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition shrink-0">
-                  {p.result?.totalCost && (
-                    <span className="text-[10px] font-black font-mono" style={{ color: "var(--accent-olive)" }}>
-                      {p.result.totalCost} د.أ
-                    </span>
-                  )}
-                  <button
-                    onClick={() => handleDeleteProject(p.id)}
-                    className="text-earth-500 hover:text-red-500 transition cursor-pointer p-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-400"
-                    aria-label="حذف المشروع"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
+        {/* آخر الفواتير */}
+        <div className="bg-white border border-earth-200 rounded-sm overflow-hidden" style={{ borderRight: "3px solid var(--accent-terracotta)" }}>
+          <div className="px-5 py-3.5 border-b border-earth-200 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Receipt className="w-4 h-4" style={{ color: "var(--accent-terracotta)" }} />
+              <h2 className="text-xs font-black text-earth-900">آخر الفواتير</h2>
+            </div>
+            <Link
+              to="/invoices"
+              className="text-[10px] font-bold flex items-center gap-1 transition-colors hover:opacity-80 group"
+              style={{ color: "var(--accent-olive)" }}
+            >
+              عرض الكل <ArrowLeft className="w-3 h-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
+            </Link>
           </div>
-        )}
+
+          {recentInvoices.length === 0 ? (
+            <div className="py-12 text-center">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-sm bg-earth-100 border-2 border-earth-200 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-earth-400" />
+              </div>
+              <p className="text-xs font-black text-earth-700">لا توجد فواتير بعد</p>
+              <p className="text-[10px] text-earth-500 mt-1">أنشئ فاتورة من صفحة الفواتير أو من تفاصيل أي مشروع</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-earth-100">
+              {recentInvoices.map((inv) => {
+                const st = invoiceStatus[inv.status || "draft"] || invoiceStatus.draft;
+                return (
+                  <Link
+                    key={inv.id}
+                    to="/invoices"
+                    className="px-5 py-3 flex items-center justify-between gap-3 transition-colors hover:bg-earth-50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-black text-earth-900 truncate">{inv.client || "بدون اسم"}</p>
+                      {inv.project && <p className="text-[10px] text-earth-500 truncate mt-0.5">{inv.project}</p>}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-black font-mono text-earth-900" dir="ltr">{inv.amount ?? 0} JOD</span>
+                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-[3px] border ${st.className}`}>
+                        {st.label}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </motion.div>
   );

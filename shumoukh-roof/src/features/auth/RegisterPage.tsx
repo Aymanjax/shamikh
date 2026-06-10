@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
-import { UserPlus, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
-import { registerUser } from "./authService";
+import { UserPlus, Eye, EyeOff, AlertCircle, Loader2, Gift } from "lucide-react";
+import { registerUser, getUserProfile } from "./authService";
 import { useAuthStore } from "../../store/authStore";
 
 const easing = [0.22, 1, 0.36, 1];
@@ -17,6 +17,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const setUser = useAuthStore((s) => s.setUser);
+  const setRole = useAuthStore((s) => s.setRole);
+  const setSubscription = useAuthStore((s) => s.setSubscription);
   const reducedMotion = useReducedMotion();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,6 +35,12 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const user = await registerUser(email, password, name);
+      // مزامنة الاشتراك المجاني (6 أشهر) مع المتجر مباشرة حتى تُفتح كل الميزات فوراً
+      const profile = await getUserProfile(user.uid).catch(() => null);
+      if (profile) {
+        setRole(profile.role || "user");
+        setSubscription(profile.subscription || null);
+      }
       setUser(user);
       navigate("/");
     } catch (err: any) {
@@ -66,6 +74,10 @@ export default function RegisterPage() {
           </motion.div>
           <h1 className="text-xl font-black text-earth-800 tracking-tight">إنشاء حساب</h1>
           <p className="text-sm text-earth-500 mt-1">انضم إلى شموخ ERP</p>
+          <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-olive-700 bg-olive-100 border border-olive-200 px-3 py-1.5 rounded-sm">
+            <Gift className="w-3.5 h-3.5" />
+            اشتراك مجاني كامل الميزات لمدة 6 أشهر
+          </p>
         </motion.div>
 
         <AnimatePresence mode="wait">

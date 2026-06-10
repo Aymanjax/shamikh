@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import {
   ShieldCheck, Users, Bell, FolderOpen, FileText,
-  Truck, HardHat, Settings, History, Activity,
+  Truck, HardHat, Settings, History,
   Search, RotateCw, Ban, UserCheck, Shield,
   AlertCircle, Clock, CreditCard,
 } from "lucide-react";
@@ -41,6 +41,12 @@ const USER_FILTERS = [
   { key: "admins", label: "مديرين" },
 ];
 
+const PLAN_TAG_CLASSES: Record<string, string> = {
+  free_trial: "tag-amber",
+  basic: "tag-olive",
+  advanced: "tag-terracotta",
+};
+
 export default function AdminDashboard() {
   const [tab, setTab] = useState<TabKey>("dashboard");
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -51,6 +57,7 @@ export default function AdminDashboard() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [bulkPlan, setBulkPlan] = useState(SUBSCRIPTION_TYPES.FREE_TRIAL);
   const [bulkDays, setBulkDays] = useState(180);
+  const [bulkApplying, setBulkApplying] = useState(false);
 
   const loadUsers = async () => {
     setUsersLoading(true); setError("");
@@ -86,11 +93,15 @@ export default function AdminDashboard() {
 
   const applySubscriptionToAll = async () => {
     const nonAdmins = users.filter((u) => u.role !== "admin" && !u.banned);
+    const planLabel = PLAN_OPTIONS.find((o) => o.value === bulkPlan)?.label || bulkPlan;
+    if (!confirm(`تطبيق اشتراك "${planLabel}" لمدة ${bulkDays} يوم على ${nonAdmins.length} مستخدم؟`)) return;
+    setBulkApplying(true);
     for (const u of nonAdmins) {
       try { await setSubscriptionByDays(u.uid, bulkPlan, bulkDays); }
-      catch { /* skip */ }
+      catch { /* تخطي المستخدم عند الفشل وإكمال الباقي */ }
     }
     setUsers(await listAllUsers());
+    setBulkApplying(false);
   };
 
   const filteredUsers = users
@@ -111,21 +122,21 @@ export default function AdminDashboard() {
 
   const renderUsers = () => (
     <div className="space-y-4">
-      <div className="glass-card p-4">
+      <div className="earth-card p-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-ice-blue-600" />
-            <span className="font-black text-ink-primary">{users.length}</span>
-            <span className="text-sm text-ink-muted">مستخدم</span>
+            <Users className="w-5 h-5 text-terracotta-500" />
+            <span className="font-black font-mono text-earth-900">{users.length}</span>
+            <span className="text-sm text-earth-500 font-bold">مستخدم</span>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-64">
-              <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted" />
+              <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-earth-400" />
               <input value={search} onChange={(e) => setSearch(e.target.value)}
-                placeholder="ابحث بالاسم أو البريد..."
-                className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2 pr-9 pl-3 text-sm text-ink-primary outline-none focus:border-ice-blue-500 transition font-medium" />
+                placeholder="ابحث بالاسم أو البريد أو الشركة"
+                className="w-full bg-white border-2 border-earth-200 rounded-xl py-2 pr-9 pl-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400" />
             </div>
-            <button onClick={loadUsers} className="text-ink-muted hover:text-ink-secondary p-2 hover:bg-slate-100 rounded-lg transition border-2 border-transparent hover:border-slate-200" title="تحديث">
+            <button onClick={loadUsers} className="text-earth-500 hover:text-earth-700 p-2 hover:bg-earth-100 rounded-sm transition cursor-pointer" title="تحديث القائمة" aria-label="تحديث القائمة">
               <RotateCw className={`w-4 h-4 ${usersLoading ? "animate-spin" : ""}`} />
             </button>
           </div>
@@ -133,8 +144,10 @@ export default function AdminDashboard() {
         <div className="flex gap-1.5 flex-wrap">
           {USER_FILTERS.map((f) => (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`text-xs font-black px-3 py-1.5 rounded-lg transition border-2 ${
-                filter === f.key ? "bg-ice-blue-600 text-white border-ice-blue-600" : "bg-white text-ink-muted border-slate-200 hover:border-slate-300"
+              className={`text-xs font-black px-3 py-1.5 rounded-sm transition border cursor-pointer ${
+                filter === f.key
+                  ? "bg-earth-800 text-white border-earth-800"
+                  : "bg-white text-earth-600 border-earth-200 hover:border-earth-300"
               }`}>
               {f.label}
             </button>
@@ -142,116 +155,112 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="glass-card p-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-black text-ink-muted whitespace-nowrap">اشتراك جماعي:</span>
+      <div className="earth-card p-3 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-black text-earth-600 whitespace-nowrap">اشتراك جماعي:</span>
         <select value={bulkPlan} onChange={(e) => setBulkPlan(e.target.value)}
-          className="bg-white border-2 border-slate-200 rounded-lg py-1.5 px-2 text-xs text-ink-primary outline-none cursor-pointer font-medium">
+          className="bg-white border-2 border-earth-200 rounded-sm py-1.5 px-2 text-xs text-earth-900 outline-none cursor-pointer font-bold focus:border-terracotta-400">
           {PLAN_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
         </select>
         <input type="number" value={bulkDays} onChange={(e) => setBulkDays(Number(e.target.value))} min="1"
-          className="bg-white border-2 border-slate-200 rounded-lg py-1.5 px-2 text-xs text-ink-primary outline-none w-16 text-center font-medium" placeholder="أيام" />
-        <button onClick={applySubscriptionToAll}
-          className="bg-amber-600 hover:bg-amber-700 text-white py-1.5 px-4 rounded-lg text-xs font-bold transition whitespace-nowrap border-2 border-amber-600">
-          تطبيق على الكل
+          className="bg-white border-2 border-earth-200 rounded-sm py-1.5 px-2 text-xs text-earth-900 outline-none w-20 text-center font-mono font-black focus:border-terracotta-400" aria-label="عدد الأيام" />
+        <span className="text-[10px] text-earth-500 font-bold">يوم</span>
+        <button onClick={applySubscriptionToAll} disabled={bulkApplying || users.length === 0}
+          className="bg-terracotta-500 hover:bg-terracotta-600 active:bg-terracotta-700 disabled:opacity-40 text-white py-1.5 px-4 rounded-sm text-xs font-bold transition whitespace-nowrap border-r-3 border-terracotta-700 cursor-pointer">
+          {bulkApplying ? "جارٍ التطبيق..." : "تطبيق على الكل"}
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border-2 border-red-200 text-red-600 font-bold text-sm p-4 rounded-xl flex items-start gap-2">
+        <div className="bg-red-50 border border-red-200 text-red-700 font-bold text-sm p-4 rounded-sm flex items-start gap-2" role="alert">
           <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
           {error}
         </div>
       )}
 
       {usersLoading ? (
-        <div className="text-center py-12 text-ink-muted">
-          <div className="animate-spin w-6 h-6 border-2 border-ice-blue-500 border-t-transparent rounded-full mx-auto mb-2" />
-          <p className="text-sm font-bold">جاري التحميل...</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-40 rounded-sm shimmer-skeleton" />
+          ))}
         </div>
       ) : filteredUsers.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {filteredUsers.map((u) => {
             const planLabel = getSubscriptionLabel(u.subscription?.subscriptionType);
             const remaining = getDaysRemaining(u.subscription?.subscriptionEndDate);
-            const planColor = u.subscription?.subscriptionType === "free_trial" ? "text-amber-700 bg-amber-50 border-amber-200" :
-              u.subscription?.subscriptionType === "basic" ? "text-emerald-700 bg-emerald-50 border-emerald-200" :
-              u.subscription?.subscriptionType === "advanced" ? "text-amber-700 bg-amber-50 border-amber-200" :
-              "text-slate-600 bg-slate-50 border-slate-200";
+            const planTag = PLAN_TAG_CLASSES[u.subscription?.subscriptionType || ""] || "bg-earth-100 text-earth-700 border-earth-300";
             return (
-            <div key={u.uid} className="glass-card p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 shrink-0 rounded-lg bg-ice-blue-600 flex items-center justify-center text-white font-black text-sm">
-                    {(u.displayName || u.email || "?")[0].toUpperCase()}
+              <div key={u.uid} className="earth-card p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 shrink-0 rounded-sm bg-terracotta-500 border-l-2 border-terracotta-300 flex items-center justify-center text-white font-black text-sm">
+                      {(u.displayName || u.email || "?")[0].toUpperCase()}
+                    </div>
+                    <div className="min-w-0 overflow-hidden">
+                      <p className="text-sm font-black text-earth-900 truncate" title={u.displayName || "بلا اسم"}>{u.displayName || "بلا اسم"}</p>
+                      <p className="text-xs text-earth-500 truncate" dir="ltr" title={u.email || ""}>{u.email}</p>
+                      {u.companyName && <p className="text-xs text-earth-500 truncate" title={u.companyName}>{u.companyName}</p>}
+                    </div>
                   </div>
-                  <div className="min-w-0 overflow-hidden">
-                    <p className="text-sm font-black text-ink-primary truncate" title={u.displayName || "بلا اسم"}>{u.displayName || "بلا اسم"}</p>
-                    <p className="text-xs text-ink-muted truncate" dir="ltr" title={u.email || ""}>{u.email}</p>
-                    {u.companyName && <p className="text-xs text-ink-muted truncate" title={u.companyName}>{u.companyName}</p>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {u.banned && <span className="text-xs font-black text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-lg">محظور</span>}
-                  <span className={`text-xs font-black px-2 py-0.5 rounded-lg border-2 ${
-                    u.role === "admin" ? "text-amber-600 bg-amber-50 border-amber-200" : "text-slate-600 bg-slate-50 border-slate-200"
-                  }`}>
-                    {u.role === "admin" ? "مدير" : "مستخدم"}
-                  </span>
-                </div>
-              </div>
-              {u.subscription?.subscriptionType && (
-                <div className="mb-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-xs font-black px-2 py-0.5 rounded-lg border-2 ${planColor}`}>
-                      <CreditCard className="w-3 h-3 inline ml-1" />{planLabel}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {u.banned && <span className="text-[10px] font-black text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-[3px]">محظور</span>}
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-[3px] border ${
+                      u.role === "admin" ? "tag-terracotta" : "bg-earth-100 text-earth-600 border-earth-200"
+                    }`}>
+                      {u.role === "admin" ? "مدير" : "مستخدم"}
                     </span>
-                    {u.subscription?.subscriptionType !== SUBSCRIPTION_TYPES.ADVANCED && (
-                      <span className={`text-xs font-black ${u.isExpired ? "text-red-500" : "text-emerald-600"}`}>
+                  </div>
+                </div>
+                {u.subscription?.subscriptionType && (
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-[3px] border inline-flex items-center gap-1 ${planTag}`}>
+                        <CreditCard className="w-3 h-3" />{planLabel}
+                      </span>
+                      <span className={`text-[10px] font-black font-mono ${u.isExpired ? "text-red-500" : "text-olive-600"}`}>
                         {u.isExpired ? "منتهي" : `${remaining} يوم`}
                       </span>
+                    </div>
+                    {u.subscription?.subscriptionEndDate && (
+                      <div className="w-full h-1.5 bg-earth-100 rounded-[3px] overflow-hidden">
+                        <div className={`h-full transition-all ${u.isExpired ? "bg-red-400" : "bg-olive-500"}`}
+                          style={{ width: `${Math.min(100, Math.round((remaining / 180) * 100))}%` }} />
+                      </div>
                     )}
                   </div>
-                  {u.subscription?.subscriptionType !== SUBSCRIPTION_TYPES.ADVANCED && u.subscription?.subscriptionEndDate && (
-                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${u.isExpired ? "bg-red-400" : "bg-emerald-400"}`}
-                        style={{ width: `${Math.min(100, Math.round((remaining / 180) * 100))}%` }} />
-                    </div>
+                )}
+                <div className="flex items-center gap-1">
+                  {u.role !== "admin" ? (
+                    <button onClick={() => handleRole(u.uid, "admin")}
+                      className="flex-1 text-[10px] font-black text-amber-700 bg-amber-50 hover:bg-amber-100 py-1.5 rounded-sm transition flex items-center justify-center gap-1 border border-amber-200 cursor-pointer">
+                      <Shield className="w-3 h-3" /> ترقية
+                    </button>
+                  ) : (
+                    <button onClick={() => handleRole(u.uid, "user")}
+                      className="flex-1 text-[10px] font-black text-earth-600 bg-earth-50 hover:bg-earth-100 py-1.5 rounded-sm transition flex items-center justify-center gap-1 border border-earth-200 cursor-pointer">
+                      <UserCheck className="w-3 h-3" /> تخفيض
+                    </button>
                   )}
+                  <button onClick={() => setSelectedUser(u)}
+                    className="flex-1 text-[10px] font-black text-olive-700 bg-olive-50 hover:bg-olive-100 py-1.5 rounded-sm transition flex items-center justify-center gap-1 border border-olive-200 cursor-pointer">
+                    <Clock className="w-3 h-3" /> اشتراك
+                  </button>
+                  <button onClick={() => handleBan(u.uid, u.banned || false)}
+                    className={`flex-1 text-[10px] font-black py-1.5 rounded-sm transition flex items-center justify-center gap-1 border cursor-pointer ${
+                      u.banned
+                        ? "text-olive-700 bg-olive-50 hover:bg-olive-100 border-olive-200"
+                        : "text-red-600 bg-red-50 hover:bg-red-100 border-red-200"
+                    }`}>
+                    {u.banned ? <UserCheck className="w-3 h-3" /> : <Ban className="w-3 h-3" />}
+                    {u.banned ? "رفع الحظر" : "حظر"}
+                  </button>
                 </div>
-              )}
-              <div className="flex items-center gap-1">
-                {u.role !== "admin" && (
-                  <button onClick={() => handleRole(u.uid, "admin")}
-                    className="flex-1 text-xs font-black text-amber-600 bg-amber-50 hover:bg-amber-100 py-1.5 rounded-lg transition flex items-center justify-center gap-1 border-2 border-amber-200">
-                    <Shield className="w-3 h-3" /> ترقية
-                  </button>
-                )}
-                {u.role === "admin" && (
-                  <button onClick={() => handleRole(u.uid, "user")}
-                    className="flex-1 text-xs font-black text-slate-600 bg-slate-50 hover:bg-slate-100 py-1.5 rounded-lg transition flex items-center justify-center gap-1 border-2 border-slate-200">
-                    <UserCheck className="w-3 h-3" /> تخفيض
-                  </button>
-                )}
-                <button onClick={() => setSelectedUser(u)}
-                  className="flex-1 text-xs font-black text-ice-blue-600 bg-ice-blue-50 hover:bg-ice-blue-100 py-1.5 rounded-lg transition flex items-center justify-center gap-1 border-2 border-ice-blue-200">
-                  <Clock className="w-3 h-3" /> اشتراك
-                </button>
-                <button onClick={() => handleBan(u.uid, u.banned || false)}
-                  className={`flex-1 text-xs font-black py-1.5 rounded-lg transition flex items-center justify-center gap-1 border-2 ${
-                    u.banned
-                      ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
-                      : "text-red-600 bg-red-50 hover:bg-red-100 border-red-200"
-                  }`}>
-                  {u.banned ? <UserCheck className="w-3 h-3" /> : <Ban className="w-3 h-3" />}
-                  {u.banned ? "رفع" : "حظر"}
-                </button>
               </div>
-            </div>
             );
           })}
         </div>
       ) : (
-        <div className="text-center py-12 text-ink-muted">
+        <div className="text-center py-12 text-earth-500">
           <Users className="w-10 h-10 mx-auto mb-2 opacity-50" />
           <p className="text-sm font-black">لا يوجد مستخدمين مطابقين</p>
         </div>
@@ -264,25 +273,25 @@ export default function AdminDashboard() {
       <SubscriptionModal open={!!selectedUser} user={selectedUser} onClose={() => setSelectedUser(null)} onSave={handleSubSave} />
 
       <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/30">
-          <ShieldCheck className="w-6 h-6 text-white" />
+        <div className="w-12 h-12 rounded-sm bg-earth-800 flex items-center justify-center border-l-3 border-terracotta-500 shrink-0">
+          <ShieldCheck className="w-6 h-6 text-terracotta-400" />
         </div>
         <div>
-          <h1 className="text-xl font-black text-ink-primary tracking-tight">لوحة التحكم</h1>
-          <p className="text-sm text-ink-muted">إدارة النظام والمستخدمين</p>
+          <h1 className="text-xl font-black text-earth-900 tracking-tight">لوحة التحكم</h1>
+          <p className="text-sm text-earth-500">إدارة النظام والمستخدمين والاشتراكات</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 lg:grid-cols-5 gap-1.5">
+      <div className="bg-white border border-earth-200 rounded-sm p-1.5 flex flex-wrap gap-1">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`relative py-2.5 px-1 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 border-2 ${
+            className={`py-2 px-3 rounded-sm text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               tab === t.key
-                ? "bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20"
-                : "bg-white border-slate-200 text-ink-muted hover:text-ink-secondary hover:border-slate-300"
+                ? "bg-earth-800 text-white border-r-2 border-terracotta-500"
+                : "bg-transparent text-earth-500 hover:text-earth-700 hover:bg-earth-50 border-r-2 border-transparent"
             }`}>
             <t.icon className="w-3.5 h-3.5" />
-            <span className="hidden lg:inline">{t.label}</span>
+            <span className="hidden sm:inline">{t.label}</span>
           </button>
         ))}
       </div>

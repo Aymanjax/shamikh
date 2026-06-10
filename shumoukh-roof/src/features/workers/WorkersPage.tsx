@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Plus, Phone, MapPin, Calendar, X, Trash2, HardHat } from "lucide-react";
 import { listDocuments, addDocument, deleteDocument } from "../../lib/firestoreService";
+import { useAuthStore } from "../../store/authStore";
 import SubscriptionGuard from "../../components/SubscriptionGuard";
 import GlassButton from "../../components/ui/GlassButton";
 
@@ -29,19 +30,21 @@ const roles = ["مبلط", "حداد", "مساعد", "عامل", "مشرف", "س
 
 export default function WorkersPage() {
   const queryClient = useQueryClient();
+  const uid = useAuthStore((s) => s.user?.uid);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState<WorkerForm>(defaultForm);
 
   const { data: workers = [], isLoading: loading, error } = useQuery<Worker[]>({
-    queryKey: ["workers"],
+    queryKey: ["workers", uid],
     queryFn: () => listDocuments("workers") as Promise<Worker[]>,
+    enabled: !!uid,
     staleTime: 30_000,
   });
 
   const createMutation = useMutation({
     mutationFn: (data: WorkerForm) => addDocument("workers", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workers"] });
+      queryClient.invalidateQueries({ queryKey: ["workers", uid] });
       setModal(false);
       setForm(defaultForm);
     },
@@ -49,7 +52,7 @@ export default function WorkersPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteDocument("workers", id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workers"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["workers", uid] }),
   });
 
   const handleCreate = useCallback(() => {
@@ -83,11 +86,9 @@ export default function WorkersPage() {
             <p className="text-sm text-earth-500">إدارة العمال والمهام اليومية</p>
           </div>
         </div>
-        <button onClick={() => setModal(true)}>
-          <GlassButton variant="primary" size="sm" icon={<Plus className="w-4 h-4" />}>
-            إضافة عامل
-          </GlassButton>
-        </button>
+        <GlassButton variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setModal(true)}>
+          إضافة عامل
+        </GlassButton>
       </div>
 
       <SubscriptionGuard permission="canManageWorkers">

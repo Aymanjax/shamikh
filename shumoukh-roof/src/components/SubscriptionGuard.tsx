@@ -1,8 +1,7 @@
-// @ts-nocheck
-import { Lock, Crown } from "lucide-react";
+import { Lock, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { checkPermissions } from "../utils/subscriptionUtils";
-import { getSubscriptionLabel } from "../utils/subscriptionUtils";
+import { checkPermissions, getSubscriptionLabel } from "../utils/subscriptionUtils";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -13,7 +12,7 @@ type Props = {
 
 export default function SubscriptionGuard({ permission, children, fallback }: Props) {
   const subscription = useAuthStore((s) => s.subscription);
-  const perms = checkPermissions(subscription);
+  const perms = checkPermissions(subscription ?? undefined);
   const allowed = perms[permission];
 
   if (allowed) return <>{children}</>;
@@ -24,22 +23,29 @@ export default function SubscriptionGuard({ permission, children, fallback }: Pr
 
   return (
     <div className="relative">
-      <div className="absolute inset-0 bg-slate-100/95 z-10 flex items-center justify-center rounded-2xl">
+      <div className="absolute inset-0 bg-earth-100/95 z-10 flex items-center justify-center rounded-sm border border-earth-200">
         <div className="text-center p-6 max-w-xs">
-          <div className="w-14 h-14 rounded-xl bg-amber-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-amber-600/30">
-            <Lock className="w-7 h-7 text-white" />
+          <div className="w-12 h-12 rounded-sm bg-terracotta-500 border-l-3 border-terracotta-300 flex items-center justify-center mx-auto mb-3">
+            <Lock className="w-6 h-6 text-white" />
           </div>
-          <h3 className="text-sm font-black text-ink-primary mb-1">هذه الميزة مقفولة</h3>
-          <p className="text-xs text-ink-muted mb-3 font-medium">
-            خطتك الحالية ({planLabel}) لا تدعم هذه الميزة. رقّي خطتك للاستفادة.
+          <h3 className="text-sm font-black text-earth-900 mb-1">
+            {perms.isExpired ? "انتهى اشتراكك" : "هذه الميزة غير متاحة في خطتك"}
+          </h3>
+          <p className="text-xs text-earth-600 mb-4 leading-relaxed">
+            {perms.isExpired
+              ? "بياناتك محفوظة، جدد الاشتراك لاستعادة الوصول الكامل."
+              : `خطتك الحالية (${planLabel}) لا تشمل هذه الميزة.`}
           </p>
-          <a href="https://wa.me/962788859723" target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-lg shadow-amber-600/20 transition border-2 border-amber-600">
-            <Crown className="w-4 h-4" /> ترقية الاشتراك
-          </a>
+          <Link
+            to="/subscription"
+            className="inline-flex items-center gap-1.5 bg-olive-700 hover:bg-olive-800 active:bg-olive-900 text-white text-xs font-bold px-4 py-2.5 rounded-sm border-r-3 border-olive-900 transition-colors"
+          >
+            عرض خطط الاشتراك
+            <ArrowLeft className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </div>
-      <div className="opacity-30 pointer-events-none select-none">{children}</div>
+      <div className="opacity-30 pointer-events-none select-none" aria-hidden="true">{children}</div>
     </div>
   );
 }

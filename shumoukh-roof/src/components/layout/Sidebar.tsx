@@ -12,6 +12,7 @@ const links = [
   { to: "/projects", icon: FolderOpen, label: "المشاريع" },
   { to: "/invoices", icon: FileText, label: "الفواتير" },
   { to: "/workers", icon: Users, label: "العمال" },
+  { to: "/subscription", icon: CreditCard, label: "الاشتراك" },
   { to: "/settings", icon: Settings, label: "الإعدادات" },
   { to: "/admin", icon: ShieldCheck, label: "التحكم", adminOnly: true },
 ];
@@ -83,7 +84,7 @@ export default function Sidebar({ isAdmin, collapsed, onToggle }: { isAdmin: boo
               </div>
             </div>
             {subscription?.subscriptionType && (
-              <div className="flex items-center gap-1.5">
+              <NavLink to="/subscription" className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
                 <CreditCard className="w-3 h-3 text-terracotta-400" />
                 <span className="text-[9px] font-bold text-terracotta-400">{getSubscriptionLabel(subscription.subscriptionType)}</span>
                 {subscription.subscriptionEndDate && (
@@ -91,7 +92,7 @@ export default function Sidebar({ isAdmin, collapsed, onToggle }: { isAdmin: boo
                     · {getDaysRemaining(subscription.subscriptionEndDate) > 0 ? `${getDaysRemaining(subscription.subscriptionEndDate)} يوم` : "منتهي"}
                   </span>
                 )}
-              </div>
+              </NavLink>
             )}
           </div>
         )}

@@ -405,6 +405,12 @@ export default function CalculatorPage() {
           withDecor: input.withDecor,
           enableInsulation: input.enableInsulation,
         },
+        summary: {
+          totalTiles: result?.totalTiles ?? 0,
+          flatArea: result?.flatArea ?? 0,
+          actualArea: result?.actualArea ?? 0,
+          totalCost: costResult ? Math.round(costResult.totalWithNathrayat) : null,
+        },
         status: "draft",
       };
 
@@ -1130,6 +1136,10 @@ export default function CalculatorPage() {
               <span className="text-xs font-bold text-earth-900">محفوظ لـ {saveSuccess}</span>
             </div>
             <div className="w-px h-5 bg-slate-200" />
+            <button onClick={() => navigate("/projects")}
+              className="bg-earth-100 hover:bg-earth-200 text-earth-700 font-bold py-1.5 px-3 rounded-sm transition text-[10px] cursor-pointer border-2 border-earth-200">
+              عرض في المشاريع
+            </button>
             {saveClient.phone && (
               <button onClick={() => {
                 const lines = [];
