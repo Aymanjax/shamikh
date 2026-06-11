@@ -1,4 +1,7 @@
 // @ts-nocheck
+import { useState } from "react";
+import { useT } from "../../i18n";
+
 const CATEGORIES = [
   {
     name: "كراجات ومستودعات",
@@ -92,7 +95,97 @@ const CATEGORIES = [
   },
 ];
 
+// مولّدات الأشكال البارامترية — كل القيم بالمتر، y للأسفل
+const snap05 = (v) => Math.round(v * 2) / 2;
+
+function buildL({ A, B, a, b }) {
+  if (!(a < A && b < B)) return null;
+  return [
+    { x: 0, y: 0 }, { x: A - a, y: 0 }, { x: A - a, y: b }, { x: A, y: b },
+    { x: A, y: B }, { x: 0, y: B }, { x: 0, y: 0 },
+  ];
+}
+
+function buildU({ arm, open, H, h }) {
+  if (!(h < H)) return null;
+  const W = 2 * arm + open;
+  return [
+    { x: 0, y: 0 }, { x: arm, y: 0 }, { x: arm, y: h }, { x: arm + open, y: h },
+    { x: arm + open, y: 0 }, { x: W, y: 0 }, { x: W, y: H }, { x: 0, y: H }, { x: 0, y: 0 },
+  ];
+}
+
+function buildT({ W, hh, w, d }) {
+  if (!(w < W)) return null;
+  const o = snap05((W - w) / 2);
+  return [
+    { x: 0, y: 0 }, { x: W, y: 0 }, { x: W, y: hh }, { x: o + w, y: hh },
+    { x: o + w, y: hh + d }, { x: o, y: hh + d }, { x: o, y: hh }, { x: 0, y: hh }, { x: 0, y: 0 },
+  ];
+}
+
+const SHAPE_DEFS = {
+  L: {
+    fields: [
+      { k: "A", labelKey: "calculator.presets.totalLen", def: 10 },
+      { k: "B", labelKey: "calculator.presets.totalWid", def: 8 },
+      { k: "a", labelKey: "calculator.presets.cutLen", def: 4 },
+      { k: "b", labelKey: "calculator.presets.cutWid", def: 3 },
+    ],
+    build: buildL,
+    icon: "⌐",
+  },
+  U: {
+    fields: [
+      { k: "arm", labelKey: "calculator.presets.armWid", def: 3 },
+      { k: "open", labelKey: "calculator.presets.openWid", def: 4 },
+      { k: "H", labelKey: "calculator.presets.totalWid", def: 8 },
+      { k: "h", labelKey: "calculator.presets.openDep", def: 4 },
+    ],
+    build: buildU,
+    icon: "⊔",
+  },
+  T: {
+    fields: [
+      { k: "W", labelKey: "calculator.presets.headWid", def: 10 },
+      { k: "hh", labelKey: "calculator.presets.headThk", def: 4 },
+      { k: "w", labelKey: "calculator.presets.stemWid", def: 4 },
+      { k: "d", labelKey: "calculator.presets.stemLen", def: 4 },
+    ],
+    build: buildT,
+    icon: "⊤",
+  },
+};
+
 export default function RoofPresets({ onSelect }) {
+  const t = useT();
+  const [shape, setShape] = useState(null);
+  const [dims, setDims] = useState({});
+  const [shapeError, setShapeError] = useState(false);
+
+  const pickShape = (key) => {
+    if (shape === key) { setShape(null); return; }
+    const init = {};
+    SHAPE_DEFS[key].fields.forEach((f) => { init[f.k] = f.def; });
+    setDims(init);
+    setShape(key);
+    setShapeError(false);
+  };
+
+  const applyShape = () => {
+    const def = SHAPE_DEFS[shape];
+    const clean = {};
+    for (const f of def.fields) {
+      const v = snap05(Number(dims[f.k]) || 0);
+      if (!(v >= 0.5)) { setShapeError(true); return; }
+      clean[f.k] = v;
+    }
+    const vertices = def.build(clean);
+    if (!vertices) { setShapeError(true); return; }
+    setShapeError(false);
+    onSelect({ label: t(`calculator.presets.shape${shape}`), desc: t(`calculator.presets.shape${shape}`), slope: 20, vertices });
+  };
+
   const handleRandom = () => {
     const all = CATEGORIES.flatMap((c) => c.items);
     const pick = all[Math.floor(Math.random() * all.length)];
@@ -110,6 +203,40 @@ export default function RoofPresets({ onSelect }) {
           <i className="fa-solid fa-shuffle"></i> عشوائي
         </button>
       </div>
+      {/* أشكال بارامترية: اختر L/U/T واكتب الأبعاد */}
+      <div className="mb-3">
+        <p className="text-[9px] font-bold text-ink-muted/60 mb-1.5 mr-0.5">{t("calculator.presets.shapes")}</p>
+        <div className="flex gap-1.5 flex-wrap">
+          {Object.keys(SHAPE_DEFS).map((key) => (
+            <button key={key} onClick={() => pickShape(key)}
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-bold border transition ${
+                shape === key ? "bg-amber-500/20 border-amber-400 text-amber-700" : "bg-surface border-line text-ink-muted hover:border-amber-300 hover:text-ink"}`}>
+              <span className="font-mono ml-1">{SHAPE_DEFS[key].icon}</span> {t(`calculator.presets.shape${key}`)}
+            </button>
+          ))}
+        </div>
+        {shape && (
+          <div className="mt-2 p-2.5 rounded-xl border border-amber-300/40 bg-amber-50/50 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              {SHAPE_DEFS[shape].fields.map((f) => (
+                <label key={f.k} className="flex items-center gap-1.5 text-[9px] text-ink-muted">
+                  <span className="flex-1">{t(f.labelKey)}</span>
+                  <input type="number" min="0.5" step="0.5" value={dims[f.k] ?? ""}
+                    onChange={(e) => setDims((d) => ({ ...d, [f.k]: e.target.value }))}
+                    className="w-14 bg-white border border-line rounded-lg py-1 px-1.5 text-center text-[10px] text-ink-primary outline-none focus:border-amber-400" />
+                  <span>م</span>
+                </label>
+              ))}
+            </div>
+            {shapeError && <p className="text-[9px] text-red-500 font-bold">{t("calculator.presets.invalidDims")}</p>}
+            <button onClick={applyShape}
+              className="w-full py-1.5 rounded-lg text-[10px] font-bold bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-700 transition">
+              {t("calculator.presets.apply")}
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="space-y-3">
         {CATEGORIES.map((cat) => (
           <div key={cat.name}>

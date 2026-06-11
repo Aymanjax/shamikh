@@ -279,7 +279,7 @@ export default function Roof3DViewer({ vertices, skeleton, slope = 20 }) {
       <div className="absolute top-2 right-2 flex gap-1 z-10">
         <button onClick={() => setWireframe(w => !w)}
           className={`px-2 py-1 rounded-lg text-[9px] font-bold border shadow-sm transition ${
-            wireframe ? "bg-slate-800 text-white border-slate-700" : "bg-white text-ink-muted border-line hover:border-slate-300 hover:text-ink"
+            wireframe ? "bg-slate-800 text-paper border-slate-700" : "bg-white text-ink-muted border-line hover:border-slate-300 hover:text-ink"
           }`}>
           <i className={`fa-solid ${wireframe ? "fa-cube" : "fa-border-all"} ml-1`}></i>
           {wireframe ? "تظليل" : "هيكلي"}

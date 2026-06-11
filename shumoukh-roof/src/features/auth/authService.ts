@@ -8,8 +8,38 @@ import {
   GoogleAuthProvider,
 } from "firebase/auth";
 import type { User } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
+import { SUBSCRIPTION_TYPES, TRIAL_DURATION_MONTHS } from "../../utils/subscriptionUtils";
+
+export type UserSubscription = {
+  subscriptionType?: string;
+  trialStartDate?: unknown;
+  subscriptionEndDate?: unknown;
+  isLinkedToNationalInvoice?: boolean;
+};
+
+export type UserProfileData = {
+  displayName?: string;
+  email?: string;
+  role?: "user" | "admin";
+  companyName?: string;
+  banned?: boolean;
+  subscription?: UserSubscription;
+};
+
+// كل حساب جديد يحصل على فترة مجانية كاملة الميزات لمدة 6 أشهر
+function buildTrialSubscription(): UserSubscription {
+  const now = new Date();
+  const end = new Date(now);
+  end.setMonth(end.getMonth() + TRIAL_DURATION_MONTHS);
+  return {
+    subscriptionType: SUBSCRIPTION_TYPES.FREE_TRIAL,
+    trialStartDate: Timestamp.fromDate(now),
+    subscriptionEndDate: Timestamp.fromDate(end),
+    isLinkedToNationalInvoice: false,
+  };
+}
 
 async function syncPublicProfile(user: User) {
   const ref = doc(db, "users-public", user.uid);
@@ -38,7 +68,12 @@ export async function loginWithGoogle() {
   const snap = await getDoc(doc(db, "users", user.uid, "profile", "main"));
   if (!snap.exists()) {
     await setDoc(doc(db, "users", user.uid, "profile", "main"), {
-      displayName: user.displayName, email: user.email, role: "user", companyName: "", createdAt: new Date().toISOString(),
+      displayName: user.displayName,
+      email: user.email,
+      role: "user",
+      companyName: "",
+      createdAt: new Date().toISOString(),
+      subscription: buildTrialSubscription(),
     });
   }
   await syncPublicProfile(user);
@@ -49,7 +84,12 @@ export async function registerUser(email: string, password: string, name: string
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   await updateProfile(cred.user, { displayName: name });
   await setDoc(doc(db, "users", cred.user.uid, "profile", "main"), {
-    displayName: name, email, role: "user", companyName: "", createdAt: new Date().toISOString(),
+    displayName: name,
+    email,
+    role: "user",
+    companyName: "",
+    createdAt: new Date().toISOString(),
+    subscription: buildTrialSubscription(),
   });
   await syncPublicProfile(cred.user);
   return cred.user;
@@ -62,15 +102,5 @@ export async function logoutUser() {
 export async function getUserProfile(uid: string) {
   const snap = await getDoc(doc(db, "users", uid, "profile", "main"));
   if (!snap.exists()) return null;
-  return snap.data() as {
-    displayName?: string;
-    role?: "user" | "admin";
-    companyName?: string;
-    subscription?: {
-      subscriptionType?: string;
-      trialStartDate?: any;
-      subscriptionEndDate?: any;
-      isLinkedToNationalInvoice?: boolean;
-    };
-  };
+  return snap.data() as UserProfileData;
 }

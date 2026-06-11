@@ -140,7 +140,7 @@ export default function LandingPage() {
         <p className="text-xs text-earth-500 mb-4">تحقق من اتصالك بالإنترنت ثم أعد المحاولة</p>
         <button
           onClick={() => queryClient.invalidateQueries()}
-          className="bg-earth-700 text-white hover:bg-earth-800 active:bg-earth-900 rounded-sm px-4 py-2 text-xs font-bold transition-colors cursor-pointer border-r-2 border-earth-900"
+          className="bg-earth-700 text-earth-100 hover:bg-earth-800 active:bg-earth-900 rounded-sm px-4 py-2 text-xs font-bold transition-colors cursor-pointer border-r-2 border-earth-900"
         >
           إعادة المحاولة
         </button>
@@ -160,7 +160,7 @@ export default function LandingPage() {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <div className="depth-hero-icon-glow w-12 h-12 rounded-sm bg-terracotta-500 flex items-center justify-center border-l-3 border-terracotta-300 shrink-0">
-              <HardHat className="w-6 h-6 text-white" />
+              <HardHat className="w-6 h-6 text-paper" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
@@ -177,7 +177,7 @@ export default function LandingPage() {
           </div>
           <Link
             to="/calculator"
-            className="shrink-0 bg-olive-700 text-white hover:bg-olive-800 active:bg-olive-900 rounded-sm px-4 py-2.5 text-sm font-bold flex items-center gap-2 transition-colors border-r-3 border-olive-900"
+            className="shrink-0 bg-olive-700 text-earth-100 hover:bg-olive-800 active:bg-olive-900 rounded-sm px-4 py-2.5 text-sm font-bold flex items-center gap-2 transition-colors border-r-3 border-olive-900"
           >
             <Plus className="w-4 h-4" />
             حساب جديد

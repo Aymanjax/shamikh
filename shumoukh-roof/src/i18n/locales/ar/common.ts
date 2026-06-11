@@ -1,0 +1,56 @@
+// المفاتيح المشتركة — هوية التطبيق، التنقّل، الإجراءات العامة، المظهر
+export const common = {
+  // الهوية
+  "app.name": "شموخ ERP",
+  "app.tagline": "إدارة مشاريع القرميد",
+
+  // التنقّل
+  "nav.home": "الرئيسية",
+  "nav.calculator": "حساب البضاعة",
+  "nav.projects": "المشاريع",
+  "nav.invoices": "الفواتير",
+  "nav.workers": "العمال",
+  "nav.subscription": "الاشتراك",
+  "nav.settings": "الإعدادات",
+  "nav.admin": "التحكم",
+  "nav.logout": "تسجيل خروج",
+  "nav.collapseMenu": "طي القائمة",
+  "nav.user": "مستخدم",
+
+  // إجراءات عامة
+  "common.save": "حفظ",
+  "common.cancel": "إلغاء",
+  "common.delete": "حذف",
+  "common.edit": "تعديل",
+  "common.add": "إضافة",
+  "common.search": "بحث",
+  "common.close": "إغلاق",
+  "common.confirm": "تأكيد",
+  "common.back": "رجوع",
+  "common.loading": "جارٍ التحميل…",
+  "common.saving": "جارٍ الحفظ…",
+  "common.all": "الكل",
+  "common.yes": "نعم",
+  "common.no": "لا",
+  "common.optional": "اختياري",
+  "common.required": "مطلوب",
+  "common.notAvailable": "غير متوفر",
+  "common.currency": "د.أ",
+  "common.day": "يوم",
+  "common.days": { zero: "0 يوم", one: "يوم واحد", two: "يومان", few: "{n} أيام", many: "{n} يومًا", other: "{n} يوم" },
+  "common.expired": "منتهي",
+  "common.language.ar": "العربية",
+  "common.language.en": "English",
+
+  // المظهر
+  "appearance.title": "المظهر",
+  "appearance.subtitle": "الوضع الليلي، حجم الخط، اللغة",
+  "appearance.darkMode": "الوضع الليلي",
+  "appearance.darkModeDesc": "تغيير مظهر التطبيق إلى الوضع الداكن",
+  "appearance.fontSize": "حجم الخط",
+  "appearance.fontSmall": "صغير",
+  "appearance.fontNormal": "وسط",
+  "appearance.fontLarge": "كبير",
+  "appearance.language": "اللغة",
+  "appearance.languageDesc": "لغة واجهة التطبيق",
+} as const;

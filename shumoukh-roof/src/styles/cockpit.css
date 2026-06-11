@@ -1,0 +1,289 @@
+/* ============================================================
+   COCKPIT — طبقة "الهندسة الدقيقة" (مظهر بديل معزول)
+   كل شيء محصور تحت .cockpit-root حتى لا يمس بقية التطبيق.
+   اللوحة: غرافيت/فولاذ بارد + ضوء أداة دافئ (تيراكوتا/كهرماني)
+   مثل خطوط الليزر وأدوات القياس الهندسية.
+   ============================================================ */
+
+.cockpit-root {
+  /* الأسطح — فولاذ بارد متدرّج العمق */
+  --ck-void: #08090b;
+  --ck-graphite: #0e1116;
+  --ck-steel: #141920;
+  --ck-steel-hi: #1b222b;
+  --ck-steel-line: #232b35;
+
+  /* خطوط رفيعة بلمسة دافئة (لا رمادي ميت) */
+  --ck-hair: rgba(233, 221, 208, 0.07);
+  --ck-hair-strong: rgba(233, 221, 208, 0.16);
+  --ck-grid: rgba(233, 221, 208, 0.035);
+
+  /* الحبر — أبيض دافئ للأساس، رمادي بارد للثانوي */
+  --ck-ink: #ece6dc;
+  --ck-ink-dim: #a7adb4;
+  --ck-ink-mute: #6a727b;
+
+  /* ضوء الأداة — الكهرماني/التيراكوتا هو "الليزر" */
+  --ck-laser: #ed9450;
+  --ck-laser-hot: #f3a866;
+  --ck-laser-deep: #c2703e;
+  --ck-laser-glow: rgba(237, 148, 80, 0.45);
+  --ck-laser-film: rgba(237, 148, 80, 0.08);
+
+  /* إشارات الحالة */
+  --ck-ok: #93a86b;       /* زيتوني — تمام */
+  --ck-ok-glow: rgba(147, 168, 107, 0.4);
+  --ck-warn: #d9a441;     /* كهرماني محذّر */
+  --ck-alert: #dc5640;    /* أحمر طوب */
+  --ck-alert-glow: rgba(220, 86, 64, 0.4);
+
+  --ck-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+
+  /* منحنيات حركة ميكانيكية (بدون ارتداد) */
+  --ck-ease: cubic-bezier(0.16, 1, 0.3, 1);     /* expo-out */
+  --ck-ease-mech: cubic-bezier(0.7, 0, 0.2, 1); /* دخول/خروج حاد */
+
+  /* مقياس z دلالي */
+  --ck-z-canvas: 1;
+  --ck-z-instrument: 20;
+  --ck-z-scrim: 80;
+  --ck-z-radial: 90;
+  --ck-z-toast: 100;
+
+  position: relative;
+  min-height: 100vh;
+  background: var(--ck-void);
+  color: var(--ck-ink);
+  font-family: var(--font-sans, "Noto Kufi Arabic", system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* شبكة المخطط الهندسي (blueprint) — خطوط قياس باهتة */
+.cockpit-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--ck-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ck-grid) 1px, transparent 1px),
+    radial-gradient(circle at 50% 0%, rgba(237, 148, 80, 0.05), transparent 60%);
+  background-size: 32px 32px, 32px 32px, 100% 100%;
+  mask-image: radial-gradient(ellipse 120% 80% at 50% 0%, #000 35%, transparent 90%);
+}
+
+/* أرقام/بيانات بخط آلة — الطابع الهندسي */
+.cockpit-root .mono { font-family: var(--ck-mono); font-feature-settings: "tnum" 1, "zero" 1; }
+
+/* لوحة فولاذية — حواف حادة، فصل باللون لا بالظل */
+.ck-panel {
+  background: var(--ck-steel);
+  border: 1px solid var(--ck-hair);
+  border-radius: 2px;
+  position: relative;
+}
+.ck-panel--raised { background: var(--ck-steel-hi); }
+
+/* علامات الزوايا (reticle) — مثل عدسة القياس */
+.ck-tick::before,
+.ck-tick::after {
+  content: "";
+  position: absolute;
+  width: 7px; height: 7px;
+  border-color: var(--ck-hair-strong);
+  border-style: solid;
+  pointer-events: none;
+}
+.ck-tick::before { top: -1px; inset-inline-start: -1px; border-width: 1px 0 0 1px; }
+.ck-tick::after  { bottom: -1px; inset-inline-end: -1px; border-width: 0 1px 1px 0; }
+
+/* وميض الليزر للعناصر النشطة */
+.ck-laserline {
+  background: linear-gradient(90deg, transparent, var(--ck-laser), transparent);
+  height: 1px;
+}
+
+/* شريط القياس المتحرك */
+@keyframes ck-scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes ck-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.ck-live-dot {
+  width: 6px; height: 6px; border-radius: 1px;
+  background: var(--ck-ok);
+  box-shadow: 0 0 8px var(--ck-ok-glow);
+  animation: ck-pulse 2.4s var(--ck-ease) infinite;
+}
+
+/* تمرير نظيف داخل اللوحات */
+.cockpit-root ::-webkit-scrollbar { width: 8px; height: 8px; }
+.cockpit-root ::-webkit-scrollbar-thumb { background: var(--ck-steel-line); border-radius: 0; }
+.cockpit-root ::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ck-live-dot { animation: none; }
+}
+
+/* ============================================================
+   إعادة تعريف اللوحة الترابية → فولاذ هندسي داخل .cockpit-root
+   Tailwind v4 يبني الأدوات على var(--color-*) فيكفي قلب القيم
+   هنا لتتحول كل الصفحات تلقائيًا دون تعديل كل ملف.
+   المبدأ: السطوح الفاتحة تصبح داكنة، الحبر الداكن يصبح فاتحًا،
+   والتيراكوتا تتحول لضوء أداة كهرماني.
+   ============================================================ */
+.cockpit-root {
+  /* السطوح: earth-50/100 كانت فاتحة → فولاذ متدرج */
+  --color-earth-50: #1b222b;
+  --color-earth-100: #10141a;
+  --color-earth-200: #29323d;
+  --color-earth-300: #3a4452;
+  --color-earth-400: #6e7884;
+  --color-earth-500: #97a0aa;
+  --color-earth-600: #b2bac3;
+  --color-earth-700: #ccd2d9;
+  --color-earth-800: #e6e1d7;
+  --color-earth-900: #f0ece3;
+
+  --color-warm-gray-50: #1b222b;
+  --color-warm-gray-100: #161c23;
+  --color-warm-gray-200: #29323d;
+  --color-warm-gray-300: #3a4452;
+  --color-warm-gray-400: #6e7884;
+  --color-warm-gray-500: #97a0aa;
+  --color-warm-gray-600: #b2bac3;
+  --color-warm-gray-700: #ccd2d9;
+  --color-warm-gray-800: #e6e1d7;
+  --color-warm-gray-900: #f0ece3;
+
+  --color-slate-50: #1b222b;
+  --color-slate-100: #161c23;
+  --color-slate-200: #29323d;
+  --color-slate-300: #3a4452;
+  --color-slate-400: #6e7884;
+  --color-slate-500: #97a0aa;
+  --color-slate-600: #b2bac3;
+  --color-slate-700: #ccd2d9;
+  --color-slate-800: #e6e1d7;
+  --color-slate-900: #f0ece3;
+
+  --color-gray-50: #1b222b;
+  --color-gray-100: #161c23;
+
+  /* بطاقات bg-white → فولاذ البطاقة؛ text-paper يبقى فاتحًا */
+  --color-white: #151a21;
+
+  /* deep-earth (عناصر داكنة أصلًا) → أعمق وأبرد */
+  --color-deep-earth-50: #e6e1d7;
+  --color-deep-earth-100: #ccd2d9;
+  --color-deep-earth-200: #97a0aa;
+  --color-deep-earth-300: #6e7884;
+  --color-deep-earth-400: #4a5563;
+  --color-deep-earth-500: #3a4452;
+  --color-deep-earth-600: #29323d;
+  --color-deep-earth-700: #232b35;
+  --color-deep-earth-800: #141920;
+  --color-deep-earth-900: #0b0e12;
+
+  /* التيراكوتا → ضوء أداة (أفتح على الداكن) */
+  --color-terracotta-50: #2a1d13;
+  --color-terracotta-100: #342315;
+  --color-terracotta-200: #52351d;
+  --color-terracotta-300: #a86238;
+  --color-terracotta-400: #ed9450;
+  --color-terracotta-500: #e08544;
+  --color-terracotta-600: #f3a866;
+  --color-terracotta-700: #f7bd88;
+  --color-terracotta-800: #fbd3ab;
+  --color-terracotta-900: #fde9d3;
+
+  /* الزيتوني */
+  --color-olive-50: #1a2114;
+  --color-olive-100: #222b1a;
+  --color-olive-200: #36452a;
+  --color-olive-300: #55683f;
+  --color-olive-400: #7e9159;
+  --color-olive-500: #93a86b;
+  --color-olive-600: #a7ba80;
+  --color-olive-700: #bcc99a;
+  --color-olive-800: #d3dcba;
+  --color-olive-900: #e9efd9;
+
+  /* أحمر التنبيه (Tailwind الافتراضي يُستخدم في الصفحات) */
+  --color-red-50: #2a1512;
+  --color-red-100: #341a16;
+  --color-red-200: #4a241d;
+  --color-red-300: #7c372b;
+  --color-red-400: #dc5640;
+  --color-red-500: #e2604a;
+  --color-red-600: #ea7560;
+  --color-red-700: #f08e7c;
+
+  /* رموز theme.css الدلالية */
+  --surface-bg: #0e1116;
+  --surface-card: #151a21;
+  --surface-card-border: 1px solid rgba(233, 221, 208, 0.09);
+  --surface-elevated: #1b222b;
+  --surface-sidebar: #0b0e12;
+  --surface-nav: #141920;
+
+  --ink-primary: #ece6dc;
+  --ink-secondary: #a7adb4;
+  --ink-muted: #79828c;
+  --ink-inverse: #10141a;
+
+  --accent-terracotta: #ed9450;
+  --accent-terracotta-soft: #2f2013;
+  --accent-terracotta-border: #a86238;
+  --accent-terracotta-glow: rgba(237, 148, 80, 0.16);
+
+  --accent-olive: #93a86b;
+  --accent-olive-soft: #202817;
+  --accent-olive-border: #5d7045;
+  --accent-olive-glow: rgba(147, 168, 107, 0.14);
+
+  --accent-amber: #d9a441;
+  --accent-amber-soft: #2c2310;
+  --accent-amber-border: #8f6f1e;
+  --accent-amber-glow: rgba(217, 164, 65, 0.14);
+
+  --accent-red: #e2604a;
+  --accent-red-soft: #321713;
+  --accent-red-border: #a04432;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-sidebar: 4px 0 8px rgba(0, 0, 0, 0.5);
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* عناصر theme.css ذات الألوان الصلبة */
+.cockpit-root .earth-card,
+.cockpit-root .glass-card {
+  border-color: rgba(233, 221, 208, 0.09);
+  border-radius: 2px;
+}
+.cockpit-root .earth-card:hover,
+.cockpit-root .glass-card:hover {
+  border-color: rgba(233, 221, 208, 0.18);
+}
+.cockpit-root ::-webkit-scrollbar-thumb { background: #29323d; }
+.cockpit-root ::-webkit-scrollbar-thumb:hover { background: #3a4452; }
+
+.cockpit-root .shimmer-skeleton {
+  background: linear-gradient(90deg, #1b222b 25%, #232b35 50%, #1b222b 75%);
+  background-size: 200% 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cockpit-root .shimmer-skeleton { background: #1b222b; }
+}
+
+/* شبكة المخطط القديمة (AmbientGrid) داخل القمرة: خطوط أوضح قليلًا */
+.cockpit-root .ambient-grid-pattern {
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(233, 221, 208, 0.03) 47px, rgba(233, 221, 208, 0.03) 48px),
+    repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(233, 221, 208, 0.03) 47px, rgba(233, 221, 208, 0.03) 48px);
+}

@@ -7,6 +7,7 @@ import {
   subscribeUserNotifications,
   markNotificationRead,
 } from "../../services/announcementService";
+import { useT, formatDate } from "../../i18n";
 import type { ElementType } from "react";
 
 const typeIcons: Record<string, ElementType> = {
@@ -24,6 +25,7 @@ const typeColors: Record<string, string> = {
 };
 
 export default function NotificationBell({ collapsed, position = "left" }: { collapsed?: boolean; position?: "left" | "center" | "right" }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const user = useAuthStore((s) => s.user);
@@ -81,7 +83,7 @@ export default function NotificationBell({ collapsed, position = "left" }: { col
       >
         <Bell className={collapsed ? "w-5 h-5" : "w-5 h-5"} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-lg shadow-red-500/40 min-w-[18px] min-h-[18px] px-1">
+          <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-red-500 text-earth-100 text-[9px] font-black rounded-full flex items-center justify-center shadow-lg shadow-red-500/40 min-w-[18px] min-h-[18px] px-1">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -94,10 +96,10 @@ export default function NotificationBell({ collapsed, position = "left" }: { col
           } w-72 sm:w-80`}
         >
           <div className="sticky top-0 bg-white border-b-2 border-earth-100 px-4 py-3 flex items-center justify-between rounded-t-2xl">
-            <h3 className="text-sm font-black text-earth-900">الإشعارات</h3>
+            <h3 className="text-sm font-black text-earth-900">{t("misc.notifications.title")}</h3>
             {unreadCount > 0 && (
               <span className="text-xs font-black text-earth-500 bg-earth-100 px-2 py-0.5 rounded-lg">
-                {unreadCount} غير مقروءة
+                {t("misc.notifications.unread", { n: unreadCount })}
               </span>
             )}
           </div>
@@ -105,7 +107,7 @@ export default function NotificationBell({ collapsed, position = "left" }: { col
           {announcements.length === 0 ? (
             <div className="p-6 text-center">
               <Bell className="w-8 h-8 mx-auto mb-2 text-earth-300" />
-              <p className="text-sm text-earth-500 font-bold">لا توجد إشعارات</p>
+              <p className="text-sm text-earth-500 font-bold">{t("misc.notifications.empty")}</p>
             </div>
           ) : (
             <div className="divide-y-2 divide-earth-50">
@@ -125,7 +127,7 @@ export default function NotificationBell({ collapsed, position = "left" }: { col
                       <div
                         className={`w-8 h-8 rounded-lg ${color} flex items-center justify-center shrink-0 mt-0.5`}
                       >
-                        <Icon className="w-4 h-4 text-white" />
+                        <Icon className="w-4 h-4 text-paper" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
@@ -141,9 +143,7 @@ export default function NotificationBell({ collapsed, position = "left" }: { col
                         </p>
                         {a.createdAt && (
                           <p className="text-[9px] text-earth-400 mt-1">
-                            {new Date(
-                              a.createdAt.seconds * 1000
-                            ).toLocaleDateString("ar-JO")}
+                            {formatDate(new Date(a.createdAt.seconds * 1000))}
                           </p>
                         )}
                       </div>

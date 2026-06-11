@@ -27,6 +27,7 @@ import SubscriptionGuard from "../../components/SubscriptionGuard";
 import GlassButton from "../../components/ui/GlassButton";
 import ResultPanel from "./components/ResultPanel";
 import { useCalculatorOnboarding } from "../../hooks/useCalculatorOnboarding";
+import { useT } from "../../i18n";
 
 function segmentsToVertices(segments) {
   if (!segments || segments.length === 0) return [];
@@ -96,6 +97,7 @@ function Input(props) {
 }
 
 export default function CalculatorPage() {
+  const t = useT();
   const { user, companyName } = useAuthStore();
   const navigate = useNavigate();
   const { projectId: urlProjectId } = useParams();
@@ -186,10 +188,10 @@ export default function CalculatorPage() {
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
   const [featureIdx, setFeatureIdx] = useState(0);
   const features = [
-    { icon: "calculator", title: "حساب دقيق", desc: "كميات القرميد والحديد بضغطة زر" },
-    { icon: "route", title: "الطرابيش و الوادي", desc: "رسم خطوط الطرابيش والأودية تلقائياً" },
-    { icon: "file-pdf", title: "كشف المواد", desc: "تصدير PDF للمواد والتكاليف" },
-    { icon: "cube", title: "معاينة 3D", desc: "شوف السطح بشكل ثلاثي الأبعاد" },
+    { icon: "calculator", title: t("calculator.feature.calcTitle"), desc: t("calculator.feature.calcDesc") },
+    { icon: "route", title: t("calculator.feature.routeTitle"), desc: t("calculator.feature.routeDesc") },
+    { icon: "file-pdf", title: t("calculator.feature.pdfTitle"), desc: t("calculator.feature.pdfDesc") },
+    { icon: "cube", title: t("calculator.feature.cubeTitle"), desc: t("calculator.feature.cubeDesc") },
   ];
   useEffect(() => {
     const t = setInterval(() => setFeatureIdx(i => (i + 1) % features.length), 3000);
@@ -334,21 +336,24 @@ export default function CalculatorPage() {
 
   const recommendedLegs = useMemo(() => {
     if (!closed || area === 0) return null;
-    if (sides.length > 0) return suggestLegs(sides, 4);
-    if (area <= 15) return { min: 2, max: 3, total: 2, label: "2-3 أرجل" };
-    if (area <= 25) return { min: 3, max: 4, total: 3, label: "3-4 أرجل" };
-    if (area <= 40) return { min: 4, max: 6, total: 4, label: "4-6 أرجل" };
-    if (area <= 60) return { min: 6, max: 8, total: 6, label: "6-8 أرجل" };
-    return { min: 8, max: 12, total: 8, label: "8+ أرجل" };
-  }, [closed, area, sides]);
+    if (sides.length > 0) {
+      const s = suggestLegs(sides, 4);
+      return s ? { ...s, label: t("calculator.legs.count", { n: s.total }) } : null;
+    }
+    if (area <= 15) return { min: 2, max: 3, total: 2, label: t("calculator.legs.range", { min: 2, max: 3 }) };
+    if (area <= 25) return { min: 3, max: 4, total: 3, label: t("calculator.legs.range", { min: 3, max: 4 }) };
+    if (area <= 40) return { min: 4, max: 6, total: 4, label: t("calculator.legs.range", { min: 4, max: 6 }) };
+    if (area <= 60) return { min: 6, max: 8, total: 6, label: t("calculator.legs.range", { min: 6, max: 8 }) };
+    return { min: 8, max: 12, total: 8, label: t("calculator.legs.rangePlus", { min: 8 }) };
+  }, [closed, area, sides, t]);
 
   const legAdvice = useMemo(() => {
     if (!recommendedLegs) return null;
     const { min, max } = recommendedLegs;
-    if (input.numLegs < min) return { type: "warning", text: `المساحة كبيرة، ننصح بـ ${min} أرجل على الأقل` };
-    if (input.numLegs > max) return { type: "info", text: `عدد الأرجل كافي، ممكن تقلل لـ ${max}` };
-    return { type: "success", text: `عدد الأرجل مناسب ✓` };
-  }, [input.numLegs, recommendedLegs]);
+    if (input.numLegs < min) return { type: "warning", text: t("calculator.legs.adviceLow", { min }) };
+    if (input.numLegs > max) return { type: "info", text: t("calculator.legs.adviceHigh", { max }) };
+    return { type: "success", text: t("calculator.legs.adviceOk") };
+  }, [input.numLegs, recommendedLegs, t]);
 
   const suggestedLegsRef = useRef(false);
   useEffect(() => {
@@ -409,6 +414,12 @@ export default function CalculatorPage() {
           withDecor: input.withDecor,
           enableInsulation: input.enableInsulation,
         },
+        summary: {
+          totalTiles: result?.totalTiles ?? 0,
+          flatArea: result?.flatArea ?? 0,
+          actualArea: result?.actualArea ?? 0,
+          totalCost: costResult ? Math.round(costResult.totalWithNathrayat) : null,
+        },
         status: "draft",
       };
 
@@ -425,7 +436,7 @@ export default function CalculatorPage() {
       setSaveSuccess(saveClient.name.trim());
       setShowSaveModal(false);
     } catch (err) {
-      alert("فشل حفظ المشروع: " + (err.message || "حدث خطأ"));
+      alert(t("calculator.saveFailed") + ": " + (err.message || t("calculator.genericError")));
     } finally {
       setSaveLoading(false);
     }
@@ -507,25 +518,25 @@ export default function CalculatorPage() {
         className="flex items-center gap-4 mb-6"
       >
         <div className="w-12 h-12 rounded-sm bg-terracotta-500 flex items-center justify-center border-l-3 border-terracotta-300">
-          <Calculator className="w-6 h-6 text-white" />
+          <Calculator className="w-6 h-6 text-paper" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black text-earth-900 tracking-tight">حساب البضاعة</h1>
+            <h1 className="text-2xl font-black text-earth-900 tracking-tight">{t("nav.calculator")}</h1>
             {closed && (
               <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold text-olive-600 bg-olive-50 border border-olive-200 px-2 py-0.5 rounded-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-olive-600 animate-pulse" />
-                {result.actualArea.toFixed(1)} م²
+                {result.actualArea.toFixed(1)} {t("calculator.unit.m2")}
               </span>
             )}
           </div>
           <p className="text-xs text-earth-500 mt-0.5">
             {projectLoading ? (
-              <span className="text-terracotta-500">تحميل بيانات المشروع...</span>
+              <span className="text-terracotta-500">{t("calculator.loadingProject")}</span>
             ) : projectData ? (
-              <span>مشروع: <strong className="text-terracotta-500">{projectData.client?.name}</strong> — تم تحميل القياسات</span>
+              <span>{t("calculator.projectLabel")} <strong className="text-terracotta-500">{projectData.client?.name}</strong> — {t("calculator.measurementsLoaded")}</span>
             ) : (
-              "ارسم شكل المبنى على اللوحة البيانية"
+              t("calculator.drawHint")
             )}
           </p>
         </div>
@@ -539,29 +550,29 @@ export default function CalculatorPage() {
                 className="hidden sm:flex items-center gap-2 bg-olive-50 border border-olive-200 text-emerald-600 text-xs font-bold px-3 py-2 rounded-sm"
               >
                 <Check className="w-3.5 h-3.5" />
-                <span>محفوظ لـ {saveSuccess}</span>
+                <span>{t("calculator.savedFor", { name: saveSuccess })}</span>
                 <button onClick={() => navigate(`/projects/${savedProjectId}`)}
                   className="text-terracotta-500 hover:text-terracotta-500 underline underline-offset-2">
-                  فتح
+                  {t("calculator.open")}
                 </button>
               </motion.div>
             )}
           </AnimatePresence>
           {closed && !saveSuccess && (
             <GlassButton variant="accent" size="sm" icon={<Save className="w-3.5 h-3.5" />} onClick={handleOpenSaveModal}>
-              حفظ للعميل
+              {t("calculator.saveForClient")}
             </GlassButton>
           )}
           {closed && saveSuccess && !projectData?.id && (
             <GlassButton variant="secondary" size="sm" icon={<RotateCcw className="w-3.5 h-3.5" />}
               onClick={() => { setSaveSuccess(null); setSavedProjectId(null); setSaveClient({ name: "", phone: "", address: "" }); }}>
-              حفظ جديد
+              {t("calculator.saveNew")}
             </GlassButton>
           )}
           {projectData?.id && (
             <GlassButton variant="ghost" size="sm" icon={<ArrowRight className="w-3.5 h-3.5" />}
               onClick={() => navigate(`/projects/${projectData.id}`)}>
-              العودة للمشروع
+              {t("calculator.backToProject")}
             </GlassButton>
           )}
         </div>
@@ -577,16 +588,16 @@ export default function CalculatorPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
             ref={canvasRef}
-            className="glass-card overflow-hidden"
+            className="glass-card ck-tick overflow-hidden"
           >
             <div className="px-4 py-3 border-b border-earth-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-terracotta-500" />
-                <span className="text-xs font-bold text-earth-700">اللوحة البيانية</span>
+                <span className="text-xs font-bold text-earth-700">{t("calculator.canvasTitle")}</span>
               </div>
               {closed && (
                 <span className="text-[9px] font-mono text-earth-500 bg-earth-100 px-2 py-1 rounded-sm border border-earth-200">
-                  {vertices.length} نقاط
+                  {t("calculator.pointsCount", { n: vertices.length })}
                 </span>
               )}
             </div>
@@ -598,13 +609,12 @@ export default function CalculatorPage() {
               >
                 <Ruler className="w-4 h-4 text-terracotta-500 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-terracotta-700">ابدأ برسم المبنى</p>
+                  <p className="text-xs font-bold text-terracotta-700">{t("calculator.welcomeTitle")}</p>
                   <p className="text-[10px] text-terracotta-600 mt-0.5 leading-relaxed">
-                    اضغط على اللوحة لإضافة نقاط زوايا المبنى، أو اختر شكلاً جاهزاً من الأسفل.
-                    بعد إغلاق الشكل ستظهر الكميات المحسوبة تلقائياً.
+                    {t("calculator.welcomeBody")}
                   </p>
                 </div>
-                <button onClick={onboarding.dismissWelcome} className="text-terracotta-400 hover:text-terracotta-600 p-1 shrink-0 cursor-pointer" aria-label="تجاهل">
+                <button onClick={onboarding.dismissWelcome} className="text-terracotta-400 hover:text-terracotta-600 p-1 shrink-0 cursor-pointer" aria-label={t("calculator.dismiss")}>
                   <X className="w-3.5 h-3.5" />
                 </button>
               </motion.div>
@@ -647,16 +657,16 @@ export default function CalculatorPage() {
               >
                 <div className="grid grid-cols-3 gap-3 text-center">
                   {[
-                    { label: "مساحة السقف", value: result.actualArea.toFixed(1), unit: "م²", accent: true },
-                    { label: "مساحة أرضية", value: area.toFixed(1), unit: "م²" },
-                    { label: "المحيط", value: sides.reduce((s, e) => s + e.length, 0).toFixed(1), unit: "م" },
+                    { label: t("calculator.stats.roofArea"), value: result.actualArea.toFixed(1), unit: t("calculator.unit.m2"), accent: true },
+                    { label: t("calculator.stats.floorArea"), value: area.toFixed(1), unit: t("calculator.unit.m2") },
+                    { label: t("calculator.stats.perimeter"), value: sides.reduce((s, e) => s + e.length, 0).toFixed(1), unit: t("calculator.unit.m") },
                   ].map((item) => (
                     <div key={item.label}>
                       <p className="text-[9px] text-earth-500 font-medium">{item.label}</p>
                       <p className={`text-sm font-black font-mono mt-0.5 ${item.accent ? "text-terracotta-500" : "text-earth-900"}`}>
                         {item.value} <span className="text-[9px] text-earth-500 font-medium">{item.unit}</span>
                       </p>
-                      {item.accent && <p className="text-[8px] text-earth-500">(مع الميل {input.slope}%)</p>}
+                      {item.accent && <p className="text-[8px] text-earth-500">{t("calculator.stats.withSlope", { slope: input.slope })}</p>}
                     </div>
                   ))}
                 </div>
@@ -665,10 +675,10 @@ export default function CalculatorPage() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="space-y-1">
-                <label className="text-[9px] text-earth-500 font-bold tracking-wider block">عدد الأرجل</label>
+                <label className="text-[9px] text-earth-500 font-bold tracking-wider block">{t("calculator.numLegs")}</label>
                 <input type="number" value={input.numLegs} onChange={h("numLegs")} min="2" max="20"
                   className="w-full bg-white border border-earth-300 rounded-sm py-2.5 px-3 text-earth-900 outline-none focus:border-terracotta-400 transition text-sm font-mono" />
-                {recommendedLegs && <p className="text-[9px] text-earth-500 mt-1">المناسب: <strong className="text-terracotta-500">{recommendedLegs.label}</strong></p>}
+                {recommendedLegs && <p className="text-[9px] text-earth-500 mt-1">{t("calculator.recommended")} <strong className="text-terracotta-500">{recommendedLegs.label}</strong></p>}
                 {legAdvice && (
                   <p className={`text-[9px] mt-1 ${
                     legAdvice.type === "warning" ? "text-amber-400" :
@@ -679,12 +689,12 @@ export default function CalculatorPage() {
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-[9px] text-earth-500 font-bold tracking-wider block">طول الرجل (م)</label>
+                <label className="text-[9px] text-earth-500 font-bold tracking-wider block">{t("calculator.legHeight")}</label>
                 <input type="number" value={input.legHeight} onChange={h("legHeight")} step="0.1" min="1" max="5"
                   className="w-full bg-white border border-earth-300 rounded-sm py-2.5 px-3 text-earth-900 outline-none focus:border-terracotta-400 transition text-sm font-mono" />
               </div>
               <div className="space-y-1">
-                <label className="text-[9px] text-earth-500 font-bold tracking-wider block">نوع القرميد</label>
+                <label className="text-[9px] text-earth-500 font-bold tracking-wider block">{t("calculator.tileType")}</label>
                 <select value={input.tileIndex} onChange={hSel("tileIndex")}
                   className="w-full bg-white border border-earth-300 rounded-sm py-2.5 px-3 text-earth-900 outline-none focus:border-terracotta-400 transition text-sm">
                   {TILES_CATALOG.map((t, i) => (
@@ -693,7 +703,7 @@ export default function CalculatorPage() {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[9px] text-earth-500 font-bold tracking-wider block">نسبة الميل (%)</label>
+                <label className="text-[9px] text-earth-500 font-bold tracking-wider block">{t("calculator.slopePercent")}</label>
                 <div className="flex items-center gap-2">
                   <input type="range" min="0" max="100" step="5" value={input.slope}
                     onChange={(e) => setInput((p) => ({ ...p, slope: Number(e.target.value) }))}
@@ -721,7 +731,7 @@ export default function CalculatorPage() {
                 onClick={handleDecor}
               >
                 <Sparkles className={`w-3 h-3 ${input.withDecor ? "text-terracotta-500" : ""}`} />
-                ديكور
+                {t("calculator.decor")}
               </span>
               <span
                 className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-sm border transition cursor-pointer select-none ${
@@ -732,12 +742,12 @@ export default function CalculatorPage() {
                 onClick={handleInsulation}
               >
                 <Droplets className={`w-3 h-3 ${input.enableInsulation ? "text-terracotta-500" : ""}`} />
-                عزل مائي
+                {t("calculator.insulation")}
               </span>
               {closed && (
                 <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-sm bg-white border border-earth-300 text-earth-500 select-none">
                   <Grid3x3 className="w-3 h-3" />
-                  {facadeCount}/{sides.length} أوجه
+                  {t("calculator.facades", { count: facadeCount, total: sides.length })}
                 </span>
               )}
             </div>
@@ -745,13 +755,12 @@ export default function CalculatorPage() {
               <div className="mt-4 p-3 rounded-sm bg-earth-100 border border-earth-200 flex items-start gap-2">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                 <div className="flex-1 text-[10px] leading-relaxed">
-                  <p className="font-bold text-earth-800">اكتشف المزيد</p>
+                  <p className="font-bold text-earth-800">{t("calculator.discoverTitle")}</p>
                   <p className="text-earth-600 mt-0.5">
-                    جرّب تفعيل الديكور والعزل لإضافة مواد إضافية.
-                    اضغط على "حساب التكلفة" لإدخال أسعار الموردين.
+                    {t("calculator.discoverBody")}
                   </p>
                 </div>
-                <button onClick={onboarding.dismissDecorHint} className="text-earth-400 hover:text-earth-600 p-0.5 shrink-0 cursor-pointer" aria-label="إغلاق">
+                <button onClick={onboarding.dismissDecorHint} className="text-earth-400 hover:text-earth-600 p-0.5 shrink-0 cursor-pointer" aria-label={t("common.close")}>
                   <X className="w-3 h-3" />
                 </button>
               </div>
@@ -769,7 +778,7 @@ export default function CalculatorPage() {
               >
                 <div className="flex items-center gap-2 mb-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
-                  <h4 className="text-[10px] font-bold text-earth-700 tracking-wider">المساعد الذكي</h4>
+                  <h4 className="text-[10px] font-bold text-earth-700 tracking-wider">{t("calculator.smartAssistant")}</h4>
                 </div>
                 <div className="relative h-8">
                   <AnimatePresence mode="wait">
@@ -803,9 +812,9 @@ export default function CalculatorPage() {
               <div>
                 <h3 className="text-xs font-bold text-earth-900 flex items-center gap-2">
                   <Zap className="w-4 h-4 text-amber-400" />
-                  حساب التكلفة
+                  {t("calculator.costTitle")}
                 </h3>
-                <p className="text-[9px] text-earth-500 mt-0.5">أسعار المواد لحساب التكلفة الإجمالية</p>
+                <p className="text-[9px] text-earth-500 mt-0.5">{t("calculator.costSubtitle")}</p>
               </div>
               <div className="relative flex items-center gap-2">
                 <button
@@ -830,20 +839,20 @@ export default function CalculatorPage() {
                 >
                   <div className="grid grid-cols-2 gap-3 p-4">
                     {[
-                      { key: "iron4x8", label: "حديد 4×8 (تيوب)" },
-                      { key: "iron10x10", label: "حديد 10×10 (تيوب)" },
-                      { key: "tile", label: "القرميد (حبة)" },
-                      { key: "decor", label: "الديكور (م²)" },
-                      { key: "decorBrooz", label: "ديكور البروز (م)" },
-                      { key: "besh", label: "البيش (وحدة)" },
-                      { key: "sharshef", label: "الشراشف (م)" },
-                      { key: "tarpaulin", label: "مشمع (رول)" },
-                      { key: "zafta", label: "زفتة (رول)" },
-                      { key: "latiSheets", label: "الواح لاتي (لوح)" },
-                      { key: "woodBases", label: "أسس خشب (قطعة)" },
-                      { key: "longAsas", label: "أسس طويل (قطعة)" },
-                      { key: "metalSheet", label: "شرحات صاج (شريحة)" },
-                      { key: "silicone", label: "سلكون (حبة)" },
+                      { key: "iron4x8", label: t("calculator.price.iron4x8") },
+                      { key: "iron10x10", label: t("calculator.price.iron10x10") },
+                      { key: "tile", label: t("calculator.price.tile") },
+                      { key: "decor", label: t("calculator.price.decor") },
+                      { key: "decorBrooz", label: t("calculator.price.decorBrooz") },
+                      { key: "besh", label: t("calculator.price.besh") },
+                      { key: "sharshef", label: t("calculator.price.sharshef") },
+                      { key: "tarpaulin", label: t("calculator.price.tarpaulin") },
+                      { key: "zafta", label: t("calculator.price.zafta") },
+                      { key: "latiSheets", label: t("calculator.price.latiSheets") },
+                      { key: "woodBases", label: t("calculator.price.woodBases") },
+                      { key: "longAsas", label: t("calculator.price.longAsas") },
+                      { key: "metalSheet", label: t("calculator.price.metalSheet") },
+                      { key: "silicone", label: t("calculator.price.silicone") },
                     ].map(({ key, label }) => (
                       <div key={key} className="space-y-1">
                         <label className="text-[9px] text-earth-500 font-bold">{label}</label>
@@ -853,7 +862,7 @@ export default function CalculatorPage() {
                       </div>
                     ))}
                     <div className="col-span-2 space-y-1">
-                      <label className="text-[9px] text-earth-500 font-bold">نثريات ومصاريف إضافية (د.أ)</label>
+                      <label className="text-[9px] text-earth-500 font-bold">{t("calculator.price.nathrayat")}</label>
                       <input type="number" value={prices.nathrayat}
                         onChange={(e) => setPrices((f) => ({ ...f, nathrayat: Number(e.target.value) }))} step="10"
                         className="w-full bg-white border border-earth-300 rounded-sm py-2 px-3 text-earth-900 outline-none focus:border-terracotta-400 transition text-xs font-mono" />
@@ -875,7 +884,7 @@ export default function CalculatorPage() {
               className="w-full px-4 py-3 flex items-center justify-between text-xs font-bold text-earth-900 hover:bg-earth-50 transition cursor-pointer">
               <span className="flex items-center gap-2">
                 <PackageOpen className="w-4 h-4 text-earth-500" />
-                مواد إضافية ({customFields.length})
+                {t("calculator.extraMaterials")} ({customFields.length})
               </span>
               {showExtra ? <ChevronUp className="w-3.5 h-3.5 text-earth-500" /> : <ChevronDown className="w-3.5 h-3.5 text-earth-500" />}
             </button>
@@ -903,13 +912,13 @@ export default function CalculatorPage() {
                         onDragEnd={() => setDragIdx(null)}
                         className={`flex items-center gap-2 p-1.5 rounded-sm transition ${dragIdx === i ? "opacity-40" : "bg-white border border-earth-200"}`}>
                         <GripVertical className="w-3.5 h-3.5 text-earth-500 cursor-grab shrink-0" />
-                        <input placeholder="اسم المادة" value={cf.name} onChange={(e) => {
+                        <input placeholder={t("calculator.materialName")} value={cf.name} onChange={(e) => {
                           const c = [...customFields]; c[i] = { ...c[i], name: e.target.value }; setCustomFields(c);
                         }} className="flex-1 bg-white border border-earth-300 rounded-sm py-2 px-3 text-xs text-earth-900 outline-none focus:border-terracotta-400 transition" />
-                        <input placeholder="كمية" inputMode="decimal" value={cf.value} onChange={(e) => {
+                        <input placeholder={t("calculator.qty")} inputMode="decimal" value={cf.value} onChange={(e) => {
                           const c = [...customFields]; c[i] = { ...c[i], value: e.target.value }; setCustomFields(c);
                         }} className="w-16 bg-white border border-earth-300 rounded-sm py-2 px-3 text-xs text-earth-900 outline-none focus:border-terracotta-400 transition text-center font-mono" />
-                        <input placeholder="وحدة" value={cf.unit || ""} onChange={(e) => {
+                        <input placeholder={t("calculator.unitLabel")} value={cf.unit || ""} onChange={(e) => {
                           const c = [...customFields]; c[i] = { ...c[i], unit: e.target.value }; setCustomFields(c);
                         }} className="w-14 bg-white border border-earth-300 rounded-sm py-2 px-3 text-xs text-earth-900 outline-none focus:border-terracotta-400 transition text-center" />
                         <button onClick={() => setCustomFields(customFields.filter((_, idx) => idx !== i))}
@@ -920,7 +929,7 @@ export default function CalculatorPage() {
                     ))}
                     <button onClick={() => setCustomFields([...customFields, { name: "", value: "0", unit: "" }])}
                       className="w-full border-2 border-dashed border-slate-200 rounded-sm py-3 text-xs text-earth-500 hover:text-earth-700 hover:border-slate-300 transition flex items-center justify-center gap-1.5 mt-2 cursor-pointer">
-                      <Plus className="w-3.5 h-3.5" /> إضافة مادة
+                      <Plus className="w-3.5 h-3.5" /> {t("calculator.addMaterial")}
                     </button>
                   </div>
                 </motion.div>
@@ -1142,6 +1151,10 @@ export default function CalculatorPage() {
               <span className="text-xs font-bold text-earth-900">محفوظ لـ {saveSuccess}</span>
             </div>
             <div className="w-px h-5 bg-slate-200" />
+            <button onClick={() => navigate("/projects")}
+              className="bg-earth-100 hover:bg-earth-200 text-earth-700 font-bold py-1.5 px-3 rounded-sm transition text-[10px] cursor-pointer border-2 border-earth-200">
+              عرض في المشاريع
+            </button>
             {saveClient.phone && (
               <button onClick={() => {
                 const lines = [];

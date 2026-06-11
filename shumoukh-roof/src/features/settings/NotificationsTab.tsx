@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { useAuthStore } from "../../store/authStore";
 import { useNotificationStore } from "../../store/notificationStore";
+import { useT } from "../../i18n";
 import GlassButton from "../../components/ui/GlassButton";
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
@@ -18,6 +19,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 }
 
 export default function NotificationsTab() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const announcementPrefEnabled = useNotificationStore((s) => s.announcementPrefEnabled);
   const setAnnouncementPref = useNotificationStore((s) => s.setAnnouncementPref);
@@ -59,11 +61,11 @@ export default function NotificationsTab() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-4 min-w-0">
           <div className="w-12 h-12 shrink-0 rounded-sm bg-terracotta-500 flex items-center justify-center shadow-lg shadow-terracotta-500/30">
-            <Bell className="w-6 h-6 text-white" />
+            <Bell className="w-6 h-6 text-paper" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl font-black text-ink-primary tracking-tight">الإشعارات</h1>
-            <p className="text-sm text-ink-muted">إعدادات التنبيهات والإشعارات</p>
+            <h1 className="text-xl font-black text-ink-primary tracking-tight">{t("settings.notifications.title")}</h1>
+            <p className="text-sm text-ink-muted">{t("settings.notifications.subtitle")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
@@ -71,17 +73,17 @@ export default function NotificationsTab() {
             <ArrowRight className="w-5 h-5" />
           </Link>
           <GlassButton variant="primary" size="sm" icon={saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />} onClick={handleSave} disabled={saving}>
-            {saved ? "تم" : "حفظ"}
+            {saved ? t("settings.done") : t("common.save")}
           </GlassButton>
         </div>
       </div>
 
       <div className="earth-card p-5 divide-y-2 divide-earth-200">
         {[
-          { label: "التنبيهات عبر البريد", desc: "استلام إشعارات المشاريع والفواتير على البريد", value: emailAlerts, onChange: setEmailAlerts },
-          { label: "إشعارات التطبيق", desc: "إظهار إشعارات داخل التطبيق", value: pushAlerts, onChange: setPushAlerts },
-          { label: "تنبيهات الفواتير", desc: "إشعار عند إنشاء أو تعديل فاتورة", value: invoiceAlerts, onChange: setInvoiceAlerts },
-          { label: "إشعارات الإعلانات", desc: "استلام إعلانات وإشعارات من الإدارة", value: announceAlerts, onChange: (v: boolean) => { setAnnounceAlerts(v); }, icon: Megaphone },
+          { label: t("settings.notifications.email"), desc: t("settings.notifications.emailDesc"), value: emailAlerts, onChange: setEmailAlerts },
+          { label: t("settings.notifications.push"), desc: t("settings.notifications.pushDesc"), value: pushAlerts, onChange: setPushAlerts },
+          { label: t("settings.notifications.invoices"), desc: t("settings.notifications.invoicesDesc"), value: invoiceAlerts, onChange: setInvoiceAlerts },
+          { label: t("settings.notifications.announcements"), desc: t("settings.notifications.announcementsDesc"), value: announceAlerts, onChange: (v: boolean) => { setAnnounceAlerts(v); }, icon: Megaphone },
         ].map((item, i) => (
           <div key={i} className="py-4 flex items-center justify-between gap-3 min-h-[52px]">
             <div className="min-w-0">

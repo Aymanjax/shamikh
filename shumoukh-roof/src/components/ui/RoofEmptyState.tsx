@@ -1,5 +1,6 @@
 import { Calculator } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useT } from "../../i18n";
 
 const roofPaths = [
   "M40 60 L80 20 L120 60",
@@ -10,6 +11,7 @@ const roofPaths = [
 ];
 
 export default function RoofEmptyState() {
+  const t = useT();
   return (
     <div className="py-12 flex flex-col items-center justify-center text-center">
       <svg
@@ -30,14 +32,14 @@ export default function RoofEmptyState() {
           />
         ))}
       </svg>
-      <p className="text-sm font-black text-earth-700 mb-1">لا توجد مشاريع بعد</p>
-      <p className="text-xs text-earth-500 mb-4">ابدأ بحساب البضاعة وسيظهر المشروع هنا تلقائياً</p>
+      <p className="text-sm font-black text-earth-700 mb-1">{t("misc.roofEmpty.title")}</p>
+      <p className="text-xs text-earth-500 mb-4">{t("misc.roofEmpty.subtitle")}</p>
       <Link
         to="/calculator"
         className="text-xs font-bold text-terracotta-500 hover:text-terracotta-600 transition-colors flex items-center gap-1.5"
       >
         <Calculator className="w-3.5 h-3.5" />
-        احسب البضاعة الآن
+        {t("misc.roofEmpty.cta")}
       </Link>
     </div>
   );

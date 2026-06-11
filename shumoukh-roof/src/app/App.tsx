@@ -11,9 +11,11 @@ import InvoicesPage from "../features/invoices/InvoicesPage";
 import WorkersPage from "../features/workers/WorkersPage";
 import ProjectsPage from "../features/projects/ProjectsPage";
 import SettingsPage from "../features/settings/SettingsPage";
+import SubscriptionPage from "../features/subscription/SubscriptionPage";
 import AdminDashboard from "../features/admin/AdminDashboard";
 import LoginPage from "../features/auth/LoginPage";
 import RegisterPage from "../features/auth/RegisterPage";
+import CockpitConsole from "../features/cockpit/CockpitPage";
 import ThemeBackgroundLayer from "../features/theme/ThemeBackgroundLayer";
 import { useApplyPageTheme } from "../features/theme/useApplyPageTheme";
 import { loadTheme } from "../features/theme/themeService";
@@ -68,6 +70,7 @@ export default function App() {
       <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
+      <Route path="/cockpit" element={<Navigate to="/" replace />} />
       <Route
         path="/"
         element={
@@ -76,12 +79,15 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<LandingPage />} />
+        <Route index element={<CockpitConsole />} />
+        <Route path="overview" element={<LandingPage />} />
         <Route path="calculator" element={<CalculatorPage />} />
+        <Route path="calculator/:projectId" element={<CalculatorPage />} />
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="invoices" element={<InvoicesPage />} />
         <Route path="workers" element={<WorkersPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="subscription" element={<SubscriptionPage />} />
         <Route path="admin" element={<AdminDashboard />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

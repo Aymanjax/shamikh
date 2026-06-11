@@ -306,3 +306,87 @@ Every anti-reference from PRODUCT.md is enforced here as a concrete visual guard
 - **Don't** nest cards inside cards. One `.earth-card` per logical container. For subdivisions, use border separators or background tint shifts.
 - **Don't** use font-weight 400 for any text a user needs to read at a glance. Labels are 700, headings are 900, data is 900. 400 is for long-form prose only.
 - **Don't** add a third typeface. The cap is two: Noto Kufi Arabic (sans) + JetBrains Mono (mono). No serif, no display, no handwriting.
+
+---
+
+## 7. Cockpit Layer (Engineering Dark Mode — current primary shell)
+
+A deliberate identity pivot requested by the owner: the entire app now renders inside the
+"cockpit" engineering shell (`src/styles/cockpit.css`, `src/components/cockpit/`).
+The warm-earth system above remains the semantic source of truth; the cockpit re-maps it.
+
+### Mechanism
+- Everything is scoped under `.cockpit-root`. Tailwind v4 utilities resolve through
+  `var(--color-*)`, so the cockpit redefines the palette variables once and every page
+  re-skins automatically. No per-page styling.
+- Inversion rule: light surfaces (earth-50/100, white) become graphite/steel
+  (#0e1116, #151a21, #1b222b); dark ink (earth-800/900) becomes warm white (#ece6dc).
+  Terracotta becomes the "instrument light" amber (#ed9450) — warm laser on cold steel,
+  NOT the cyan-terminal cliché.
+- `--color-paper` (#faf7f4) never changes; use `text-paper` for text that must stay light
+  in both themes. Use `text-earth-100` on accent-colored (terracotta/olive/amber/red/earth
+  400-900) backgrounds: it resolves light-on-dark in the light theme and dark-on-light in
+  the cockpit.
+
+### Components
+- `CockpitShell`: blueprint-grid canvas, top instrument rail (live dot, mono clock,
+  notifications). Replaces Sidebar + FloatingCommandBar in `AppLayout` on all viewports.
+- `RadialCommandMenu`: bottom-center hub fanning navigation nodes on an arc with dashed
+  hairline connectors (SVG pathLength animation), expo-out stagger, Escape/scrim close,
+  reduced-motion fallbacks. THE signature interaction; do not replace it with a sidebar.
+- `CockpitConsole` (`/`): primary readout + measurement ruler + paid/pending bar +
+  module tiles + ruled ledger. Monospace numerals everywhere (`.mono`, tnum + slashed zero).
+
+### Rules specific to the cockpit
+- Sharp edges only: border-radius 2-3px. Panels separate by hairlines
+  (`rgba(233,221,208,.07-.16)`), never by drop shadows.
+- Motion is mechanical: `cubic-bezier(0.16,1,0.3,1)` or `(0.7,0,0.2,1)`. No bounce.
+- The drawing canvas (BuildingCanvas / 3D viewers) stays light — a drafting sheet on a
+  dark instrument desk (CAD convention). Never dark-skin the drawing surface.
+- Semantic z-scale: instrument 20 → scrim 80 → radial 90 → toast 100.
+
+---
+
+## 8. Drawing Canvas — Field-Accurate Roof Sketching (BuildingCanvas)
+
+The drawing surface is the heart of the calculator. It stays light (a drafting
+sheet on the dark instrument desk — CAD convention). Interaction rules encode how
+contractors actually measure roofs: orthogonal walls, no backtracking, exact
+dimensions.
+
+### Drawing rules (enforced, not just hinted)
+- **Orthogonal only with sticky axis lock.** While drawing, the first clear
+  movement locks the segment to horizontal or vertical; it only flips axis on a
+  decisive turn (1.6× dominance), so a near-straight drag never wobbles between
+  axes. Diagonals are impossible by construction.
+- **Every new point must change axis.** You cannot place two consecutive segments
+  on the same axis (no "dot then continue straight", no doubling back along the
+  same wall). The forbidden ghost turns **red with an ✕**, and a click on it
+  raises a toast (`calculator.draw.turnRequired`) instead of adding a vertex.
+- **Snap precision toggle** 0.5 m ↔ 0.1 m for fine adjustments; all snapping
+  (draw, vertex drag, edge drag, parametric shapes) honors it.
+
+### Editing
+- **Tap a dimension number on the drawing to retype it.** On an open path it
+  resizes that edge directly; on a closed shape the delta is absorbed by the
+  longest opposite-axis edge so the polygon stays closed and rectilinear (or a
+  toast explains why it can't).
+- **Multi-step Undo/Redo** (toolbar + Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y), backed by
+  a 60-snapshot history that ignores in-progress drag frames and works both
+  before and after the shape is closed.
+
+### Speed paths
+- **Numeric ("by numbers") entry:** type a length, pick a direction (axis-locked
+  buttons grey out the illegal same-axis choice), and append edges like reading a
+  tape measure. An **auto-close** button appears once the shape can be closed and
+  emits the 1–2 remaining edges in a rule-respecting order.
+- **Parametric L / U / T presets:** choose a shape, fill in real dimensions, and
+  the polygon is generated (snapped to 0.5 m, validated so cut-outs fit inside the
+  envelope). Sits above the existing fixed-size rectangle templates.
+
+### Touch
+- Haptic tick on every committed point/close (`navigator.vibrate`, silently
+  ignored where unsupported).
+- **Magnifier loupe:** dragging a vertex with a finger shows a zoomed circular
+  inset above the fingertip with a crosshair, so the point isn't hidden under the
+  thumb.

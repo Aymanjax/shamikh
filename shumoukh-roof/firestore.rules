@@ -2,107 +2,126 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // القراءة لأي مستخدم مسجل
-    match /{document=**} {
-      allow read: if request.auth != null;
+    // ===== دوال مساعدة =====
+
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // كل مستخدم يكتب فقط بملفه الشخصي
-    match /users/{userId}/{document=**} {
-      allow write: if request.auth != null && request.auth.uid == userId;
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin';
     }
 
-    // ملف profile/main: المدير يقدر يعدّل على أي مستخدم
+    // الحقول الحساسة (الصلاحية، الاشتراك، الحظر) لا يملك تعديلها إلا المدير.
+    // المستخدم يقدر يعدّل اسمه وهاتفه وشركته وبنوده الإضافية فقط.
+    function noSensitiveChange() {
+      return request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasAny(['role', 'subscription', 'banned']) == false;
+    }
+
+    // عند إنشاء الملف لأول مرة (التسجيل): يُسمح فقط بدور "user"،
+    // وبدون حظر، وباشتراك تجريبي مجاني لا تتجاوز مدته ~6 أشهر.
+    // أي محاولة لمنح دور admin أو اشتراك متقدم من المتصفح تُرفض.
+    function validSelfProfileCreate() {
+      let d = request.resource.data;
+      return (!('role' in d) || d.role == 'user')
+        && (!('banned' in d) || d.banned == false)
+        && (
+             !('subscription' in d)
+             || d.subscription == null
+             || (
+                  d.subscription.subscriptionType == 'free_trial'
+                  && d.subscription.subscriptionEndDate is timestamp
+                  && d.subscription.subscriptionEndDate <= request.time + duration.value(190, 'd')
+                )
+           );
+    }
+
+    // ===== الملف الشخصي للمستخدم =====
+    // القراءة: صاحب الحساب أو المدير.
+    // الكتابة الحساسة (دور/اشتراك/حظر): المدير فقط.
     match /users/{userId}/profile/main {
-      allow write: if request.auth != null && (
-        request.auth.uid == userId ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin')
-      );
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow create: if (request.auth.uid == userId && validSelfProfileCreate()) || isAdmin();
+      allow update: if (request.auth.uid == userId && noSensitiveChange()) || isAdmin();
+      allow delete: if isAdmin();
     }
 
-    // users-public
+    // ===== بقية بيانات المستخدم (المشاريع، الفواتير، العمال، الإشعارات) =====
+    // كل مستخدم يقرأ ويكتب بياناته فقط؛ المدير يقرأ للإشراف.
+    // ملاحظة: استثناء 'profile' يمنع تجاوز قاعدة الملف الشخصي أعلاه.
+    match /users/{userId}/{collectionName}/{docId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isSignedIn()
+        && request.auth.uid == userId
+        && collectionName != 'profile';
+    }
+
+    // ===== الملف العام للمستخدم (للقوائم الإدارية فقط) =====
     match /users-public/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
-    // الموردين
+    // ===== الموردين (بيانات مشتركة بين الجميع) =====
     match /suppliers/{supplierId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == supplierId;
-      allow update: if request.auth != null && (
-        request.auth.uid == supplierId ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin')
-      );
-      allow delete: if request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin';
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == supplierId;
+      allow update: if isSignedIn() && (request.auth.uid == supplierId || isAdmin());
+      allow delete: if isAdmin();
 
       match /products/{productId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null && request.auth.uid == supplierId;
+        allow read: if isSignedIn();
+        allow write: if isSignedIn() && request.auth.uid == supplierId;
       }
 
       match /ratings/{ratingId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth != null;
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
       }
     }
 
-    // العروض
+    // ===== العروض =====
     match /offers/{offerId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && (
-        get(/databases/$(database)/documents/offers/$(offerId)).data.supplierId == request.auth.uid ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin')
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.supplierId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        resource.data.supplierId == request.auth.uid || isAdmin()
       );
     }
 
-    // config - يقرأه الجميع، يكتبه المدير فقط
+    // ===== إعدادات النظام (كتالوج، أسعار) — قراءة للجميع، كتابة للمدير =====
     match /config/{document} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main)
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin';
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
-    // زوار الموقع
+    // ===== زوار الموقع =====
     match /visitors/{document} {
-      allow create: if request.auth != null;
-      allow read: if request.auth != null;
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
     }
 
-    // سجل التدقيق - للمديرين فقط
+    // ===== سجل التدقيق — للمديرين فقط =====
     match /audit_logs/{document} {
-      allow read: if request.auth != null
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main)
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin';
-      allow create: if request.auth != null
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main)
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin';
+      allow read: if isAdmin();
+      allow create: if isAdmin();
     }
 
-    // حالة الاتصال - عام للجميع
+    // ===== حالة الاتصال =====
     match /presence/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- الإعلانات ---
+    // ===== الإعلانات — قراءة للجميع، كتابة للمدير =====
     match /announcements/{docId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main)
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)/profile/main).data.role == 'admin';
-    }
-
-    // --- إشعارات المستخدمين ---
-    match /users/{uid}/notifications/{notifId} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     // --- سجل العمال (الحضور/السلف/اليوميات) ---

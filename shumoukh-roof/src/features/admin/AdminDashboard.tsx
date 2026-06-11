@@ -136,7 +136,7 @@ export default function AdminDashboard() {
           {USER_FILTERS.map((f) => (
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={`text-xs font-black px-3 py-1.5 rounded-lg transition border-2 ${
-                filter === f.key ? "bg-ice-blue-600 text-white border-ice-blue-600" : "bg-white text-ink-muted border-slate-200 hover:border-slate-300"
+                filter === f.key ? "bg-ice-blue-600 text-paper border-ice-blue-600" : "bg-white text-ink-muted border-slate-200 hover:border-slate-300"
               }`}>
               {f.label}
             </button>
@@ -153,7 +153,7 @@ export default function AdminDashboard() {
         <input type="number" value={bulkDays} onChange={(e) => setBulkDays(Number(e.target.value))} min="1"
           className="bg-white border-2 border-slate-200 rounded-lg py-1.5 px-2 text-xs text-ink-primary outline-none w-16 text-center font-medium" placeholder="أيام" />
         <button onClick={applySubscriptionToAll}
-          className="bg-amber-600 hover:bg-amber-700 text-white py-1.5 px-4 rounded-lg text-xs font-bold transition whitespace-nowrap border-2 border-amber-600">
+          className="bg-amber-600 hover:bg-amber-700 text-earth-100 py-1.5 px-4 rounded-lg text-xs font-bold transition whitespace-nowrap border-2 border-amber-600">
           تطبيق على الكل
         </button>
       </div>
@@ -183,7 +183,7 @@ export default function AdminDashboard() {
             <div key={u.uid} className="glass-card p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 shrink-0 rounded-lg bg-ice-blue-600 flex items-center justify-center text-white font-black text-sm">
+                  <div className="w-10 h-10 shrink-0 rounded-lg bg-ice-blue-600 flex items-center justify-center text-paper font-black text-sm">
                     {(u.displayName || u.email || "?")[0].toUpperCase()}
                   </div>
                   <div className="min-w-0 overflow-hidden">
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
 
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/30">
-          <ShieldCheck className="w-6 h-6 text-white" />
+          <ShieldCheck className="w-6 h-6 text-paper" />
         </div>
         <div>
           <h1 className="text-xl font-black text-ink-primary tracking-tight">لوحة التحكم</h1>
@@ -280,7 +280,7 @@ export default function AdminDashboard() {
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`relative py-2.5 px-1 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 border-2 ${
               tab === t.key
-                ? "bg-red-600 text-white border-red-600 shadow-lg shadow-red-600/20"
+                ? "bg-red-600 text-earth-100 border-red-600 shadow-lg shadow-red-600/20"
                 : "bg-white border-slate-200 text-ink-muted hover:text-ink-secondary hover:border-slate-300"
             }`}>
             <t.icon className="w-3.5 h-3.5" />

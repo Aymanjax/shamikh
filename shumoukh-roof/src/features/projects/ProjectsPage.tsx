@@ -111,7 +111,7 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-sm bg-amber-600 flex items-center justify-center border-l-3 border-amber-400">
-            <HardHat className="w-6 h-6 text-white" />
+            <HardHat className="w-6 h-6 text-paper" />
           </div>
           <div>
             <h1 className="text-xl font-black text-earth-900 tracking-tight">المشاريع</h1>
@@ -143,7 +143,7 @@ export default function ProjectsPage() {
                     <p className="text-earth-500">{p.amount} د.أ · <span className={st === "overdue" ? "text-red-600 font-black" : "text-amber-700 font-black"}>{humanWhen(p)}</span></p>
                   </div>
                   <button onClick={() => openWhatsApp(p.clientPhone, reminderText(p))}
-                    className="shrink-0 bg-green-600 hover:bg-green-700 text-white text-xs font-black py-1.5 px-3 rounded-sm transition flex items-center gap-1">
+                    className="shrink-0 bg-green-600 hover:bg-green-700 text-paper text-xs font-black py-1.5 px-3 rounded-sm transition flex items-center gap-1">
                     <MessageCircle className="w-3.5 h-3.5" /> ذكّر الزبون
                   </button>
                 </div>
@@ -226,7 +226,7 @@ export default function ProjectsPage() {
                 <div><span className="text-earth-500 text-xs font-bold">عدد الأرجل</span><p className="font-black text-earth-900">{detail.input?.numLegs}</p></div>
               </div>
               {detail.result?.totalCost && (
-                <div className="text-white rounded-sm p-3 flex justify-between font-black" style={{ backgroundColor: "var(--accent-amber)" }}>
+                <div className="text-paper rounded-sm p-3 flex justify-between font-black" style={{ backgroundColor: "var(--accent-amber)" }}>
                   <span>التكلفة التقديرية</span>
                   <span style={{ color: "var(--accent-amber-soft)" }}>{detail.result.totalCost} د.أ</span>
                 </div>
@@ -251,7 +251,7 @@ export default function ProjectsPage() {
                     return (
                       <div key={p.id} className="flex items-center gap-2 text-xs py-1.5 px-2 rounded-sm bg-earth-50 group">
                         <button onClick={() => toggleMutation.mutate(p)} title="تبديل الدفع"
-                          className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center shrink-0 transition ${p.paid ? "bg-olive-600 border-olive-600 text-white" : "border-earth-300 hover:border-olive-400"}`}>
+                          className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center shrink-0 transition ${p.paid ? "bg-olive-600 border-olive-600 text-earth-100" : "border-earth-300 hover:border-olive-400"}`}>
                           {p.paid && <Check className="w-3 h-3" />}
                         </button>
                         <div className="flex-1 min-w-0">
@@ -287,17 +287,17 @@ export default function ProjectsPage() {
                 </div>
                 <button onClick={() => payForm.label.trim() && payForm.amount > 0 && addPayMutation.mutate({ project: detail, data: payForm })}
                   disabled={!payForm.label.trim() || payForm.amount <= 0 || addPayMutation.isPending}
-                  className="w-full mt-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white font-black py-1.5 rounded-sm transition text-xs flex items-center justify-center gap-1">
+                  className="w-full mt-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-earth-100 font-black py-1.5 rounded-sm transition text-xs flex items-center justify-center gap-1">
                   <Plus className="w-3.5 h-3.5" /> إضافة دفعة
                 </button>
               </div>
 
               <div className="flex gap-2 border-t border-earth-200 pt-3">
-                <Link to="/calculator" className="flex-1 bg-olive-700 hover:bg-olive-800 text-white font-black py-2.5 rounded-sm transition text-sm text-center border-r-3 border-olive-900">
+                <Link to="/calculator" className="flex-1 bg-olive-700 hover:bg-olive-800 text-earth-100 font-black py-2.5 rounded-sm transition text-sm text-center border-r-3 border-olive-900">
                   فتح في الحاسبة
                 </Link>
                 <button onClick={() => handleCreateInvoice(detail)} disabled={createInvoiceMutation.isPending}
-                  className="flex-1 bg-olive-600 hover:bg-olive-700 text-white font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1 border-r-3 border-olive-800">
+                  className="flex-1 bg-olive-600 hover:bg-olive-700 text-earth-100 font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1 border-r-3 border-olive-800">
                   {invoiceCreated ? (<><Check className="w-4 h-4" /> تم</>) : createInvoiceMutation.isPending ? ("جارٍ...") : (<><FileText className="w-4 h-4" /> فاتورة</>)}
                 </button>
               </div>

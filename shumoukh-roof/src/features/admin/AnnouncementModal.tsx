@@ -131,7 +131,7 @@ export default function AnnouncementModal({ open, announcement, onClose, onSave 
                   onClick={() => setType(o.value)}
                   className={`p-3 rounded-xl border-2 text-center transition ${
                     type === o.value
-                      ? `${o.color} text-white border-transparent`
+                      ? `${o.color} text-paper border-transparent`
                       : "border-slate-200 hover:border-slate-300 bg-white"
                   }`}
                 >
@@ -151,7 +151,7 @@ export default function AnnouncementModal({ open, announcement, onClose, onSave 
                   onClick={() => setPriority(o.value)}
                   className={`flex-1 py-2.5 rounded-xl text-xs font-black transition border-2 ${
                     priority === o.value
-                      ? "bg-ice-blue-600 text-white border-ice-blue-600"
+                      ? "bg-ice-blue-600 text-paper border-ice-blue-600"
                       : "bg-white border-slate-200 text-ink-muted hover:border-slate-300"
                   }`}
                 >
@@ -191,8 +191,8 @@ export default function AnnouncementModal({ open, announcement, onClose, onSave 
               disabled={!title.trim() || !content.trim() || saving || saved}
               className={`flex-1 py-3 rounded-xl font-black text-sm transition flex items-center justify-center gap-2 border-2 ${
                 saved
-                  ? "bg-emerald-500 border-emerald-500 text-white"
-                  : "bg-ice-blue-600 hover:bg-ice-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white border-ice-blue-600"
+                  ? "bg-emerald-500 border-emerald-500 text-paper"
+                  : "bg-ice-blue-600 hover:bg-ice-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-paper border-ice-blue-600"
               }`}
             >
               {saved ? <Check className="w-4 h-4" /> : <Check className="w-4 h-4" />}

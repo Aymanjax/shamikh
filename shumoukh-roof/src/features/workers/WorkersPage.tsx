@@ -119,7 +119,7 @@ export default function WorkersPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-sm bg-red-600 flex items-center justify-center border-l-3 border-red-400">
-            <HardHat className="w-6 h-6 text-white" />
+            <HardHat className="w-6 h-6 text-paper" />
           </div>
           <div>
             <h1 className="text-xl font-black text-earth-900 tracking-tight">العمال</h1>
@@ -152,7 +152,7 @@ export default function WorkersPage() {
               return (
                 <div key={w.id} className="glass-card p-4 transition-all duration-150 hover:shadow-card-hover">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-sm bg-red-600 flex items-center justify-center text-white font-black text-sm">
+                    <div className="w-10 h-10 rounded-sm bg-red-600 flex items-center justify-center text-earth-100 font-black text-sm">
                       {w.name?.charAt(0) || "?"}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -176,7 +176,7 @@ export default function WorkersPage() {
                       onClick={() => attendMutation.mutate({ worker: w, present: true })}
                       className={`flex-1 text-xs font-black py-1.5 rounded-sm transition flex items-center justify-center gap-1 border-2 ${
                         today?.present
-                          ? "bg-olive-600 text-white border-olive-600"
+                          ? "bg-olive-600 text-earth-100 border-olive-600"
                           : "bg-white text-earth-500 border-earth-200 hover:border-olive-300"
                       }`}>
                       <CalendarCheck className="w-3.5 h-3.5" /> حاضر
@@ -185,7 +185,7 @@ export default function WorkersPage() {
                       onClick={() => attendMutation.mutate({ worker: w, present: false })}
                       className={`flex-1 text-xs font-black py-1.5 rounded-sm transition flex items-center justify-center gap-1 border-2 ${
                         today && today.present === false
-                          ? "bg-red-600 text-white border-red-600"
+                          ? "bg-red-600 text-earth-100 border-red-600"
                           : "bg-white text-earth-500 border-earth-200 hover:border-red-300"
                       }`}>
                       <CalendarX className="w-3.5 h-3.5" /> غائب
@@ -268,7 +268,7 @@ export default function WorkersPage() {
                   className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition font-mono" />
               </div>
               <button onClick={handleCreate} disabled={!form.name.trim() || createMutation.isPending}
-                className="w-full bg-olive-700 hover:bg-olive-800 disabled:opacity-40 text-white font-black py-2.5 rounded-sm transition text-sm border-r-3 border-olive-900">
+                className="w-full bg-olive-700 hover:bg-olive-800 disabled:opacity-40 text-earth-100 font-black py-2.5 rounded-sm transition text-sm border-r-3 border-olive-900">
                 {createMutation.isPending ? "جارٍ الإضافة..." : "إضافة"}
               </button>
             </div>
@@ -307,7 +307,7 @@ export default function WorkersPage() {
               <button
                 onClick={() => advanceMutation.mutate({ worker: advanceFor, amount: advanceForm.amount, note: advanceForm.note })}
                 disabled={advanceForm.amount <= 0 || advanceMutation.isPending}
-                className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white font-black py-2.5 rounded-sm transition text-sm border-r-3 border-amber-800">
+                className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-earth-100 font-black py-2.5 rounded-sm transition text-sm border-r-3 border-amber-800">
                 {advanceMutation.isPending ? "جارٍ التسجيل..." : "تسجيل السلفة"}
               </button>
             </div>
@@ -367,13 +367,13 @@ export default function WorkersPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => openWhatsApp(statementFor.phone, statementText(statementFor.name || "العامل", s))}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1.5">
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-paper font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1.5">
                   <MessageCircle className="w-4 h-4" /> إرسال واتساب
                 </button>
                 <button
                   onClick={() => { if (confirm(`تصفية حساب ${statementFor.name}؟ سيُصفّر الصافي ويُحفظ السجل.`)) settleMutation.mutate(statementFor.id); }}
                   disabled={settleMutation.isPending || (s.daysPresent === 0 && s.advances === 0)}
-                  className="flex-1 bg-earth-800 hover:bg-earth-900 disabled:opacity-40 text-white font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1.5">
+                  className="flex-1 bg-earth-800 hover:bg-earth-900 disabled:opacity-40 text-earth-100 font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" /> تصفية الحساب
                 </button>
               </div>

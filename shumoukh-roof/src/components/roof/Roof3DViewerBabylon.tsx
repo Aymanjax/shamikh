@@ -317,7 +317,7 @@ export default function Roof3DViewerBabylon({ vertices, skeleton, slope, tile })
           {Object.keys(VIEWS).map((name) => (
             <button key={name}
               onClick={() => setView(name)}
-              className="px-2.5 py-1 text-[10px] font-bold bg-black/40 backdrop-blur-sm text-white/80 rounded-lg hover:bg-black/60 transition border border-white/10 cursor-pointer"
+              className="px-2.5 py-1 text-[10px] font-bold bg-black/40 backdrop-blur-sm text-paper/80 rounded-lg hover:bg-black/60 transition border border-white/10 cursor-pointer"
             >
               {name === "3d" ? "3D" : name.charAt(0).toUpperCase() + name.slice(1)}
             </button>
@@ -342,7 +342,7 @@ export default function Roof3DViewerBabylon({ vertices, skeleton, slope, tile })
             </span>
           )}
           {occtState.stats && (
-            <span className="px-2 py-0.5 text-[9px] font-mono bg-black/40 backdrop-blur-sm text-white/60 rounded-lg border border-white/10">
+            <span className="px-2 py-0.5 text-[9px] font-mono bg-black/40 backdrop-blur-sm text-paper/60 rounded-lg border border-white/10">
               {occtState.stats.totalArea.toFixed(1)} م²
             </span>
           )}
