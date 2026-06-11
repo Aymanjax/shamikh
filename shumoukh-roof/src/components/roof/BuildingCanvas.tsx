@@ -1,8 +1,9 @@
 // @ts-nocheck
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { edgesFromVertices, snapToGrid, isPolygonClosed, verticesFromEdges, isRectangular } from "../../utils/buildingGeometry";
+import { edgesFromVertices, isPolygonClosed, verticesFromEdges, isRectangular } from "../../utils/buildingGeometry";
 import { computeRoofSkeleton, customRectRoof, computeWaterDirections } from "../../utils/roofSkeleton";
-import { X, Plus, Trash2, Undo2, Maximize2, Minimize2, ZoomIn, ZoomOut, Check, Move, Ruler, Grid3x3, Eye, EyeOff, GripVertical } from "lucide-react";
+import { X, Plus, Trash2, Undo2, Redo2, Maximize2, Minimize2, ZoomIn, ZoomOut, Check, Move, Ruler, Grid3x3, Eye, EyeOff, GripVertical, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Hash } from "lucide-react";
+import { useT } from "../../i18n";
 
 const GRID_M = 20, PAD = 30, SZ = 700;
 const SCALE = (SZ - 2 * PAD) / GRID_M;
@@ -22,18 +23,15 @@ function svgPoint(svgEl, clientX, clientY) {
   return { x: (svgPt.x - PAD) / SCALE, y: (svgPt.y - PAD) / SCALE };
 }
 
-function constrainAxis(last, target) {
-  const dx = target.x - last.x;
-  const dy = target.y - last.y;
-  if (Math.abs(dx) > Math.abs(dy)) return { x: target.x, y: last.y };
-  return { x: last.x, y: target.y };
-}
-
 function getDirection(last, cur) {
   const dx = cur.x - last.x;
   const dy = cur.y - last.y;
   if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? "right" : "left";
   return dy > 0 ? "down" : "up";
+}
+
+function sameVerts(a, b) {
+  return a.length === b.length && a.every((v, i) => v.x === b[i].x && v.y === b[i].y);
 }
 
 export default function BuildingCanvas({ vertices, sides, onChange, onToggleFacade, onToggleActive, area, slope }) {
@@ -49,6 +47,22 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
   const [cursorPos, setCursorPos] = useState(null);
   const [ghost, setGhost] = useState(null);
   const [pinchDist, setPinchDist] = useState(null);
+  // تحسينات الرسم: دقة الالتقاط، تنبيه القواعد، تعديل الطول على الرسم، الإدخال التسلسلي، التاريخ، العدسة
+  const [gridStep, setGridStep] = useState(0.5);
+  const [hint, setHint] = useState(null);
+  const [editEdge, setEditEdge] = useState(null);
+  const [seqMode, setSeqMode] = useState(false);
+  const [seqLen, setSeqLen] = useState("");
+  const [seqDir, setSeqDir] = useState("right");
+  const [histMeta, setHistMeta] = useState({ canUndo: false, canRedo: false });
+  const [loupe, setLoupe] = useState(null);
+
+  const t = useT();
+  const axisLockRef = useRef(null);
+  const historyRef = useRef({ stack: [], idx: -1, skip: false });
+  const isTouchDragRef = useRef(false);
+  const hintTimerRef = useRef(null);
+  const seqInputRef = useRef(null);
 
   const svgRef = useRef(null);
   const containerRef = useRef(null);
@@ -121,6 +135,37 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
     return svgPoint(svgRef.current, clientX, clientY);
   }, []);
 
+  // التقاط على الشبكة بدقة قابلة للتبديل (0.5م ↔ 0.1م)
+  const snapPt = useCallback((v) => ({
+    x: Math.round(v.x / gridStep) * gridStep,
+    y: Math.round(v.y / gridStep) * gridStep,
+  }), [gridStep]);
+
+  // اهتزاز خفيف على الجوال عند الالتقاط
+  const buzz = (ms = 8) => { try { navigator.vibrate?.(ms); } catch { /* غير مدعوم */ } };
+
+  const flashHint = useCallback((msg) => {
+    setHint(msg);
+    clearTimeout(hintTimerRef.current);
+    hintTimerRef.current = setTimeout(() => setHint(null), 2400);
+  }, []);
+
+  // قفل المحور أثناء الرسم: يثبت الاتجاه أول ما يتحدد ولا يقفز إلا بانحراف واضح (1.6×)
+  const constrainLocked = useCallback((last, target) => {
+    const adx = Math.abs(target.x - last.x);
+    const ady = Math.abs(target.y - last.y);
+    let lock = axisLockRef.current;
+    if (!lock) {
+      if (Math.max(adx, ady) >= gridStep) lock = adx >= ady ? "h" : "v";
+    } else if (lock === "h" && ady > adx * 1.6) lock = "v";
+    else if (lock === "v" && adx > ady * 1.6) lock = "h";
+    axisLockRef.current = lock;
+    if (lock === "v") return { x: last.x, y: target.y };
+    return { x: target.x, y: last.y };
+  }, [gridStep]);
+
+  const axisOf = (dir) => (dir === "left" || dir === "right" ? "x" : "y");
+
   const handleTouchStart = useCallback((e) => {
     if (e.touches.length === 2) {
       e.preventDefault();
@@ -137,7 +182,7 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
       if (!closed) {
         const pt = svgCoord(e.touches[0].clientX, e.touches[0].clientY);
         if (!pt) return;
-        const snapped = snapToGrid(pt);
+        const snapped = snapPt(pt);
         if (vertices.length === 0) onChange([snapped]);
         touchDrawRef.current = true;
       } else {
@@ -147,7 +192,7 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
         };
       }
     }
-  }, [closed, vertices, pan, onChange, svgCoord]);
+  }, [closed, vertices, pan, onChange, svgCoord, snapPt]);
 
   const handleTouchMove = useCallback((e) => {
     if (e.touches.length === 2 && pinchDist !== null) {
@@ -173,13 +218,15 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
       const pt = svgCoord(e.touches[0].clientX, e.touches[0].clientY);
       if (!pt || vertices.length === 0) return;
       const last = vertices[vertices.length - 1];
-      const snapped = snapToGrid(pt);
+      const snapped = snapPt(pt);
       if (snapped.x !== last.x || snapped.y !== last.y) {
-        const constrained = constrainAxis(last, snapped);
+        const constrained = constrainLocked(last, snapped);
         if (constrained.x !== last.x || constrained.y !== last.y) {
           const dir = getDirection(last, constrained);
           const len = Math.sqrt((constrained.x - last.x) ** 2 + (constrained.y - last.y) ** 2);
-          setGhost({ from: last, to: constrained, dir, len });
+          const blocked = vertices.length >= 2 &&
+            axisOf(getDirection(vertices[vertices.length - 2], last)) === axisOf(dir);
+          setGhost({ from: last, to: constrained, dir, len, blocked });
           return;
         }
       }
@@ -193,7 +240,7 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
       const panDy = (my - touchPanRef.current.my) / rect.height;
       setPan({ x: touchPanRef.current.px + panDx, y: touchPanRef.current.py + panDy });
     }
-  }, [pinchDist, closed, vertices, svgCoord]);
+  }, [pinchDist, closed, vertices, svgCoord, snapPt, constrainLocked]);
 
   const edgesFromVerts = useMemo(() => edgesFromVertices(vertices), [vertices]);
 
@@ -217,17 +264,29 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
   ];
 
   const addVertex = useCallback((pt) => {
-    const snapped = snapToGrid(pt);
+    const snapped = snapPt(pt);
     if (vertices.length === 0) {
       onChange([snapped]);
+      buzz();
       return;
     }
     const last = vertices[vertices.length - 1];
     if (snapped.x === last.x && snapped.y === last.y) return;
-    const constrained = constrainAxis(last, snapped);
+    const constrained = constrainLocked(last, snapped);
     if (constrained.x === last.x && constrained.y === last.y) return;
+    // قاعدة الميدان: كل نقطة جديدة لازم تغيّر المحور — لا استمرار بنفس الاتجاه ولا رجوع على نفس الضلع
+    if (vertices.length >= 2) {
+      const prevDir = getDirection(vertices[vertices.length - 2], last);
+      const newDir = getDirection(last, constrained);
+      if (axisOf(prevDir) === axisOf(newDir)) {
+        flashHint(t("calculator.draw.turnRequired"));
+        return;
+      }
+    }
+    axisLockRef.current = null;
     onChange([...vertices, constrained]);
-  }, [vertices, onChange]);
+    buzz();
+  }, [vertices, onChange, snapPt, constrainLocked, flashHint, t]);
 
   const handleClose = useCallback(() => {
     if (vertices.length < 2) return;
@@ -236,7 +295,9 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
     const dx = first.x - last.x;
     const dy = first.y - last.y;
     if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return;
+    axisLockRef.current = null;
     onChange([...vertices, { ...first }]);
+    buzz(15);
   }, [vertices, onChange]);
 
   const handleTouchEnd = useCallback(() => {
@@ -280,24 +341,27 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
     setCursorPos(pt);
     if (!closed && vertices.length > 0 && !isPanning) {
       const last = vertices[vertices.length - 1];
-      const snapped = snapToGrid(pt);
+      const snapped = snapPt(pt);
       if (snapped.x !== last.x || snapped.y !== last.y) {
-        const constrained = constrainAxis(last, snapped);
+        const constrained = constrainLocked(last, snapped);
         if (constrained.x !== last.x || constrained.y !== last.y) {
           const dir = getDirection(last, constrained);
           const len = Math.sqrt((constrained.x - last.x) ** 2 + (constrained.y - last.y) ** 2);
-          setGhost({ from: last, to: constrained, dir, len });
+          const blocked = vertices.length >= 2 &&
+            axisOf(getDirection(vertices[vertices.length - 2], last)) === axisOf(dir);
+          setGhost({ from: last, to: constrained, dir, len, blocked });
           return;
         }
       }
     }
     setGhost(null);
-  }, [closed, vertices, isPanning, svgCoord]);
+  }, [closed, vertices, isPanning, svgCoord, snapPt, constrainLocked]);
 
   const handleCanvasLeave = useCallback(() => {
     setCursorPos(null);
     setGhost(null);
     clickStartRef.current = null;
+    axisLockRef.current = null;
   }, []);
 
   const handleQuickRect = () => {
@@ -339,36 +403,157 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
     onChange(ne.length === 0 ? [] : verticesFromEdges(ne, { x: 0, y: 0 }));
   };
 
-  const handleUndo = () => {
-    if (closed) return;
-    if (edges.length === 0) { onChange([]); setEdges([]); return; }
-    handleRemoveEdge(edges.length - 1);
+  // ====== تعديل طول الضلع بالنقر على رقمه فوق الرسم مباشرة ======
+  // للشكل المغلق: يُعوَّض الفرق على أطول ضلع معاكس بنفس المحور حتى يبقى الشكل مغلقًا ومتعامدًا
+  const applyEdgeLength = useCallback((i, raw) => {
+    const newLen = Math.round((Number(raw) || 0) * 10) / 10;
+    setEditEdge(null);
+    if (!(newLen >= 0.5)) return;
+    const start = vertices[0] || { x: 0, y: 0 };
+    if (!closed) {
+      if (!edges[i] || Math.abs(edges[i].length - newLen) < 0.001) return;
+      const ne = edges.map((e, j) => (j === i ? { ...e, length: newLen } : e));
+      setEdges(ne);
+      onChange(verticesFromEdges(ne, start));
+    } else {
+      const evs = edgesFromVerts;
+      const cur = evs[i];
+      if (!cur) return;
+      const delta = newLen - cur.length;
+      if (Math.abs(delta) < 0.001) return;
+      const opposite = { right: "left", left: "right", up: "down", down: "up" }[cur.direction];
+      let j = -1, best = -1;
+      evs.forEach((e2, k) => {
+        if (k !== i && e2.direction === opposite && e2.length + delta >= 0.5 && e2.length > best) {
+          best = e2.length; j = k;
+        }
+      });
+      if (j === -1) { flashHint(t("calculator.draw.cantResize")); return; }
+      const ne = evs.map((e2, k) => ({
+        direction: e2.direction,
+        length: k === i ? newLen : k === j ? Math.round((e2.length + delta) * 100) / 100 : e2.length,
+      }));
+      onChange(verticesFromEdges(ne, start));
+    }
+    buzz();
+  }, [closed, edges, edgesFromVerts, vertices, onChange, flashHint, t]);
+
+  // ====== وضع الإدخال التسلسلي — أرقام شريط القياس مباشرة ======
+  const lastSeqDirection = edges.length > 0 ? edges[edges.length - 1].direction : null;
+
+  const addSeqEdge = useCallback((direction, length) => {
+    const len = Math.round((Number(length) || 0) * 10) / 10;
+    if (!(len >= 0.5)) { flashHint(t("calculator.draw.lengthMin")); return false; }
+    if (lastSeqDirection && axisOf(lastSeqDirection) === axisOf(direction)) {
+      flashHint(t("calculator.draw.turnRequired"));
+      return false;
+    }
+    const ne = [...edges, { direction, length: len }];
+    setEdges(ne);
+    onChange(verticesFromEdges(ne, vertices[0] || { x: 0, y: 0 }));
+    buzz();
+    return true;
+  }, [edges, lastSeqDirection, vertices, onChange, flashHint, t]);
+
+  const handleSeqAdd = () => {
+    if (addSeqEdge(seqDir, seqLen)) {
+      setSeqLen("");
+      // اقتراح اتجاه عمودي تلقائيًا للضلع التالي
+      setSeqDir(axisOf(seqDir) === "x" ? "down" : "right");
+      seqInputRef.current?.focus();
+    }
   };
 
-  const handleClear = () => { onChange([]); setEdges([]); setGhost(null); resetView(); };
+  // فجوة الإغلاق: كم يلزم للعودة لنقطة البداية (للوضع التسلسلي)
+  const closeGap = useMemo(() => {
+    if (closed || vertices.length < 3) return null;
+    const first = vertices[0], last = vertices[vertices.length - 1];
+    const gx = Math.round((first.x - last.x) * 100) / 100;
+    const gy = Math.round((first.y - last.y) * 100) / 100;
+    if (gx === 0 && gy === 0) return null;
+    return { gx, gy };
+  }, [closed, vertices]);
+
+  const handleSeqAutoClose = () => {
+    if (!closeGap) return;
+    const { gx, gy } = closeGap;
+    const xEdge = gx !== 0 ? { direction: gx > 0 ? "right" : "left", length: Math.abs(gx) } : null;
+    const yEdge = gy !== 0 ? { direction: gy > 0 ? "down" : "up", length: Math.abs(gy) } : null;
+    // الترتيب يحترم قاعدة تغيير المحور: نبدأ بالمحور المختلف عن آخر ضلع
+    let order = [xEdge, yEdge].filter(Boolean);
+    if (lastSeqDirection && order.length === 2 && axisOf(lastSeqDirection) === axisOf(order[0].direction)) {
+      order = [order[1], order[0]];
+    }
+    if (order.length === 1 && lastSeqDirection && axisOf(lastSeqDirection) === axisOf(order[0].direction)) {
+      flashHint(t("calculator.draw.turnRequired"));
+      return;
+    }
+    const ne = [...edges, ...order];
+    setEdges(ne);
+    onChange(verticesFromEdges(ne, vertices[0] || { x: 0, y: 0 }));
+    buzz(15);
+  };
+
+  // ====== سجل التراجع/الإعادة — متعدد الخطوات ويعمل قبل وبعد إغلاق الشكل ======
+  const refreshHistMeta = useCallback(() => {
+    const h = historyRef.current;
+    setHistMeta({ canUndo: h.idx > 0, canRedo: h.idx < h.stack.length - 1 });
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    const h = historyRef.current;
+    if (h.idx <= 0) return;
+    h.idx -= 1;
+    h.skip = true;
+    axisLockRef.current = null;
+    setGhost(null);
+    onChange(h.stack[h.idx].map((v) => ({ ...v })));
+    refreshHistMeta();
+  }, [onChange, refreshHistMeta]);
+
+  const handleRedo = useCallback(() => {
+    const h = historyRef.current;
+    if (h.idx >= h.stack.length - 1) return;
+    h.idx += 1;
+    h.skip = true;
+    axisLockRef.current = null;
+    setGhost(null);
+    onChange(h.stack[h.idx].map((v) => ({ ...v })));
+    refreshHistMeta();
+  }, [onChange, refreshHistMeta]);
+
+  const { canUndo, canRedo } = histMeta;
+
+  const handleClear = () => { onChange([]); setEdges([]); setGhost(null); axisLockRef.current = null; resetView(); };
 
   const handleVertexDown = (idx, e) => {
     if (!closed) return;
     e.preventDefault();
     e.stopPropagation();
+    isTouchDragRef.current = !!e.touches;
     setDragIdx(idx);
   };
 
   const handleDragMove = useCallback((e) => {
     if (dragIdx === null || !svgRef.current) return;
     e.preventDefault();
-    const t = e.touches ? e.touches[0] : e;
-    const pt = svgCoord(t.clientX, t.clientY);
+    const tp = e.touches ? e.touches[0] : e;
+    const pt = svgCoord(tp.clientX, tp.clientY);
     if (pt) {
-      const snapped = snapToGrid(pt);
+      const snapped = snapPt(pt);
       const nv = [...vertices];
       nv[dragIdx] = snapped;
       if (dragIdx === 0 && closed) nv[nv.length - 1] = snapped;
       onChange(nv);
+      // العدسة المكبّرة: موضع الإصبع نسبةً للحاوية (لمس فقط)
+      if (isTouchDragRef.current) {
+        const rect = svgRef.current.getBoundingClientRect();
+        setLoupe({ sx: tp.clientX - rect.left, sy: tp.clientY - rect.top });
+      }
     }
-  }, [dragIdx, vertices, closed, onChange, svgCoord]);
+  }, [dragIdx, vertices, closed, onChange, svgCoord, snapPt]);
 
-  const handleDragUp = useCallback(() => { setDragIdx(null); clickStartRef.current = null; }, []);
+  const handleDragUp = useCallback(() => { setDragIdx(null); clickStartRef.current = null; setLoupe(null); isTouchDragRef.current = false; }, []);
 
   useEffect(() => {
     if (dragIdx === null) return;
@@ -410,7 +595,7 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
     const dx = (ev.clientX - ed.sx) / SCALE;
     const dy = (ev.clientY - ed.sy) / SCALE;
     if (dx * dx + dy * dy > 0.01) edgeDraggedRef.current = true;
-    const snap = (v) => Math.round(v / 0.5) * 0.5;
+    const snap = (v) => Math.round(v / gridStep) * gridStep;
     const nv = [...vertices];
     const ni = (edgeDragIdx + 1) % vertices.length;
     if (ed.isH) {
@@ -424,9 +609,23 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
     }
     if (closed && (ni === 0 || edgeDragIdx === 0)) nv[nv.length - 1] = { ...nv[0] };
     onChange(nv);
-  }, [edgeDragIdx, vertices, closed, onChange]);
+  }, [edgeDragIdx, vertices, closed, onChange, gridStep]);
 
   const handleEdgeDragUp = useCallback(() => { setEdgeDragIdx(null); }, []);
+
+  // تسجيل لقطات السجل: تتجاهل لحظات السحب وتلتقط عند الإفلات (تشمل القوالب وجدول الأضلاع)
+  useEffect(() => {
+    const h = historyRef.current;
+    if (h.skip) { h.skip = false; return; }
+    if (dragIdx !== null || edgeDragIdx !== null) return;
+    const top = h.stack[h.idx];
+    if (top && sameVerts(top, vertices)) return;
+    h.stack = h.stack.slice(0, h.idx + 1);
+    h.stack.push(vertices.map((v) => ({ ...v })));
+    if (h.stack.length > 60) h.stack.shift();
+    h.idx = h.stack.length - 1;
+    refreshHistMeta();
+  }, [vertices, dragIdx, edgeDragIdx, refreshHistMeta]);
 
   useEffect(() => {
     if (edgeDragIdx === null) return;
@@ -488,14 +687,19 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
   const zoomInRef = useRef(zoomIn);
   const zoomOutRef = useRef(zoomOut);
   const resetViewRef = useRef(resetView);
+  const undoRef = useRef(handleUndo);
+  const redoRef = useRef(handleRedo);
   zoomInRef.current = zoomIn;
   zoomOutRef.current = zoomOut;
   resetViewRef.current = resetView;
+  useEffect(() => { undoRef.current = handleUndo; redoRef.current = handleRedo; }, [handleUndo, handleRedo]);
 
   useEffect(() => {
     const onKey = (e) => {
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-      if (e.key === "z" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleUndo(); }
+      if (e.key.toLowerCase() === "z" && (e.ctrlKey || e.metaKey) && e.shiftKey) { e.preventDefault(); redoRef.current(); return; }
+      if (e.key.toLowerCase() === "z" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); undoRef.current(); }
+      if (e.key.toLowerCase() === "y" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); redoRef.current(); }
       if (e.key === "=" || e.key === "+") { e.preventDefault(); zoomInRef.current(); }
       if (e.key === "-") { e.preventDefault(); zoomOutRef.current(); }
       if (e.key === "0" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); resetViewRef.current(); }
@@ -622,16 +826,41 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
 
   const ghostLine = ghost && !closed ? (() => {
     const f = toK(ghost.from);
-    const t = toK(ghost.to);
-    const mx = (f.kx + t.kx) / 2, my = (f.ky + t.ky) / 2;
+    const g2 = toK(ghost.to);
+    const mx = (f.kx + g2.kx) / 2, my = (f.ky + g2.ky) / 2;
+    // المسار المرفوض (نفس المحور) يظهر أحمر حتى يعرف المستخدم أنه يجب تغيير الاتجاه
+    const c = ghost.blocked ? "#dc2626" : "#f59e0b";
+    const cTxt = ghost.blocked ? "#dc2626" : "#d97706";
     return (
       <g>
-        <line x1={f.kx} y1={f.ky} x2={t.kx} y2={t.ky} stroke="#f59e0b" strokeWidth={2.5} strokeDasharray="6 4" strokeLinecap="round" opacity={0.7} />
-        <circle cx={t.kx} cy={t.ky} r={5} fill="#f59e0b" opacity={0.5} />
-        <rect x={mx - 14} y={my - 7} width={28} height={14} rx={4} fill="white" fillOpacity={0.85} stroke="#f59e0b" strokeWidth={0.5} />
-        <text x={mx} y={my + 3} fontSize={7} fontWeight="bold" fill="#d97706" textAnchor="middle">{ghost.len.toFixed(1)}</text>
+        <line x1={f.kx} y1={f.ky} x2={g2.kx} y2={g2.ky} stroke={c} strokeWidth={2.5} strokeDasharray="6 4" strokeLinecap="round" opacity={0.7} />
+        <circle cx={g2.kx} cy={g2.ky} r={5} fill={c} opacity={0.5} />
+        <rect x={mx - 14} y={my - 7} width={28} height={14} rx={4} fill="white" fillOpacity={0.85} stroke={c} strokeWidth={0.5} />
+        <text x={mx} y={my + 3} fontSize={7} fontWeight="bold" fill={cTxt} textAnchor="middle">{ghost.blocked ? "✕" : ghost.len.toFixed(1)}</text>
       </g>
     );
+  })() : null;
+
+  // خطوط محاذاة ليزرية: تظهر عند محاذاة نقطة الرسم مع رأس سابق على نفس X أو Y
+  const guideEls = ghost && !closed && !ghost.blocked ? (() => {
+    const out = [];
+    const gk = toK(ghost.to);
+    let foundX = false, foundY = false;
+    for (let i = 0; i < vertices.length - 1; i++) {
+      const v = vertices[i];
+      if (v.x === ghost.to.x && v.y !== ghost.to.y && !foundX) {
+        const vk = toK(v);
+        out.push(<line key="gx" x1={vk.kx} y1={vk.ky} x2={gk.kx} y2={gk.ky} stroke="#f59e0b" strokeWidth={0.8} strokeDasharray="2 3" opacity={0.55} />);
+        foundX = true;
+      }
+      if (v.y === ghost.to.y && v.x !== ghost.to.x && !foundY) {
+        const vk = toK(v);
+        out.push(<line key="gy" x1={vk.kx} y1={vk.ky} x2={gk.kx} y2={gk.ky} stroke="#f59e0b" strokeWidth={0.8} strokeDasharray="2 3" opacity={0.55} />);
+        foundY = true;
+      }
+      if (foundX && foundY) break;
+    }
+    return out;
   })() : null;
 
   const closedEdgeEls = closed ? edgesFromVerts.map((e, i) => {
@@ -655,7 +884,26 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
         <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={24} strokeLinecap="round" />
         <circle cx={mx} cy={my} r={3} fill={clr} />
         <text x={lx} y={ly - 2} fontSize={8} fontWeight="bold" fill={clr} fontFamily="system-ui" textAnchor="middle" paintOrder="stroke" stroke="white" strokeWidth={3}>{i + 1}</text>
-        <text x={lx} y={ly + 9} fontSize={6} fill={clr} fontFamily="system-ui" textAnchor="middle" paintOrder="stroke" stroke="white" strokeWidth={3}>{e.length.toFixed(1)}م</text>
+        {editEdge?.i !== i && (
+          <g className="cursor-text"
+            onMouseDown={(ev) => { ev.stopPropagation(); }}
+            onTouchStart={(ev) => { ev.stopPropagation(); }}
+            onClick={(ev) => { ev.stopPropagation(); setEditEdge({ i }); }}>
+            <rect x={lx - 13} y={ly + 2} width={26} height={11} rx={2} fill="white" fillOpacity={0.01} />
+            <text x={lx} y={ly + 9} fontSize={6} fill={clr} fontFamily="system-ui" textAnchor="middle" paintOrder="stroke" stroke="white" strokeWidth={3} textDecoration="underline">{e.length.toFixed(1)}م</text>
+          </g>
+        )}
+        {editEdge?.i === i && (
+          <foreignObject x={lx - 24} y={ly - 2} width={48} height={22} onMouseDown={(ev) => ev.stopPropagation()} onTouchStart={(ev) => ev.stopPropagation()} onClick={(ev) => ev.stopPropagation()}>
+            <input autoFocus type="number" step="0.1" min="0.5" defaultValue={Number(e.length.toFixed(1))}
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter") applyEdgeLength(i, ev.currentTarget.value);
+                if (ev.key === "Escape") setEditEdge(null);
+              }}
+              onBlur={(ev) => applyEdgeLength(i, ev.currentTarget.value)}
+              style={{ width: "100%", height: "100%", fontSize: 9, textAlign: "center", border: "1.5px solid #f59e0b", borderRadius: 4, background: "white", outline: "none" }} />
+          </foreignObject>
+        )}
         {!isActiveSide && (
           <g>
             <line x1={mx + xOff - 5} y1={my + yOff - 5} x2={mx + xOff + 5} y2={my + yOff + 5} stroke="#ef4444" strokeWidth={2} strokeLinecap="round" opacity={0.7} />
@@ -683,7 +931,26 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
         <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth={24} strokeLinecap="round" />
         <circle cx={mx} cy={my} r={3} fill="#d97706" />
         <text x={lx} y={ly - 2} fontSize={8} fontWeight="bold" fill="#d97706" fontFamily="system-ui" textAnchor="middle" paintOrder="stroke" stroke="white" strokeWidth={3}>{i + 1}</text>
-        <text x={lx} y={ly + 9} fontSize={6} fill="#d97706" fontFamily="system-ui" textAnchor="middle" paintOrder="stroke" stroke="white" strokeWidth={3}>{len.toFixed(1)}م</text>
+        {editEdge?.i !== i && (
+          <g className="cursor-text"
+            onMouseDown={(ev) => { ev.stopPropagation(); }}
+            onTouchStart={(ev) => { ev.stopPropagation(); }}
+            onClick={(ev) => { ev.stopPropagation(); setEditEdge({ i }); }}>
+            <rect x={lx - 13} y={ly + 2} width={26} height={11} rx={2} fill="white" fillOpacity={0.01} />
+            <text x={lx} y={ly + 9} fontSize={6} fill="#d97706" fontFamily="system-ui" textAnchor="middle" paintOrder="stroke" stroke="white" strokeWidth={3} textDecoration="underline">{len.toFixed(1)}م</text>
+          </g>
+        )}
+        {editEdge?.i === i && (
+          <foreignObject x={lx - 24} y={ly - 2} width={48} height={22} onMouseDown={(ev) => ev.stopPropagation()} onTouchStart={(ev) => ev.stopPropagation()} onClick={(ev) => ev.stopPropagation()}>
+            <input autoFocus type="number" step="0.1" min="0.5" defaultValue={Number(len.toFixed(1))}
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter") applyEdgeLength(i, ev.currentTarget.value);
+                if (ev.key === "Escape") setEditEdge(null);
+              }}
+              onBlur={(ev) => applyEdgeLength(i, ev.currentTarget.value)}
+              style={{ width: "100%", height: "100%", fontSize: 9, textAlign: "center", border: "1.5px solid #f59e0b", borderRadius: 4, background: "white", outline: "none" }} />
+          </foreignObject>
+        )}
       </g>
     );
   }) : null;
@@ -746,11 +1013,76 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
             </button>
           ))}
         </div>
-        <button onClick={() => setShowEdgeTable(s => !s)}
-          className="mr-auto text-[10px] font-bold text-ink-muted hover:text-ink-primary transition bg-slate-100 border-2 border-slate-200 rounded-lg py-1.5 px-2.5 shrink-0">
-          {showEdgeTable ? 'إخفاء' : (vertices.length === 0 ? 'الأضلاع' : 'تعديل')}
-        </button>
+        <div className="mr-auto flex items-center gap-1 shrink-0">
+          <button onClick={handleUndo} disabled={!canUndo} title={t("calculator.draw.undo")}
+            className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition ${canUndo ? "bg-slate-100 border-slate-200 text-ink-muted hover:text-ink-primary hover:border-ice-blue-400" : "bg-slate-100 border-slate-100 text-ink-muted/30"}`}>
+            <Undo2 className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={handleRedo} disabled={!canRedo} title={t("calculator.draw.redo")}
+            className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition ${canRedo ? "bg-slate-100 border-slate-200 text-ink-muted hover:text-ink-primary hover:border-ice-blue-400" : "bg-slate-100 border-slate-100 text-ink-muted/30"}`}>
+            <Redo2 className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={() => setGridStep((s) => (s === 0.5 ? 0.1 : 0.5))} title={t("calculator.draw.precision")}
+            className={`px-2 h-7 rounded-lg border-2 text-[9px] font-bold transition ${gridStep === 0.1 ? "bg-amber-500/20 border-amber-500/30 text-amber-600" : "bg-slate-100 border-slate-200 text-ink-muted hover:text-ink-primary"}`}>
+            {gridStep}م
+          </button>
+          {!closed && (
+            <button onClick={() => setSeqMode((s) => !s)} title={t("calculator.draw.numericEntry")}
+              className={`px-2 h-7 rounded-lg border-2 text-[9px] font-bold transition flex items-center gap-1 ${seqMode ? "bg-amber-500/20 border-amber-500/30 text-amber-600" : "bg-slate-100 border-slate-200 text-ink-muted hover:text-ink-primary"}`}>
+              <Hash className="w-3 h-3" /> {t("calculator.draw.numericEntry")}
+            </button>
+          )}
+          <button onClick={() => setShowEdgeTable(s => !s)}
+            className="text-[10px] font-bold text-ink-muted hover:text-ink-primary transition bg-slate-100 border-2 border-slate-200 rounded-lg py-1.5 px-2.5 shrink-0">
+            {showEdgeTable ? 'إخفاء' : (vertices.length === 0 ? 'الأضلاع' : 'تعديل')}
+          </button>
+        </div>
       </div>
+
+      {/* وضع الإدخال التسلسلي: أرقام شريط القياس → أضلاع مرسومة */}
+      {seqMode && !closed && (
+        <div className="bg-amber-500/8 border border-amber-500/25 rounded-xl p-2.5 space-y-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <input ref={seqInputRef} type="number" min="0.5" step="0.1" value={seqLen}
+              onChange={(e) => setSeqLen(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSeqAdd(); }}
+              placeholder={t("calculator.draw.length")}
+              className="w-20 bg-white border-2 border-slate-200 rounded-lg py-1.5 px-2 text-center text-[11px] text-ink-primary outline-none focus:border-amber-400" />
+            <span className="text-[10px] text-ink-muted">م</span>
+            {[
+              { d: "right", Icon: ArrowRight },
+              { d: "left", Icon: ArrowLeft },
+              { d: "up", Icon: ArrowUp },
+              { d: "down", Icon: ArrowDown },
+            ].map(({ d, Icon }) => {
+              const blocked = lastSeqDirection && axisOf(lastSeqDirection) === axisOf(d);
+              return (
+                <button key={d} onClick={() => !blocked && setSeqDir(d)} disabled={blocked}
+                  title={t(`calculator.draw.dir.${d}`)}
+                  className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition ${
+                    blocked ? "bg-slate-100 border-slate-100 text-ink-muted/25 cursor-not-allowed"
+                      : seqDir === d ? "bg-amber-500/25 border-amber-500/40 text-amber-600"
+                      : "bg-white border-slate-200 text-ink-muted hover:border-amber-300"}`}>
+                  <Icon className="w-4 h-4" />
+                </button>
+              );
+            })}
+            <button onClick={handleSeqAdd}
+              className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-600 transition flex items-center gap-1">
+              <Plus className="w-3 h-3" /> {t("calculator.draw.addEdge")}
+            </button>
+          </div>
+          {closeGap && (
+            <button onClick={handleSeqAutoClose}
+              className="w-full py-1.5 rounded-lg text-[10px] font-bold border border-dashed border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10 transition flex items-center justify-center gap-1.5">
+              <Check className="w-3 h-3" />
+              {t("calculator.draw.autoClose", {
+                gap: [closeGap.gx, closeGap.gy].filter((v) => v !== 0).map((v) => Math.abs(v).toFixed(1)).join(" + "),
+              })}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Canvas */}
       <div ref={containerRef} className="bg-white border-2 border-slate-100 rounded-2xl overflow-hidden relative select-none"
@@ -818,10 +1150,39 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
           )}
           {closedEdgeEls}
           {openEdgeEls}
+          {guideEls}
           {ghostLine}
           {closeHint}
           {vertexDots}
         </svg>
+
+        {/* تنبيه قواعد الرسم (غيّر الاتجاه...) */}
+        {hint && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 bg-red-600 text-paper text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+            {hint}
+          </div>
+        )}
+
+        {/* العدسة المكبّرة أثناء سحب رأس بالإصبع */}
+        {loupe && dragIdx !== null && vertices[dragIdx] && (() => {
+          const dk = toK(vertices[dragIdx]);
+          const win = 70; // نافذة 70 وحدة svg ≈ تكبير قوي حول النقطة
+          return (
+            <div className="absolute pointer-events-none rounded-full overflow-hidden border-2 border-amber-500 shadow-xl bg-white z-30"
+              style={{ width: 96, height: 96, left: Math.max(0, loupe.sx - 48), top: Math.max(0, loupe.sy - 128) }}>
+              <svg viewBox={`${dk.kx - win / 2} ${dk.ky - win / 2} ${win} ${win}`} width="100%" height="100%">
+                {gridLines}
+                {polygonFill}
+                {closedEdgeEls}
+                {openEdgeEls}
+                {vertexDots}
+              </svg>
+              <div className="absolute inset-0 grid place-items-center">
+                <div className="w-2.5 h-2.5 border-2 border-red-500 rounded-full" />
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Close button overlay */}
         {!closed && vertices.length >= 2 && (
@@ -1043,10 +1404,16 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
       {/* Bottom actions */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-1.5">
-          {edges.length > 0 && (
+          {canUndo && (
             <button onClick={handleUndo}
               className="px-3 py-1.5 rounded-lg text-[10px] font-bold border-2 transition bg-slate-100 border-slate-200 text-ink-muted hover:border-ice-blue-400 hover:text-ink-primary">
               <Undo2 className="w-3 h-3 ml-1 inline" /> تراجع
+            </button>
+          )}
+          {canRedo && (
+            <button onClick={handleRedo}
+              className="px-3 py-1.5 rounded-lg text-[10px] font-bold border-2 transition bg-slate-100 border-slate-200 text-ink-muted hover:border-ice-blue-400 hover:text-ink-primary">
+              <Redo2 className="w-3 h-3 ml-1 inline" /> {t("calculator.draw.redo")}
             </button>
           )}
           <button onClick={handleClear}

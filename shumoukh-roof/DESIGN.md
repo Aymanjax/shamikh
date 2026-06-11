@@ -344,3 +344,49 @@ The warm-earth system above remains the semantic source of truth; the cockpit re
 - The drawing canvas (BuildingCanvas / 3D viewers) stays light — a drafting sheet on a
   dark instrument desk (CAD convention). Never dark-skin the drawing surface.
 - Semantic z-scale: instrument 20 → scrim 80 → radial 90 → toast 100.
+
+---
+
+## 8. Drawing Canvas — Field-Accurate Roof Sketching (BuildingCanvas)
+
+The drawing surface is the heart of the calculator. It stays light (a drafting
+sheet on the dark instrument desk — CAD convention). Interaction rules encode how
+contractors actually measure roofs: orthogonal walls, no backtracking, exact
+dimensions.
+
+### Drawing rules (enforced, not just hinted)
+- **Orthogonal only with sticky axis lock.** While drawing, the first clear
+  movement locks the segment to horizontal or vertical; it only flips axis on a
+  decisive turn (1.6× dominance), so a near-straight drag never wobbles between
+  axes. Diagonals are impossible by construction.
+- **Every new point must change axis.** You cannot place two consecutive segments
+  on the same axis (no "dot then continue straight", no doubling back along the
+  same wall). The forbidden ghost turns **red with an ✕**, and a click on it
+  raises a toast (`calculator.draw.turnRequired`) instead of adding a vertex.
+- **Snap precision toggle** 0.5 m ↔ 0.1 m for fine adjustments; all snapping
+  (draw, vertex drag, edge drag, parametric shapes) honors it.
+
+### Editing
+- **Tap a dimension number on the drawing to retype it.** On an open path it
+  resizes that edge directly; on a closed shape the delta is absorbed by the
+  longest opposite-axis edge so the polygon stays closed and rectilinear (or a
+  toast explains why it can't).
+- **Multi-step Undo/Redo** (toolbar + Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y), backed by
+  a 60-snapshot history that ignores in-progress drag frames and works both
+  before and after the shape is closed.
+
+### Speed paths
+- **Numeric ("by numbers") entry:** type a length, pick a direction (axis-locked
+  buttons grey out the illegal same-axis choice), and append edges like reading a
+  tape measure. An **auto-close** button appears once the shape can be closed and
+  emits the 1–2 remaining edges in a rule-respecting order.
+- **Parametric L / U / T presets:** choose a shape, fill in real dimensions, and
+  the polygon is generated (snapped to 0.5 m, validated so cut-outs fit inside the
+  envelope). Sits above the existing fixed-size rectangle templates.
+
+### Touch
+- Haptic tick on every committed point/close (`navigator.vibrate`, silently
+  ignored where unsupported).
+- **Magnifier loupe:** dragging a vertex with a finger shows a zoomed circular
+  inset above the fingertip with a crosshair, so the point isn't hidden under the
+  thumb.
