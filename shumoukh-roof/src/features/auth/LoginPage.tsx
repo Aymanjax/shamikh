@@ -5,6 +5,7 @@ import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { LogIn, HardHat, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import { loginUser, loginWithGoogle } from "./authService";
 import { useAuthStore } from "../../store/authStore";
+import "../../styles/cockpit.css";
 import { useT } from "../../i18n";
 
 const easing = [0.22, 1, 0.36, 1];
@@ -57,7 +58,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-earth-100 flex items-center justify-center p-4">
+    <div className="cockpit-root min-h-screen bg-earth-100 flex items-center justify-center p-4">
+      <div className="cockpit-grid" />
       <motion.div
         initial={{ opacity: 0, y: reducedMotion ? 0 : 16, x: reducedMotion ? 0 : 8 }}
         animate={{ opacity: 1, y: 0, x: 0 }}
@@ -76,7 +78,7 @@ export default function LoginPage() {
             transition={{ duration: reducedMotion ? 0 : 0.45, ease: easing, delay: reducedMotion ? 0 : 0.2 }}
             className="w-16 h-16 rounded-xl bg-terracotta-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-terracotta-500/25"
           >
-            <HardHat className="w-8 h-8 text-white" />
+            <HardHat className="w-8 h-8 text-paper" />
           </motion.div>
           <h1 className="text-xl font-black text-earth-800 tracking-tight">{t("auth.loginTitle")}</h1>
           <p className="text-sm text-earth-500 mt-1">{t("app.name")} — {t("app.tagline")}</p>
@@ -175,7 +177,7 @@ export default function LoginPage() {
               whileHover={loading ? {} : { scale: reducedMotion ? 1 : 1.01 }}
               whileTap={loading ? {} : { scale: reducedMotion ? 1 : 0.97 }}
               transition={{ duration: reducedMotion ? 0 : 0.1 }}
-              className="w-full bg-olive-500 hover:bg-olive-600 disabled:bg-olive-400 disabled:cursor-not-allowed text-white font-black py-2.5 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 shadow-lg shadow-olive-500/15"
+              className="w-full bg-olive-500 hover:bg-olive-600 disabled:bg-olive-400 disabled:cursor-not-allowed text-earth-100 font-black py-2.5 rounded-xl transition-colors duration-200 flex items-center justify-center gap-2 shadow-lg shadow-olive-500/15"
             >
               <AnimatePresence mode="wait">
                 {loading ? (

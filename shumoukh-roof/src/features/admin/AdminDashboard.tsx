@@ -153,7 +153,7 @@ export default function AdminDashboard() {
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={`text-xs font-black px-3 py-1.5 rounded-sm transition border cursor-pointer ${
                 filter === f.key
-                  ? "bg-earth-800 text-white border-earth-800"
+                  ? "bg-earth-800 text-earth-100 border-earth-800"
                   : "bg-white text-earth-600 border-earth-200 hover:border-earth-300"
               }`}>
               {t(f.label)}
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
           className="bg-white border-2 border-earth-200 rounded-sm py-1.5 px-2 text-xs text-earth-900 outline-none w-20 text-center font-mono font-black focus:border-terracotta-400" aria-label={t("admin.daysCount")} />
         <span className="text-[10px] text-earth-500 font-bold">{t("common.day")}</span>
         <button onClick={applySubscriptionToAll} disabled={bulkApplying || users.length === 0}
-          className="bg-terracotta-500 hover:bg-terracotta-600 active:bg-terracotta-700 disabled:opacity-40 text-white py-1.5 px-4 rounded-sm text-xs font-bold transition whitespace-nowrap border-r-3 border-terracotta-700 cursor-pointer">
+          className="bg-terracotta-500 hover:bg-terracotta-600 active:bg-terracotta-700 disabled:opacity-40 text-earth-100 py-1.5 px-4 rounded-sm text-xs font-bold transition whitespace-nowrap border-r-3 border-terracotta-700 cursor-pointer">
           {bulkApplying ? t("admin.users.applying") : t("admin.users.applyToAll")}
         </button>
       </div>
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
               <div key={u.uid} className="earth-card p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-10 h-10 shrink-0 rounded-sm bg-terracotta-500 border-l-2 border-terracotta-300 flex items-center justify-center text-white font-black text-sm">
+                    <div className="w-10 h-10 shrink-0 rounded-sm bg-terracotta-500 border-l-2 border-terracotta-300 flex items-center justify-center text-earth-100 font-black text-sm">
                       {(u.displayName || u.email || "?")[0].toUpperCase()}
                     </div>
                     <div className="min-w-0 overflow-hidden">
@@ -294,7 +294,7 @@ export default function AdminDashboard() {
           <button key={tb.key} onClick={() => setTab(tb.key)}
             className={`py-2 px-3 rounded-sm text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               tab === tb.key
-                ? "bg-earth-800 text-white border-r-2 border-terracotta-500"
+                ? "bg-earth-800 text-earth-100 border-r-2 border-terracotta-500"
                 : "bg-transparent text-earth-500 hover:text-earth-700 hover:bg-earth-50 border-r-2 border-transparent"
             }`}>
             <tb.icon className="w-3.5 h-3.5" />

@@ -102,7 +102,7 @@ export default function InvoicesTab() {
           {FILTERS.map((f) => (
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={`text-xs font-black px-3 py-1.5 rounded-lg transition border-2 ${
-                filter === f.key ? "bg-ice-blue-600 text-white border-ice-blue-600" : "bg-white text-ink-muted border-slate-200 hover:border-slate-300"
+                filter === f.key ? "bg-ice-blue-600 text-paper border-ice-blue-600" : "bg-white text-ink-muted border-slate-200 hover:border-slate-300"
               }`}>
               {f.label}
             </button>

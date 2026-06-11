@@ -83,7 +83,7 @@ export default function NotificationBell({ collapsed, position = "left" }: { col
       >
         <Bell className={collapsed ? "w-5 h-5" : "w-5 h-5"} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-lg shadow-red-500/40 min-w-[18px] min-h-[18px] px-1">
+          <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-red-500 text-earth-100 text-[9px] font-black rounded-full flex items-center justify-center shadow-lg shadow-red-500/40 min-w-[18px] min-h-[18px] px-1">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -127,7 +127,7 @@ export default function NotificationBell({ collapsed, position = "left" }: { col
                       <div
                         className={`w-8 h-8 rounded-lg ${color} flex items-center justify-center shrink-0 mt-0.5`}
                       >
-                        <Icon className="w-4 h-4 text-white" />
+                        <Icon className="w-4 h-4 text-paper" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">

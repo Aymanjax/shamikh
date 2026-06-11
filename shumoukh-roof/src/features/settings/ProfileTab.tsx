@@ -161,7 +161,7 @@ export default function ProfileTab() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-4 min-w-0">
           <div className="w-12 h-12 shrink-0 rounded-sm bg-terracotta-500 flex items-center justify-center shadow-lg shadow-terracotta-500/30">
-            <span className="text-white font-black text-base" aria-hidden="true">{firstChar}</span>
+            <span className="text-paper font-black text-base" aria-hidden="true">{firstChar}</span>
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-black text-ink-primary tracking-tight truncate">{t("settings.profile.title")}</h1>

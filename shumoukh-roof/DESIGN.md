@@ -306,3 +306,41 @@ Every anti-reference from PRODUCT.md is enforced here as a concrete visual guard
 - **Don't** nest cards inside cards. One `.earth-card` per logical container. For subdivisions, use border separators or background tint shifts.
 - **Don't** use font-weight 400 for any text a user needs to read at a glance. Labels are 700, headings are 900, data is 900. 400 is for long-form prose only.
 - **Don't** add a third typeface. The cap is two: Noto Kufi Arabic (sans) + JetBrains Mono (mono). No serif, no display, no handwriting.
+
+---
+
+## 7. Cockpit Layer (Engineering Dark Mode — current primary shell)
+
+A deliberate identity pivot requested by the owner: the entire app now renders inside the
+"cockpit" engineering shell (`src/styles/cockpit.css`, `src/components/cockpit/`).
+The warm-earth system above remains the semantic source of truth; the cockpit re-maps it.
+
+### Mechanism
+- Everything is scoped under `.cockpit-root`. Tailwind v4 utilities resolve through
+  `var(--color-*)`, so the cockpit redefines the palette variables once and every page
+  re-skins automatically. No per-page styling.
+- Inversion rule: light surfaces (earth-50/100, white) become graphite/steel
+  (#0e1116, #151a21, #1b222b); dark ink (earth-800/900) becomes warm white (#ece6dc).
+  Terracotta becomes the "instrument light" amber (#ed9450) — warm laser on cold steel,
+  NOT the cyan-terminal cliché.
+- `--color-paper` (#faf7f4) never changes; use `text-paper` for text that must stay light
+  in both themes. Use `text-earth-100` on accent-colored (terracotta/olive/amber/red/earth
+  400-900) backgrounds: it resolves light-on-dark in the light theme and dark-on-light in
+  the cockpit.
+
+### Components
+- `CockpitShell`: blueprint-grid canvas, top instrument rail (live dot, mono clock,
+  notifications). Replaces Sidebar + FloatingCommandBar in `AppLayout` on all viewports.
+- `RadialCommandMenu`: bottom-center hub fanning navigation nodes on an arc with dashed
+  hairline connectors (SVG pathLength animation), expo-out stagger, Escape/scrim close,
+  reduced-motion fallbacks. THE signature interaction; do not replace it with a sidebar.
+- `CockpitConsole` (`/`): primary readout + measurement ruler + paid/pending bar +
+  module tiles + ruled ledger. Monospace numerals everywhere (`.mono`, tnum + slashed zero).
+
+### Rules specific to the cockpit
+- Sharp edges only: border-radius 2-3px. Panels separate by hairlines
+  (`rgba(233,221,208,.07-.16)`), never by drop shadows.
+- Motion is mechanical: `cubic-bezier(0.16,1,0.3,1)` or `(0.7,0,0.2,1)`. No bounce.
+- The drawing canvas (BuildingCanvas / 3D viewers) stays light — a drafting sheet on a
+  dark instrument desk (CAD convention). Never dark-skin the drawing surface.
+- Semantic z-scale: instrument 20 → scrim 80 → radial 90 → toast 100.

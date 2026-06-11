@@ -100,4 +100,5 @@
   --color-ice-blue-900: #1b2416;
 
   --color-white: #faf7f4;
+  --color-paper: #faf7f4; /* يبقى فاتحًا دائمًا حتى في الواجهة الداكنة */
 }

@@ -36,11 +36,11 @@ export default function Sidebar({ isAdmin, collapsed, onToggle }: { isAdmin: boo
       {/* Logo */}
       <div className={`border-b border-deep-earth-700 flex items-center ${collapsed ? "justify-center p-3" : "p-4 gap-3"}`}>
         <div className="w-8 h-8 rounded-sm bg-terracotta-500 flex items-center justify-center shrink-0 border-l-2 border-terracotta-300">
-          <Home className="w-4 h-4 text-white" />
+          <Home className="w-4 h-4 text-paper" />
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <h2 className="text-sm font-black text-white tracking-tight">{t("app.name")}</h2>
+            <h2 className="text-sm font-black text-paper tracking-tight">{t("app.name")}</h2>
             <p className="text-[9px] text-earth-500">{t("app.tagline")}</p>
           </div>
         )}
@@ -77,11 +77,11 @@ export default function Sidebar({ isAdmin, collapsed, onToggle }: { isAdmin: boo
         {user && !collapsed && (
           <div className="px-3 py-2">
             <div className="flex items-center gap-2.5 mb-1.5">
-              <div className="w-7 h-7 shrink-0 rounded-sm bg-terracotta-500 flex items-center justify-center text-white font-black text-xs border-l-2 border-terracotta-300">
+              <div className="w-7 h-7 shrink-0 rounded-sm bg-terracotta-500 flex items-center justify-center text-earth-100 font-black text-xs border-l-2 border-terracotta-300">
                 {user.displayName?.charAt(0) || user.email?.charAt(0) || "?"}
               </div>
               <div className="flex-1 min-w-0 overflow-hidden">
-                <p className="text-xs font-bold text-white truncate" title={user.displayName || ""}>{user.displayName || t("nav.user")}</p>
+                <p className="text-xs font-bold text-paper truncate" title={user.displayName || ""}>{user.displayName || t("nav.user")}</p>
                 <p className="text-[9px] text-earth-500 truncate" title={user.email || ""}>{user.email}</p>
               </div>
             </div>

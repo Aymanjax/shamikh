@@ -93,7 +93,7 @@ export default function WorkersPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-sm bg-red-600 flex items-center justify-center border-l-3 border-red-400">
-            <HardHat className="w-6 h-6 text-white" />
+            <HardHat className="w-6 h-6 text-paper" />
           </div>
           <div>
             <h1 className="text-xl font-black text-earth-900 tracking-tight">{t("workers.title")}</h1>
@@ -123,7 +123,7 @@ export default function WorkersPage() {
             {workers.map((w) => (
               <div key={w.id} className="glass-card p-4 transition-all duration-150 hover:shadow-card-hover">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-sm bg-red-600 flex items-center justify-center text-white font-black text-sm">
+                  <div className="w-10 h-10 rounded-sm bg-red-600 flex items-center justify-center text-earth-100 font-black text-sm">
                     {w.name?.charAt(0) || "?"}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -213,7 +213,7 @@ export default function WorkersPage() {
                 </div>
               </div>
               <button onClick={handleCreate} disabled={!form.name.trim() || createMutation.isPending}
-                className="w-full bg-olive-700 hover:bg-olive-800 disabled:opacity-40 text-white font-black py-2.5 rounded-sm transition text-sm border-r-3 border-olive-900">
+                className="w-full bg-olive-700 hover:bg-olive-800 disabled:opacity-40 text-earth-100 font-black py-2.5 rounded-sm transition text-sm border-r-3 border-olive-900">
                 {createMutation.isPending ? t("workers.adding") : t("common.add")}
               </button>
             </div>

@@ -138,7 +138,7 @@ export default function DashboardTab() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {todayLogins.slice(0, 12).map((u: any) => (
               <div key={u.uid} className="flex items-center gap-2 bg-earth-50 border border-earth-200 rounded-sm p-2">
-                <div className="w-7 h-7 rounded-sm bg-terracotta-500 border-l-2 border-terracotta-300 flex items-center justify-center text-white font-black text-xs shrink-0">
+                <div className="w-7 h-7 rounded-sm bg-terracotta-500 border-l-2 border-terracotta-300 flex items-center justify-center text-earth-100 font-black text-xs shrink-0">
                   {(u.displayName || u.email || "?")[0].toUpperCase()}
                 </div>
                 <div className="min-w-0">

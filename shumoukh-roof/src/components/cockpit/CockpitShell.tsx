@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useT } from "../../i18n";
 import RadialCommandMenu from "./RadialCommandMenu";
+import NotificationBell from "../ui/NotificationBell";
 import "../../styles/cockpit.css";
 
 function clock(lang: "ar" | "en") {
@@ -40,10 +41,13 @@ export default function CockpitShell({ isAdmin, children }: { isAdmin: boolean; 
             ● {t("cockpit.online")}
           </span>
         </div>
-        <div className="mono flex items-center gap-3 text-[11px] tabular-nums" style={{ color: "var(--ck-ink-dim)" }}>
-          <span>{now.time}</span>
-          <span style={{ color: "var(--ck-ink-mute)" }}>/</span>
-          <span>{now.date}</span>
+        <div className="flex items-center gap-4">
+          <div className="mono flex items-center gap-3 text-[11px] tabular-nums" style={{ color: "var(--ck-ink-dim)" }}>
+            <span>{now.time}</span>
+            <span style={{ color: "var(--ck-ink-mute)" }}>/</span>
+            <span>{now.date}</span>
+          </div>
+          <NotificationBell collapsed position="left" />
         </div>
       </header>
 

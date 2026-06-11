@@ -44,7 +44,7 @@ export default function SecurityTab() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-4 min-w-0">
           <div className="w-12 h-12 shrink-0 rounded-sm bg-terracotta-500 flex items-center justify-center shadow-lg shadow-terracotta-500/30">
-            <Shield className="w-6 h-6 text-white" />
+            <Shield className="w-6 h-6 text-paper" />
           </div>
           <div className="min-w-0">
             <h1 className="text-xl font-black text-ink-primary tracking-tight">{t("settings.security.title")}</h1>

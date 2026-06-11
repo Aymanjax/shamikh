@@ -10,7 +10,6 @@ import { useAuthStore } from "../../store/authStore";
 import { projectName, projectArea } from "../../utils/projectDisplay";
 import type { SavedProject } from "../../utils/projectDisplay";
 import { useT } from "../../i18n";
-import CockpitShell from "../../components/cockpit/CockpitShell";
 
 interface Invoice { id: string; client?: string; project?: string; status?: string; amount?: number }
 interface Worker { id: string; days?: number; wage?: number }
@@ -68,7 +67,8 @@ function Module({
   );
 }
 
-function Console() {
+// لوحة القيادة — تُعرض داخل قشرة AppLayout (CockpitShell)
+export default function CockpitConsole() {
   const t = useT();
   const navigate = useNavigate();
   const reduce = useReducedMotion();
@@ -225,13 +225,5 @@ function Console() {
         )}
       </motion.section>
     </div>
-  );
-}
-
-export default function CockpitPage({ isAdmin = false }: { isAdmin?: boolean }) {
-  return (
-    <CockpitShell isAdmin={isAdmin}>
-      <Console />
-    </CockpitShell>
   );
 }

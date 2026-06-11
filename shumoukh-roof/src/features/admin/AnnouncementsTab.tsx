@@ -107,7 +107,7 @@ export default function AnnouncementsTab() {
                 className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2 pr-9 pl-3 text-sm text-ink-primary outline-none focus:border-ice-blue-500 transition font-medium" />
             </div>
             <button onClick={() => { setEditing(null); setModalOpen(true); }}
-              className="bg-ice-blue-600 hover:bg-ice-blue-700 text-white py-2 px-4 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border-2 border-ice-blue-600 whitespace-nowrap">
+              className="bg-ice-blue-600 hover:bg-ice-blue-700 text-paper py-2 px-4 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border-2 border-ice-blue-600 whitespace-nowrap">
               <Plus className="w-4 h-4" /> إضافة
             </button>
           </div>

@@ -514,7 +514,7 @@ export default function CalculatorPage() {
         className="flex items-center gap-4 mb-6"
       >
         <div className="w-12 h-12 rounded-sm bg-terracotta-500 flex items-center justify-center border-l-3 border-terracotta-300">
-          <Calculator className="w-6 h-6 text-white" />
+          <Calculator className="w-6 h-6 text-paper" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">

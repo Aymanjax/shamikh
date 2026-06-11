@@ -43,7 +43,7 @@ export default function SubscriptionModal({ open, user, onClose, onSave }: Props
       <div className="relative bg-white rounded-sm border border-earth-200 shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-sm bg-terracotta-500 border-l-2 border-terracotta-300 flex items-center justify-center text-white font-black text-sm">
+            <div className="w-10 h-10 rounded-sm bg-terracotta-500 border-l-2 border-terracotta-300 flex items-center justify-center text-earth-100 font-black text-sm">
               {(user.displayName || user.email || "?")[0].toUpperCase()}
             </div>
             <div className="min-w-0 overflow-hidden">
@@ -78,11 +78,11 @@ export default function SubscriptionModal({ open, user, onClose, onSave }: Props
               <label className="text-xs font-black text-earth-600 block mb-2">طريقة التحديد</label>
               <div className="flex gap-2 mb-3">
                 <button onClick={() => setMode("days")}
-                  className={`flex-1 py-2 rounded-sm text-xs font-black transition border cursor-pointer ${mode === "days" ? "bg-earth-800 text-white border-earth-800" : "bg-white border-earth-200 text-earth-600 hover:border-earth-300"}`}>
+                  className={`flex-1 py-2 rounded-sm text-xs font-black transition border cursor-pointer ${mode === "days" ? "bg-earth-800 text-earth-100 border-earth-800" : "bg-white border-earth-200 text-earth-600 hover:border-earth-300"}`}>
                   <Clock className="w-3 h-3 inline ml-1" />بعدد الأيام
                 </button>
                 <button onClick={() => setMode("date")}
-                  className={`flex-1 py-2 rounded-sm text-xs font-black transition border cursor-pointer ${mode === "date" ? "bg-earth-800 text-white border-earth-800" : "bg-white border-earth-200 text-earth-600 hover:border-earth-300"}`}>
+                  className={`flex-1 py-2 rounded-sm text-xs font-black transition border cursor-pointer ${mode === "date" ? "bg-earth-800 text-earth-100 border-earth-800" : "bg-white border-earth-200 text-earth-600 hover:border-earth-300"}`}>
                   <Calendar className="w-3 h-3 inline ml-1" />بتاريخ محدد
                 </button>
               </div>
@@ -111,7 +111,7 @@ export default function SubscriptionModal({ open, user, onClose, onSave }: Props
               إلغاء
             </button>
             <button onClick={() => onSave(user.uid, plan, mode === "days" ? { days } : { expiryDate })} disabled={!canSave}
-              className="flex-1 bg-olive-700 hover:bg-olive-800 active:bg-olive-900 disabled:opacity-40 disabled:cursor-not-allowed text-white py-3 rounded-sm font-black text-sm transition flex items-center justify-center gap-2 border-r-3 border-olive-900 cursor-pointer">
+              className="flex-1 bg-olive-700 hover:bg-olive-800 active:bg-olive-900 disabled:opacity-40 disabled:cursor-not-allowed text-earth-100 py-3 rounded-sm font-black text-sm transition flex items-center justify-center gap-2 border-r-3 border-olive-900 cursor-pointer">
               <Check className="w-4 h-4" /> حفظ الاشتراك
             </button>
           </div>

@@ -90,7 +90,7 @@ export default function ProjectsPage() {
         <p className="text-xs text-earth-500 mb-4">{t("projects.loadErrorHint")}</p>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: ["projects", uid] })}
-          className="bg-earth-700 text-white hover:bg-earth-800 rounded-sm px-4 py-2 text-xs font-bold transition-colors cursor-pointer border-r-2 border-earth-900"
+          className="bg-earth-700 text-earth-100 hover:bg-earth-800 rounded-sm px-4 py-2 text-xs font-bold transition-colors cursor-pointer border-r-2 border-earth-900"
         >
           {t("projects.retry")}
         </button>
@@ -104,7 +104,7 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-sm bg-amber-600 flex items-center justify-center border-l-3 border-amber-400 shrink-0">
-            <FolderOpen className="w-6 h-6 text-white" />
+            <FolderOpen className="w-6 h-6 text-paper" />
           </div>
           <div>
             <h1 className="text-xl font-black text-earth-900 tracking-tight">{t("projects.title")}</h1>
@@ -140,7 +140,7 @@ export default function ProjectsPage() {
                 onClick={() => setStatusFilter(f.key)}
                 className={`text-[10px] font-black px-2.5 py-1.5 rounded-sm border transition cursor-pointer ${
                   statusFilter === f.key
-                    ? "bg-earth-800 text-white border-earth-800"
+                    ? "bg-earth-800 text-earth-100 border-earth-800"
                     : "bg-white text-earth-600 border-earth-200 hover:border-earth-300"
                 }`}
               >
@@ -169,7 +169,7 @@ export default function ProjectsPage() {
                 <p className="text-xs mt-1 mb-4">{t("projects.emptyHint")}</p>
                 <Link
                   to="/calculator"
-                  className="inline-flex items-center gap-2 bg-olive-700 hover:bg-olive-800 text-white text-xs font-bold px-4 py-2.5 rounded-sm border-r-3 border-olive-900 transition-colors"
+                  className="inline-flex items-center gap-2 bg-olive-700 hover:bg-olive-800 text-earth-100 text-xs font-bold px-4 py-2.5 rounded-sm border-r-3 border-olive-900 transition-colors"
                 >
                   <PencilRuler className="w-4 h-4" />
                   {t("projects.startFirstCalculation")}
@@ -277,7 +277,7 @@ export default function ProjectsPage() {
               </div>
 
               {detail.summary?.totalCost ? (
-                <div className="text-white rounded-sm p-3 flex justify-between font-black" style={{ backgroundColor: "var(--accent-amber)" }}>
+                <div className="text-paper rounded-sm p-3 flex justify-between font-black" style={{ backgroundColor: "var(--accent-amber)" }}>
                   <span>{t("projects.estimatedCost")}</span>
                   <span className="font-mono" style={{ color: "var(--accent-amber-soft)" }}>{detail.summary.totalCost} {t("common.currency")}</span>
                 </div>
@@ -308,14 +308,14 @@ export default function ProjectsPage() {
               <div className="flex gap-2">
                 <Link
                   to={`/calculator/${detail.id}`}
-                  className="flex-1 bg-olive-700 hover:bg-olive-800 text-white font-black py-2.5 rounded-sm transition text-sm text-center border-r-3 border-olive-900 flex items-center justify-center gap-1.5"
+                  className="flex-1 bg-olive-700 hover:bg-olive-800 text-earth-100 font-black py-2.5 rounded-sm transition text-sm text-center border-r-3 border-olive-900 flex items-center justify-center gap-1.5"
                 >
                   <Calculator className="w-4 h-4" /> {t("projects.openInCalculator")}
                 </Link>
                 <button
                   onClick={() => handleCreateInvoice(detail)}
                   disabled={createInvoiceMutation.isPending}
-                  className="flex-1 bg-terracotta-500 hover:bg-terracotta-600 disabled:opacity-40 text-white font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1.5 border-r-3 border-terracotta-700 cursor-pointer"
+                  className="flex-1 bg-terracotta-500 hover:bg-terracotta-600 disabled:opacity-40 text-earth-100 font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1.5 border-r-3 border-terracotta-700 cursor-pointer"
                 >
                   {invoiceCreated ? (
                     <><Check className="w-4 h-4" /> {t("projects.invoiceCreated")}</>

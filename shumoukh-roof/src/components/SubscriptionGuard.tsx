@@ -28,7 +28,7 @@ export default function SubscriptionGuard({ permission, children, fallback }: Pr
       <div className="absolute inset-0 bg-earth-100/95 z-10 flex items-center justify-center rounded-sm border border-earth-200">
         <div className="text-center p-6 max-w-xs">
           <div className="w-12 h-12 rounded-sm bg-terracotta-500 border-l-3 border-terracotta-300 flex items-center justify-center mx-auto mb-3">
-            <Lock className="w-6 h-6 text-white" />
+            <Lock className="w-6 h-6 text-paper" />
           </div>
           <h3 className="text-sm font-black text-earth-900 mb-1">
             {perms.isExpired ? t("subscription.guard.expiredTitle") : t("subscription.guard.lockedTitle")}
@@ -40,7 +40,7 @@ export default function SubscriptionGuard({ permission, children, fallback }: Pr
           </p>
           <Link
             to="/subscription"
-            className="inline-flex items-center gap-1.5 bg-olive-700 hover:bg-olive-800 active:bg-olive-900 text-white text-xs font-bold px-4 py-2.5 rounded-sm border-r-3 border-olive-900 transition-colors"
+            className="inline-flex items-center gap-1.5 bg-olive-700 hover:bg-olive-800 active:bg-olive-900 text-earth-100 text-xs font-bold px-4 py-2.5 rounded-sm border-r-3 border-olive-900 transition-colors"
           >
             {t("subscription.guard.viewPlans")}
             <ArrowLeft className="w-3.5 h-3.5" />

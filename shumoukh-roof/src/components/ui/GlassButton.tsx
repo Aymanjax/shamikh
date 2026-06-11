@@ -11,7 +11,7 @@ interface GlassButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<Variant, string> = {
   primary:
-    "bg-olive-700 text-white " +
+    "bg-olive-700 text-earth-100 " +
     "hover:bg-olive-800 active:bg-olive-900 " +
     "border-r-3 border-olive-900",
   secondary:
@@ -19,7 +19,7 @@ const variantStyles: Record<Variant, string> = {
     "hover:bg-earth-50 hover:border-earth-400 " +
     "active:bg-earth-100",
   accent:
-    "bg-terracotta-500 text-white " +
+    "bg-terracotta-500 text-earth-100 " +
     "hover:bg-terracotta-600 active:bg-terracotta-700 " +
     "border-r-3 border-terracotta-700",
   ghost:

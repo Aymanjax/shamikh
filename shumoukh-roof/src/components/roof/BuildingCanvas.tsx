@@ -827,7 +827,7 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
         {!closed && vertices.length >= 2 && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20">
             <button onClick={handleClose}
-              className="bg-accent-emerald hover:bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-xl text-[13px] transition shadow-lg flex items-center gap-2 animate-pulse">
+              className="bg-accent-emerald hover:bg-emerald-600 text-paper font-bold py-2.5 px-6 rounded-xl text-[13px] transition shadow-lg flex items-center gap-2 animate-pulse">
               <Check className="w-4 h-4" /> إغلاق الشكل
             </button>
           </div>
@@ -1055,7 +1055,7 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
           </button>
           {!closed && vertices.length >= 2 && (
             <button onClick={handleClose}
-              className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-accent-emerald text-white hover:bg-emerald-600 transition">
+              className="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-accent-emerald text-paper hover:bg-emerald-600 transition">
               <Check className="w-3 h-3 ml-1 inline" /> إغلاق
             </button>
           )}

@@ -124,7 +124,7 @@ export default function CompanyTab() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-4 min-w-0">
           <div className="w-12 h-12 shrink-0 rounded-sm bg-terracotta-500 flex items-center justify-center shadow-lg shadow-terracotta-500/30">
-            <Building2 className="w-6 h-6 text-white" />
+            <Building2 className="w-6 h-6 text-paper" />
           </div>
           <div className="min-w-0">
             <h1 className="text-xl font-black text-ink-primary tracking-tight truncate">{t("settings.company.title")}</h1>
@@ -150,7 +150,7 @@ export default function CompanyTab() {
           {logoURL ? (
             <div className="relative shrink-0">
               <img src={logoURL} alt={t("settings.company.logo")} className="w-20 h-20 rounded object-cover border-2 border-earth-200" />
-              <button onClick={handleRemoveLogo} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow">
+              <button onClick={handleRemoveLogo} className="absolute -top-2 -right-2 bg-red-500 text-earth-100 rounded-full p-0.5 shadow">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>

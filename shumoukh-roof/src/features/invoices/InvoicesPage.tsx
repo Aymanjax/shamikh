@@ -111,7 +111,7 @@ export default function InvoicesPage() {
       <div className="flex items-start justify-between mb-8">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-sm bg-olive-600 flex items-center justify-center border-l-3 border-olive-400">
-            <Receipt className="w-6 h-6 text-white" />
+            <Receipt className="w-6 h-6 text-paper" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-earth-900 tracking-tight">{t("invoices.title")}</h1>
@@ -329,7 +329,7 @@ export default function InvoicesPage() {
                   <button
                     onClick={handleCreate}
                     disabled={createMutation.isPending}
-                    className="w-full bg-olive-700 hover:bg-olive-800 active:bg-olive-900 text-white font-bold py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:pointer-events-none border-r-3 border-olive-900"
+                    className="w-full bg-olive-700 hover:bg-olive-800 active:bg-olive-900 text-earth-100 font-bold py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:pointer-events-none border-r-3 border-olive-900"
                   >
                     {createMutation.isPending ? t("invoices.creating") : <><Check className="w-4 h-4" /> {t("invoices.create")}</>}
                   </button>

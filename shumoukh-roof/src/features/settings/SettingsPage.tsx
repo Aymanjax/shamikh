@@ -77,7 +77,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-sm bg-terracotta-500 flex items-center justify-center border-l-3 border-terracotta-300 shrink-0">
-          <SettingsIcon className="w-6 h-6 text-white" />
+          <SettingsIcon className="w-6 h-6 text-paper" />
         </div>
         <div>
           <h1 className="text-xl font-black text-earth-900 tracking-tight">{t("nav.settings")}</h1>

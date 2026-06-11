@@ -62,7 +62,7 @@ export default function SubscriptionPage() {
       {/* رأس الصفحة */}
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-sm bg-terracotta-500 flex items-center justify-center border-l-3 border-terracotta-300 shrink-0">
-          <CreditCard className="w-6 h-6 text-white" />
+          <CreditCard className="w-6 h-6 text-paper" />
         </div>
         <div>
           <h1 className="text-xl font-black text-earth-900 tracking-tight text-balance">{t("nav.subscription")}</h1>
@@ -85,7 +85,7 @@ export default function SubscriptionPage() {
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-olive-700 hover:bg-olive-800 active:bg-olive-900 text-white text-xs font-bold px-4 py-2 rounded-sm border-r-3 border-olive-900 transition-colors inline-flex items-center gap-2"
+            className="bg-olive-700 hover:bg-olive-800 active:bg-olive-900 text-earth-100 text-xs font-bold px-4 py-2 rounded-sm border-r-3 border-olive-900 transition-colors inline-flex items-center gap-2"
           >
             <MessageCircle className="w-3.5 h-3.5" />
             {active ? t("subscription.cta.upgradeWhatsApp") : t("subscription.cta.renewWhatsApp")}
@@ -191,7 +191,7 @@ export default function SubscriptionPage() {
       {/* ملاحظة الفترة المجانية */}
       <div className="bg-olive-100 border border-olive-200 rounded-sm px-5 py-4 flex items-start gap-3">
         <div className="w-9 h-9 rounded-sm bg-olive-600 border-l-2 border-olive-400 flex items-center justify-center shrink-0">
-          <Gift className="w-4 h-4 text-white" />
+          <Gift className="w-4 h-4 text-paper" />
         </div>
         <div className="min-w-0">
           <p className="text-sm font-black text-olive-800">{t("subscription.trial.title", { months: TRIAL_DURATION_MONTHS })}</p>

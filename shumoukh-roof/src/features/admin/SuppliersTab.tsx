@@ -86,7 +86,7 @@ export default function SuppliersTab() {
           {FILTERS.map((f) => (
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={`text-xs font-black px-3 py-1.5 rounded-lg transition border-2 ${
-                filter === f.key ? "bg-amber-600 text-white border-amber-600" : "bg-white text-ink-muted border-slate-200 hover:border-slate-300"
+                filter === f.key ? "bg-amber-600 text-earth-100 border-amber-600" : "bg-white text-ink-muted border-slate-200 hover:border-slate-300"
               }`}>
               {f.label}
             </button>
@@ -112,7 +112,7 @@ export default function SuppliersTab() {
             <div key={s.uid} className="glass-card p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-amber-600 flex items-center justify-center text-white font-black text-sm shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-amber-600 flex items-center justify-center text-earth-100 font-black text-sm shrink-0">
                     {(s.businessName || "?")[0]}
                   </div>
                   <div className="min-w-0">

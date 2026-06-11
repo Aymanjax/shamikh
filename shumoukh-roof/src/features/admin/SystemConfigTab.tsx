@@ -128,14 +128,14 @@ export default function SystemConfigTab() {
           {SUB_TABS.map((t) => (
             <button key={t.key} onClick={() => setSubTab(t.key)}
               className={`text-xs font-black px-3 py-1.5 rounded-lg transition border-2 flex items-center gap-1.5 ${
-                subTab === t.key ? "bg-red-600 text-white border-red-600" : "bg-white text-ink-muted border-slate-200 hover:border-slate-300"
+                subTab === t.key ? "bg-red-600 text-earth-100 border-red-600" : "bg-white text-ink-muted border-slate-200 hover:border-slate-300"
               }`}>
               <t.icon className="w-3.5 h-3.5" /> {t.label}
             </button>
           ))}
         </div>
         <button onClick={handleSave} disabled={saving}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border-2 border-emerald-600 disabled:opacity-50">
+          className="bg-emerald-600 hover:bg-emerald-700 text-paper py-2 px-4 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border-2 border-emerald-600 disabled:opacity-50">
           <Save className="w-4 h-4" /> {saving ? "جاري الحفظ..." : "حفظ"}
         </button>
       </div>

@@ -91,7 +91,7 @@ export default function WorkersTab() {
             <div key={w.id} className="glass-card p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center text-white font-black text-sm shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-slate-600 flex items-center justify-center text-paper font-black text-sm shrink-0">
                     {(w.name || "?")[0]}
                   </div>
                   <div className="min-w-0">
