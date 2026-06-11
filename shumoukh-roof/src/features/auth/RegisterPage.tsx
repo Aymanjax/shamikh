@@ -54,7 +54,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="cockpit-root min-h-screen bg-earth-100 flex items-center justify-center p-4">
+    <div className="cockpit-root min-h-screen bg-earth-100 flex items-center justify-center p-4 relative z-10">
       <div className="cockpit-grid" />
       <motion.div
         initial={{ opacity: 0, y: reducedMotion ? 0 : 16, x: reducedMotion ? 0 : 8 }}

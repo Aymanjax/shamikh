@@ -15,6 +15,7 @@ import adminRoutes from "./routes/admin";
 import calculatorRoutes from "./routes/calculator";
 import roofRoutes from "./routes/roof";
 import analyticsRoutes from "./routes/analytics";
+import themeRoutes from "./routes/theme";
 
 const app = express();
 
@@ -43,6 +44,7 @@ v1.use("/admin", adminRoutes);
 v1.use("/calculator", calculatorRoutes);
 v1.use("/roof", roofRoutes);
 v1.use("/analytics", analyticsRoutes);
+v1.use("/theme", themeRoutes); // public read (theme applies before login)
 
 app.use("/api/v1", v1);
 

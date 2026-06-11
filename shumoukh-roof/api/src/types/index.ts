@@ -216,6 +216,67 @@ export interface ProgramConfig {
   extraItems: { name: string; unit: string }[];
 }
 
+// ── Theme & Branding Config ──
+export interface ThemeTokens {
+  surfaceBg: string;
+  surfaceCard: string;
+  surfaceCardBorder: string;
+  surfaceElevated: string;
+  surfaceSidebar: string;
+  surfaceNav: string;
+
+  inkPrimary: string;
+  inkSecondary: string;
+  inkMuted: string;
+  inkInverse: string;
+
+  accentTerracotta: string;
+  accentTerracottaSoft: string;
+  accentTerracottaBorder: string;
+  accentTerracottaGlow: string;
+
+  accentOlive: string;
+  accentOliveSoft: string;
+  accentOliveBorder: string;
+  accentOliveGlow: string;
+
+  accentAmber: string;
+  accentAmberSoft: string;
+  accentAmberBorder: string;
+  accentAmberGlow: string;
+
+  accentRed: string;
+  accentRedSoft: string;
+  accentRedBorder: string;
+
+  fontSans: string;
+  fontMono: string;
+}
+
+export type BackgroundType = "none" | "color" | "gradient" | "image" | "pattern";
+
+export interface PageBackground {
+  type: BackgroundType;
+  color?: string;
+  gradient?: string;
+  imageDataUrl?: string;
+  patternId?: string;
+  size?: "cover" | "contain" | "repeat" | "auto";
+  opacity?: number;
+}
+
+export interface PageThemeOverride {
+  background?: PageBackground;
+  tokens?: Partial<ThemeTokens>;
+}
+
+export interface ThemeConfig {
+  version: number;
+  tokens: ThemeTokens;
+  pages: Record<string, PageThemeOverride>;
+  updatedAt?: string;
+}
+
 // ── Notification ──
 export interface UserNotification {
   id: string;

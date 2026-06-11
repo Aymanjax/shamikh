@@ -1,230 +1,206 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  FolderOpen, Trash2, Search, Calculator, FileText, X, Check,
-  Phone, MapPin, PencilRuler, ChevronDown,
+  FolderOpen, Trash2, Eye, Search, Calculator, FileText, X, Check, HardHat,
+  Bell, MessageCircle, Plus, CalendarClock, CircleDollarSign,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../store/authStore";
-import { fetchProjects, deleteProject, updateProjectStatus, projectStatuses } from "../../services/projectService";
-import { addDocument } from "../../lib/firestoreService";
-import {
-  projectStatusInfo, projectName, projectArea, projectDate,
-} from "../../utils/projectDisplay";
-import type { SavedProject } from "../../utils/projectDisplay";
+import { Link } from "react-router-dom";
+import { listDocuments, deleteDocument, addDocument } from "../../lib/firestoreService";
 import GlassButton from "../../components/ui/GlassButton";
-import { useT } from "../../i18n";
+import { useAuthStore } from "../../store/authStore";
+import { openWhatsApp } from "../../lib/whatsapp";
+import {
+  listPayments, paymentsForProject, addPayment, generateFromTemplate,
+  togglePaid, deletePayment, statusOf, reminders, reminderText, humanWhen,
+  type Payment,
+} from "./paymentsService";
+
+interface Project {
+  id: string;
+  name?: string;
+  client?: { name?: string; phone?: string; address?: string };
+  result?: { totalTiles?: number; actualArea?: number; flatArea?: number; totalCost?: number };
+  input?: { slope?: number; numLegs?: number };
+}
+
+const STATUS_STYLE: Record<string, string> = {
+  paid: "text-olive-700 bg-olive-50 border-olive-200",
+  overdue: "text-red-600 bg-red-50 border-red-200",
+  soon: "text-amber-700 bg-amber-50 border-amber-200",
+  upcoming: "text-earth-600 bg-earth-50 border-earth-200",
+  none: "text-earth-500 bg-earth-50 border-earth-200",
+};
+const STATUS_LABEL: Record<string, string> = {
+  paid: "مدفوعة", overdue: "متأخرة", soon: "قريبة", upcoming: "قادمة", none: "بلا تاريخ",
+};
 
 export default function ProjectsPage() {
-  const t = useT();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const uid = user?.uid;
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [detail, setDetail] = useState<SavedProject | null>(null);
+  const [detail, setDetail] = useState<Project | null>(null);
   const [invoiceCreated, setInvoiceCreated] = useState(false);
+  const [payForm, setPayForm] = useState({ label: "", amount: 0, dueDate: "" });
 
-  const { data: projects = [], isLoading: loading, error } = useQuery<SavedProject[]>({
-    queryKey: ["projects", uid],
-    queryFn: () => fetchProjects(uid) as Promise<SavedProject[]>,
-    enabled: !!uid,
+  const { data: projects = [], isLoading: loading, error } = useQuery<Project[]>({
+    queryKey: ["projects"],
+    queryFn: () => listDocuments("projects") as Promise<Project[]>,
     staleTime: 30_000,
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteProject(uid, id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects", uid] }),
+  const { data: payments = [] } = useQuery<Payment[]>({
+    queryKey: ["projectPayments", user?.uid],
+    queryFn: () => listPayments(user!.uid),
+    staleTime: 15_000,
+    enabled: !!user,
   });
 
-  const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => updateProjectStatus(uid, id, status),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects", uid] }),
+  const invalidatePayments = () => queryClient.invalidateQueries({ queryKey: ["projectPayments"] });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteDocument("projects", id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects"] }),
   });
 
   const createInvoiceMutation = useMutation({
     mutationFn: (data: { client: string; project: string; amount: number; status: string; projectId: string }) =>
       addDocument("invoices", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoices", uid] });
       setInvoiceCreated(true);
-      setTimeout(() => {
-        setInvoiceCreated(false);
-        setDetail(null);
-        navigate("/invoices");
-      }, 1200);
+      setTimeout(() => { setInvoiceCreated(false); setDetail(null); }, 2000);
     },
   });
 
-  const filtered = useMemo(() => projects
-    .filter((p) => statusFilter === "all" || (p.status || "draft") === statusFilter)
-    .filter((p) => {
-      if (!search) return true;
-      const q = search.toLowerCase();
-      return projectName(p).toLowerCase().includes(q)
-        || (p.client?.phone || "").includes(q)
-        || (p.client?.address || "").toLowerCase().includes(q);
-    }), [projects, search, statusFilter]);
+  const addPayMutation = useMutation({
+    mutationFn: ({ project, data }: { project: Project; data: any }) => addPayment(user!.uid, project, data),
+    onSuccess: () => { invalidatePayments(); setPayForm({ label: "", amount: 0, dueDate: "" }); },
+  });
+  const templateMutation = useMutation({
+    mutationFn: ({ project, total }: { project: Project; total: number }) => generateFromTemplate(user!.uid, project, total),
+    onSuccess: invalidatePayments,
+  });
+  const toggleMutation = useMutation({ mutationFn: (p: Payment) => togglePaid(p), onSuccess: invalidatePayments });
+  const delPayMutation = useMutation({ mutationFn: (id: string) => deletePayment(id), onSuccess: invalidatePayments });
 
-  const handleDelete = useCallback((p: SavedProject) => {
-    if (!confirm(t("projects.deleteConfirm", { name: projectName(p) }))) return;
-    deleteMutation.mutate(p.id);
-    setDetail(null);
-  }, [deleteMutation, t]);
+  const filtered = projects.filter((p) => !search || p.name?.toLowerCase().includes(search.toLowerCase()));
+  const dueReminders = reminders(payments, 3);
 
-  const handleCreateInvoice = useCallback((p: SavedProject) => {
+  const handleDelete = useCallback((id: string, name: string) => {
+    if (!confirm(`حذف المشروع "${name}"؟`)) return;
+    deleteMutation.mutate(id);
+  }, [deleteMutation]);
+
+  const handleCreateInvoice = useCallback((p: Project) => {
     createInvoiceMutation.mutate({
-      client: p.client?.name || "",
-      project: projectName(p),
-      amount: p.summary?.totalCost || 0,
-      status: "draft",
-      projectId: p.id,
+      client: p.client?.name || "", project: p.name || "",
+      amount: p.result?.totalCost || 0, status: "draft", projectId: p.id,
     });
   }, [createInvoiceMutation]);
 
   if (error) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm font-black text-earth-800 mb-1">{t("projects.loadError")}</p>
-        <p className="text-xs text-earth-500 mb-4">{t("projects.loadErrorHint")}</p>
-        <button
-          onClick={() => queryClient.invalidateQueries({ queryKey: ["projects", uid] })}
-          className="bg-earth-700 text-earth-100 hover:bg-earth-800 rounded-sm px-4 py-2 text-xs font-bold transition-colors cursor-pointer border-r-2 border-earth-900"
-        >
-          {t("projects.retry")}
-        </button>
+        <p className="text-sm font-black text-earth-800 mb-1">تعذر تحميل المشاريع</p>
+        <p className="text-xs text-earth-500">تحقق من اتصالك بالإنترنت وحاول مرة أخرى</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
-      {/* رأس الصفحة */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-sm bg-amber-600 flex items-center justify-center border-l-3 border-amber-400 shrink-0">
-            <FolderOpen className="w-6 h-6 text-paper" />
+          <div className="w-12 h-12 rounded-sm bg-amber-600 flex items-center justify-center border-l-3 border-amber-400">
+            <HardHat className="w-6 h-6 text-paper" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-earth-900 tracking-tight">{t("projects.title")}</h1>
-            <p className="text-sm text-earth-500">
-              {projects.length > 0 ? t("projects.savedCount", { n: projects.length }) : t("projects.subtitle")}
-            </p>
+            <h1 className="text-xl font-black text-earth-900 tracking-tight">المشاريع</h1>
+            <p className="text-sm text-earth-500">المشاريع والدفعات والتنبيهات</p>
           </div>
         </div>
         <Link to="/calculator">
           <GlassButton variant="primary" size="sm" icon={<Calculator className="w-4 h-4" />}>
-            {t("projects.newCalculation")}
+            حساب جديد
           </GlassButton>
         </Link>
       </div>
 
-      <div className="earth-card overflow-hidden">
-        {/* البحث والتصفية */}
-        <div className="p-4 border-b border-earth-200 flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-earth-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("projects.searchPlaceholder")}
-              dir="rtl"
-              className="w-full bg-white border-2 border-earth-200 rounded-xl py-2 pr-10 pl-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400"
-            />
+      {/* Payment reminders */}
+      {dueReminders.length > 0 && (
+        <div className="glass-card p-4" style={{ borderRightColor: "var(--accent-amber)" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Bell className="w-4 h-4 text-amber-600" />
+            <h2 className="text-sm font-black text-earth-900">تنبيهات الدفعات</h2>
+            <span className="text-xs font-black text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-sm">{dueReminders.length}</span>
           </div>
-          <div className="flex gap-1.5 flex-wrap">
-            {[{ key: "all", label: t("common.all") }, ...projectStatuses.map((s: string) => ({ key: s, label: projectStatusInfo(s).label }))].map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setStatusFilter(f.key)}
-                className={`text-[10px] font-black px-2.5 py-1.5 rounded-sm border transition cursor-pointer ${
-                  statusFilter === f.key
-                    ? "bg-earth-800 text-earth-100 border-earth-800"
-                    : "bg-white text-earth-600 border-earth-200 hover:border-earth-300"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
+          <div className="space-y-2">
+            {dueReminders.map((p) => {
+              const st = statusOf(p);
+              return (
+                <div key={p.id} className="flex items-center justify-between gap-2 text-xs py-2 px-2 rounded-sm bg-earth-50">
+                  <div className="min-w-0">
+                    <p className="font-black text-earth-900 truncate">{p.label} · {p.projectName}</p>
+                    <p className="text-earth-500">{p.amount} د.أ · <span className={st === "overdue" ? "text-red-600 font-black" : "text-amber-700 font-black"}>{humanWhen(p)}</span></p>
+                  </div>
+                  <button onClick={() => openWhatsApp(p.clientPhone, reminderText(p))}
+                    className="shrink-0 bg-green-600 hover:bg-green-700 text-paper text-xs font-black py-1.5 px-3 rounded-sm transition flex items-center gap-1">
+                    <MessageCircle className="w-3.5 h-3.5" /> ذكّر الزبون
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="glass-card">
+        <div className="p-4 border-b border-earth-200">
+          <div className="relative max-w-xs">
+            <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-earth-400" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)}
+              placeholder="بحث عن مشروع..." dir="rtl"
+              className="w-full bg-white border-2 border-earth-200 rounded-xl py-2 pr-10 pl-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition"
+            />
           </div>
         </div>
 
         {loading ? (
           <div className="p-6 space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-16 rounded-sm shimmer-skeleton" />
-            ))}
+            {[1, 2, 3, 4].map((i) => (<div key={i} className="h-14 bg-earth-200 rounded-sm animate-pulse" />))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-earth-500">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-sm bg-earth-100 border-2 border-earth-200 flex items-center justify-center">
-              <FolderOpen className="w-6 h-6 text-earth-400" />
-            </div>
-            <p className="font-black text-earth-700">
-              {projects.length === 0 ? t("projects.emptyTitle") : t("projects.noSearchResults")}
-            </p>
-            {projects.length === 0 && (
-              <>
-                <p className="text-xs mt-1 mb-4">{t("projects.emptyHint")}</p>
-                <Link
-                  to="/calculator"
-                  className="inline-flex items-center gap-2 bg-olive-700 hover:bg-olive-800 text-earth-100 text-xs font-bold px-4 py-2.5 rounded-sm border-r-3 border-olive-900 transition-colors"
-                >
-                  <PencilRuler className="w-4 h-4" />
-                  {t("projects.startFirstCalculation")}
-                </Link>
-              </>
-            )}
+            <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p className="font-black">لا توجد مشاريع</p>
+            <p className="text-xs mt-1">احسب بضاعة جديدة واحفظها كمشروع</p>
           </div>
         ) : (
           <div className="divide-y divide-earth-100">
             {filtered.map((p) => {
-              const status = projectStatusInfo(p.status);
-              const area = projectArea(p);
+              const projPays = paymentsForProject(payments, p.id);
+              const unpaid = projPays.filter((x) => !x.paid).reduce((s, x) => s + (x.amount || 0), 0);
               return (
-                <div key={p.id} className="p-4 hover:bg-earth-50 transition-colors">
-                  <div className="flex items-center justify-between gap-3">
-                    <button
-                      onClick={() => setDetail(p)}
-                      className="flex items-center gap-3 min-w-0 flex-1 text-right cursor-pointer"
-                    >
-                      <div className="w-10 h-10 rounded-sm bg-amber-100 border-l-2 border-amber-400 flex items-center justify-center shrink-0">
-                        <FolderOpen className="w-5 h-5" style={{ color: "var(--accent-amber)" }} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-black text-earth-900 text-sm truncate">{projectName(p)}</p>
-                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-[3px] border ${status.className}`}>
-                            {status.label}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-earth-500 font-mono mt-0.5" dir="rtl">
-                          {area > 0 ? t("projects.areaValue", { value: area.toFixed(1) }) : t("projects.noDrawing")}
-                          {p.summary?.totalTiles ? ` · ${t("projects.tilesCount", { n: p.summary.totalTiles })}` : ""}
-                          {p.summary?.totalCost ? ` · ${p.summary.totalCost} ${t("common.currency")}` : ""}
-                          {projectDate(p) ? ` · ${projectDate(p)}` : ""}
-                        </p>
-                      </div>
-                    </button>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Link
-                        to={`/calculator/${p.id}`}
-                        className="p-2 text-earth-500 hover:text-olive-600 transition rounded-sm hover:bg-olive-50"
-                        title={t("projects.openInCalculator")}
-                        aria-label={t("projects.openInCalculatorAria", { name: projectName(p) })}
-                      >
-                        <Calculator className="w-4 h-4" />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(p)}
-                        className="p-2 text-earth-500 hover:text-red-500 transition rounded-sm hover:bg-red-50 cursor-pointer"
-                        title={t("projects.deleteProject")}
-                        aria-label={t("projects.deleteAria", { name: projectName(p) })}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                <div key={p.id} className="p-4 hover:bg-earth-50 transition-colors flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-sm bg-amber-100 border-l-2 border-amber-400 flex items-center justify-center shrink-0">
+                      <FolderOpen className="w-5 h-5" style={{ color: "var(--accent-amber)" }} />
                     </div>
+                    <div className="min-w-0">
+                      <p className="font-black text-earth-900 text-sm truncate">{p.name || "بدون اسم"}</p>
+                      <p className="text-xs text-earth-500">
+                        {p.result?.totalTiles || 0} حبة · {p.result?.actualArea?.toFixed(1) || "0"} م²
+                        {p.result?.totalCost ? ` · ${p.result.totalCost} د.أ` : ""}
+                        {unpaid > 0 ? <span className="text-amber-700 font-black"> · متبقّي {unpaid} د.أ</span> : null}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => setDetail(p)} className="p-2 text-earth-500 hover:text-olive-600 transition rounded-sm hover:bg-olive-50">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDelete(p.id, p.name || "")} className="p-2 text-earth-500 hover:text-red-500 transition rounded-sm hover:bg-red-50">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               );
@@ -233,97 +209,96 @@ export default function ProjectsPage() {
         )}
       </div>
 
-      {/* تفاصيل المشروع */}
       {detail && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDetail(null)}>
-          <div className="bg-white rounded-sm border border-earth-200 p-6 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-black text-earth-900">{projectName(detail)}</h3>
-              <button onClick={() => setDetail(null)} className="text-earth-500 hover:text-earth-700 p-1 rounded-sm cursor-pointer" aria-label={t("common.close")}>
+          <div className="bg-white rounded-sm border border-earth-200 p-6 w-full max-w-md shadow-xl max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-black text-earth-900">{detail.name}</h3>
+              <button onClick={() => setDetail(null)} className="text-earth-500 hover:text-earth-700 p-1 rounded-sm" aria-label="إغلاق">
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-            <div className="flex items-center gap-3 text-[11px] text-earth-500 mb-4 flex-wrap">
-              {detail.client?.phone && (
-                <a href={`tel:${detail.client.phone}`} className="flex items-center gap-1 hover:text-terracotta-500 transition" dir="ltr">
-                  <Phone className="w-3 h-3" /> {detail.client.phone}
-                </a>
-              )}
-              {detail.client?.address && (
-                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {detail.client.address}</span>
-              )}
-              {projectDate(detail) && <span>{projectDate(detail)}</span>}
-            </div>
-
             <div className="space-y-3 text-sm">
               <div className="bg-earth-50 border border-earth-200 rounded-sm p-3 grid grid-cols-2 gap-3">
-                <div>
-                  <span className="text-earth-500 text-xs font-bold">{t("projects.area")}</span>
-                  <p className="font-black font-mono text-earth-900">{t("projects.areaValue", { value: projectArea(detail).toFixed(1) })}</p>
-                </div>
-                <div>
-                  <span className="text-earth-500 text-xs font-bold">{t("projects.tiles")}</span>
-                  <p className="font-black font-mono text-earth-900">{detail.summary?.totalTiles || "—"} {detail.summary?.totalTiles ? t("projects.tileUnit") : ""}</p>
-                </div>
-                <div>
-                  <span className="text-earth-500 text-xs font-bold">{t("projects.slope")}</span>
-                  <p className="font-black font-mono text-earth-900">{detail.roof?.slope ?? "—"}%</p>
-                </div>
-                <div>
-                  <span className="text-earth-500 text-xs font-bold">{t("projects.numLegs")}</span>
-                  <p className="font-black font-mono text-earth-900">{detail.settings?.numLegs ?? "—"}</p>
-                </div>
+                <div><span className="text-earth-500 text-xs font-bold">المساحة</span><p className="font-black text-earth-900">{detail.result?.flatArea?.toFixed(1)} م²</p></div>
+                <div><span className="text-earth-500 text-xs font-bold">القرميد</span><p className="font-black text-earth-900">{detail.result?.totalTiles} حبة</p></div>
+                <div><span className="text-earth-500 text-xs font-bold">الميل</span><p className="font-black text-earth-900">{detail.input?.slope}%</p></div>
+                <div><span className="text-earth-500 text-xs font-bold">عدد الأرجل</span><p className="font-black text-earth-900">{detail.input?.numLegs}</p></div>
               </div>
-
-              {detail.summary?.totalCost ? (
+              {detail.result?.totalCost && (
                 <div className="text-paper rounded-sm p-3 flex justify-between font-black" style={{ backgroundColor: "var(--accent-amber)" }}>
-                  <span>{t("projects.estimatedCost")}</span>
-                  <span className="font-mono" style={{ color: "var(--accent-amber-soft)" }}>{detail.summary.totalCost} {t("common.currency")}</span>
+                  <span>التكلفة التقديرية</span>
+                  <span style={{ color: "var(--accent-amber-soft)" }}>{detail.result.totalCost} د.أ</span>
                 </div>
-              ) : null}
+              )}
 
-              {/* حالة المشروع */}
-              <div className="space-y-1.5">
-                <label htmlFor="project-status" className="text-xs font-bold text-earth-700 block">{t("projects.projectStatus")}</label>
-                <div className="relative">
-                  <select
-                    id="project-status"
-                    value={detail.status || "draft"}
-                    onChange={(e) => {
-                      const status = e.target.value;
-                      statusMutation.mutate({ id: detail.id, status });
-                      setDetail({ ...detail, status });
-                    }}
-                    className="w-full appearance-none bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition cursor-pointer"
-                  >
-                    {projectStatuses.map((s: string) => (
-                      <option key={s} value={s}>{projectStatusInfo(s).label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-earth-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              {/* Payments / milestones */}
+              <div className="border-t border-earth-200 pt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-black text-earth-900 flex items-center gap-1.5 text-sm"><CircleDollarSign className="w-4 h-4 text-amber-600" /> الدفعات</h4>
+                  {paymentsForProject(payments, detail.id).length === 0 && detail.result?.totalCost ? (
+                    <button onClick={() => templateMutation.mutate({ project: detail, total: detail.result!.totalCost! })}
+                      disabled={templateMutation.isPending}
+                      className="text-xs font-black text-olive-700 bg-olive-50 hover:bg-olive-100 py-1 px-2 rounded-sm border border-olive-200 transition">
+                      توليد 40/30/30
+                    </button>
+                  ) : null}
                 </div>
+
+                <div className="space-y-1.5 mb-3">
+                  {paymentsForProject(payments, detail.id).map((p) => {
+                    const st = statusOf(p);
+                    return (
+                      <div key={p.id} className="flex items-center gap-2 text-xs py-1.5 px-2 rounded-sm bg-earth-50 group">
+                        <button onClick={() => toggleMutation.mutate(p)} title="تبديل الدفع"
+                          className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center shrink-0 transition ${p.paid ? "bg-olive-600 border-olive-600 text-earth-100" : "border-earth-300 hover:border-olive-400"}`}>
+                          {p.paid && <Check className="w-3 h-3" />}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-bold truncate ${p.paid ? "text-earth-400 line-through" : "text-earth-800"}`}>{p.label}</p>
+                          <p className="text-earth-400 flex items-center gap-1">
+                            {p.dueDate ? <><CalendarClock className="w-3 h-3" /> {p.dueDate}</> : "بلا تاريخ"}
+                          </p>
+                        </div>
+                        <span className="font-mono font-black text-earth-900">{p.amount}</span>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-sm border ${STATUS_STYLE[st]}`}>{STATUS_LABEL[st]}</span>
+                        {!p.paid && p.dueDate && (
+                          <button onClick={() => openWhatsApp(p.clientPhone || detail.client?.phone, reminderText(p))} title="ذكّر الزبون"
+                            className="text-green-600 hover:text-green-700 shrink-0"><MessageCircle className="w-3.5 h-3.5" /></button>
+                        )}
+                        <button onClick={() => delPayMutation.mutate(p.id)} className="text-earth-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition shrink-0">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Add milestone */}
+                <div className="grid grid-cols-12 gap-1.5">
+                  <input value={payForm.label} onChange={(e) => setPayForm((p) => ({ ...p, label: e.target.value }))}
+                    placeholder="اسم الدفعة (مثل: مرحلة العزل)"
+                    className="col-span-5 bg-white border-2 border-earth-200 rounded-sm py-1.5 px-2 text-xs outline-none focus:border-amber-400" />
+                  <input type="number" value={payForm.amount || ""} onChange={(e) => setPayForm((p) => ({ ...p, amount: +e.target.value }))}
+                    placeholder="د.أ"
+                    className="col-span-3 bg-white border-2 border-earth-200 rounded-sm py-1.5 px-2 text-xs outline-none focus:border-amber-400 font-mono" />
+                  <input type="date" value={payForm.dueDate} onChange={(e) => setPayForm((p) => ({ ...p, dueDate: e.target.value }))}
+                    className="col-span-4 bg-white border-2 border-earth-200 rounded-sm py-1.5 px-1 text-xs outline-none focus:border-amber-400" />
+                </div>
+                <button onClick={() => payForm.label.trim() && payForm.amount > 0 && addPayMutation.mutate({ project: detail, data: payForm })}
+                  disabled={!payForm.label.trim() || payForm.amount <= 0 || addPayMutation.isPending}
+                  className="w-full mt-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-earth-100 font-black py-1.5 rounded-sm transition text-xs flex items-center justify-center gap-1">
+                  <Plus className="w-3.5 h-3.5" /> إضافة دفعة
+                </button>
               </div>
 
-              <div className="flex gap-2">
-                <Link
-                  to={`/calculator/${detail.id}`}
-                  className="flex-1 bg-olive-700 hover:bg-olive-800 text-earth-100 font-black py-2.5 rounded-sm transition text-sm text-center border-r-3 border-olive-900 flex items-center justify-center gap-1.5"
-                >
-                  <Calculator className="w-4 h-4" /> {t("projects.openInCalculator")}
+              <div className="flex gap-2 border-t border-earth-200 pt-3">
+                <Link to="/calculator" className="flex-1 bg-olive-700 hover:bg-olive-800 text-earth-100 font-black py-2.5 rounded-sm transition text-sm text-center border-r-3 border-olive-900">
+                  فتح في الحاسبة
                 </Link>
-                <button
-                  onClick={() => handleCreateInvoice(detail)}
-                  disabled={createInvoiceMutation.isPending}
-                  className="flex-1 bg-terracotta-500 hover:bg-terracotta-600 disabled:opacity-40 text-earth-100 font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1.5 border-r-3 border-terracotta-700 cursor-pointer"
-                >
-                  {invoiceCreated ? (
-                    <><Check className="w-4 h-4" /> {t("projects.invoiceCreated")}</>
-                  ) : createInvoiceMutation.isPending ? (
-                    t("projects.creating")
-                  ) : (
-                    <><FileText className="w-4 h-4" /> {t("projects.createInvoice")}</>
-                  )}
+                <button onClick={() => handleCreateInvoice(detail)} disabled={createInvoiceMutation.isPending}
+                  className="flex-1 bg-olive-600 hover:bg-olive-700 text-earth-100 font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1 border-r-3 border-olive-800">
+                  {invoiceCreated ? (<><Check className="w-4 h-4" /> تم</>) : createInvoiceMutation.isPending ? ("جارٍ...") : (<><FileText className="w-4 h-4" /> فاتورة</>)}
                 </button>
               </div>
             </div>

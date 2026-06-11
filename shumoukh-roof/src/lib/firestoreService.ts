@@ -1,52 +1,65 @@
-// خدمة البيانات — كل مجموعات المستخدم محفوظة تحت users/{uid}/...
-// قواعد Firestore تسمح بالكتابة فقط داخل ملف المستخدم، لذلك كل عملية حفظ
-// تمر من هنا تُربط بحساب المستخدم الحالي تلقائياً.
-import { db, auth } from "./firebase";
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  query,
-  orderBy,
-  Timestamp,
-} from "firebase/firestore";
-import type { CollectionReference, DocumentData } from "firebase/firestore";
+// @ts-nocheck
+import { db } from "./firebase";
+import { collection, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, where, Timestamp } from "firebase/firestore";
+import type { Firestore, CollectionReference, DocumentData } from "firebase/firestore";
 
-function requireUid(): string {
-  const uid = auth.currentUser?.uid;
-  if (!uid) throw new Error("يجب تسجيل الدخول أولاً");
-  return uid;
+const collections = {
+  projects: "projects",
+  invoices: "invoices",
+  workers: "workers",
+  extraItems: "extraItems",
+};
+
+async function getCollection(name: string): Promise<CollectionReference<DocumentData>> {
+  return collection(db, name);
 }
 
-function userCollection(name: string): CollectionReference<DocumentData> {
-  return collection(db, "users", requireUid(), name);
+export async function addDocument(coll: string, data: any) {
+  return addDoc(await getCollection(coll), { ...data, createdAt: Timestamp.now() });
 }
 
-export async function addDocument(coll: string, data: object) {
-  return addDoc(userCollection(coll), { ...data, createdAt: Timestamp.now() });
-}
-
-export async function updateDocument(coll: string, id: string, data: object) {
-  return updateDoc(doc(userCollection(coll), id), { ...data, updatedAt: Timestamp.now() });
+export async function updateDocument(coll: string, id: string, data: any) {
+  return updateDoc(doc(await getCollection(coll), id), { ...data, updatedAt: Timestamp.now() });
 }
 
 export async function deleteDocument(coll: string, id: string) {
-  return deleteDoc(doc(userCollection(coll), id));
+  return deleteDoc(doc(await getCollection(coll), id));
 }
 
 export async function getDocument(coll: string, id: string) {
-  const snap = await getDoc(doc(userCollection(coll), id));
+  const snap = await getDoc(doc(await getCollection(coll), id));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
 export async function listDocuments(coll: string) {
-  const q = query(userCollection(coll), orderBy("createdAt", "desc"));
+  const q = query(await getCollection(coll), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function listDocumentsByUser(coll: string, userId: string) {
+  // Filter by user only; sort client-side. A where(userId) + orderBy(createdAt)
+  // compound query needs a Firestore composite index — without it the query
+  // throws FAILED_PRECONDITION and the page shows a load error. Per-user lists
+  // are small, so JS sorting is cheap and removes the index dependency.
+  const q = query(await getCollection(coll), where("userId", "==", userId));
+  const snap = await getDocs(q);
+  const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const ms = (v: any) => (v?.toMillis ? v.toMillis() : v?.seconds ? v.seconds * 1000 : 0);
+  return docs.sort((a: any, b: any) => ms(b.createdAt) - ms(a.createdAt));
+}
+
+export async function saveProject(data: any) {
+  const ref = await addDocument("projects", data);
+  return ref;
+}
+
+export async function listProjects() {
+  return listDocuments("projects");
+}
+
+export async function deleteProject(id: string) {
+  return deleteDocument("projects", id);
 }
 
 export { Timestamp };

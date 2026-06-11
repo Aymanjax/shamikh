@@ -16,8 +16,17 @@ import AdminDashboard from "../features/admin/AdminDashboard";
 import LoginPage from "../features/auth/LoginPage";
 import RegisterPage from "../features/auth/RegisterPage";
 import CockpitConsole from "../features/cockpit/CockpitPage";
+import ThemeBackgroundLayer from "../features/theme/ThemeBackgroundLayer";
+import { useApplyPageTheme } from "../features/theme/useApplyPageTheme";
+import { loadTheme } from "../features/theme/themeService";
+import { useThemeStore } from "../store/themeStore";
+import { applyTokens } from "../features/theme/applyTheme";
 
 export default function App() {
+  // Applies global + per-page theme (colors & background) on every route change,
+  // incl. /login and /register which live outside AppLayout.
+  useApplyPageTheme();
+
   const setUser = useAuthStore((s) => s.setUser);
   const setRole = useAuthStore((s) => s.setRole);
   const setCompanyName = useAuthStore((s) => s.setCompanyName);
@@ -37,6 +46,12 @@ export default function App() {
             setCompanyName(profile.companyName || "");
             setSubscription(profile.subscription || null);
           }
+          // Reload theme from Firestore now that the user is authenticated,
+          // so admin-saved colors/backgrounds apply without a backend deploy.
+          loadTheme().then((t) => {
+            useThemeStore.getState().setTheme(t);
+            applyTokens(t.tokens);
+          });
         } else {
           setUser(null);
           setLoading(false);
@@ -50,7 +65,9 @@ export default function App() {
   }, []);
 
   return (
-    <Routes>
+    <>
+      <ThemeBackgroundLayer />
+      <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
       <Route path="/cockpit" element={<Navigate to="/" replace />} />
@@ -74,6 +91,7 @@ export default function App() {
         <Route path="admin" element={<AdminDashboard />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }
