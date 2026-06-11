@@ -102,7 +102,7 @@ export default function CockpitConsole() {
   return (
     <div className="space-y-5">
       {/* ترويسة القسم */}
-      <motion.div {...reveal(0)} className="flex items-end justify-between gap-4">
+      <motion.div {...reveal(0)} className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-tight" style={{ color: "var(--ck-ink)" }}>{t("cockpit.title")}</h1>
           <div className="mono mt-1 flex items-center gap-2 text-[10px] tracking-[0.14em]" style={{ color: "var(--ck-ink-mute)" }}>

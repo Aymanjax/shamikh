@@ -44,8 +44,8 @@ export default function CockpitShell({ isAdmin, children }: { isAdmin: boolean; 
         <div className="flex items-center gap-4">
           <div className="mono flex items-center gap-3 text-[11px] tabular-nums" style={{ color: "var(--ck-ink-dim)" }}>
             <span>{now.time}</span>
-            <span style={{ color: "var(--ck-ink-mute)" }}>/</span>
-            <span>{now.date}</span>
+            <span className="hidden sm:inline" style={{ color: "var(--ck-ink-mute)" }}>/</span>
+            <span className="hidden sm:inline">{now.date}</span>
           </div>
           <NotificationBell collapsed position="left" />
         </div>

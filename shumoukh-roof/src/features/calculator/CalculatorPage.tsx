@@ -584,7 +584,7 @@ export default function CalculatorPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
             ref={canvasRef}
-            className="glass-card overflow-hidden"
+            className="glass-card ck-tick overflow-hidden"
           >
             <div className="px-4 py-3 border-b border-earth-200 flex items-center justify-between">
               <div className="flex items-center gap-2">

@@ -38,6 +38,10 @@ export default function RadialCommandMenu({ isAdmin }: { isAdmin: boolean }) {
 
   const nodes = isAdmin ? NODES : NODES.filter((n) => !n.adminOnly);
 
+  // وضع الإرساء: على صفحة الحاسبة ينزوي الزر في الزاوية حتى لا يعيق الرسم
+  const docked = location.pathname.startsWith("/calculator");
+  const rtl = typeof document !== "undefined" && document.documentElement.dir !== "ltr";
+
   // إغلاق بـ Escape
   useEffect(() => {
     if (!open) return;
@@ -46,8 +50,21 @@ export default function RadialCommandMenu({ isAdmin }: { isAdmin: boolean }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // عند تغيّر المسار (مثل زر الرجوع): أغلق القائمة — ضبط حالة أثناء الرسم وفق توصية React
+  const [lastPath, setLastPath] = useState(location.pathname);
+  if (lastPath !== location.pathname) {
+    setLastPath(location.pathname);
+    if (open) setOpen(false);
+  }
+
   const polar = (i: number, n: number) => {
-    const a = n <= 1 ? 90 : ARC_START + ((ARC_END - ARC_START) * i) / (n - 1);
+    // المرسى الزاوي يفرد العُقَد على ربع قوس نحو داخل الشاشة
+    let start = ARC_START, end = ARC_END;
+    if (docked) {
+      // inline-end: في RTL = يسار الشاشة → القوس يتجه يمينًا للأعلى، وبالعكس في LTR
+      if (rtl) { start = 95; end = 5; } else { start = 85; end = 175; }
+    }
+    const a = n <= 1 ? 90 : start + ((end - start) * i) / (n - 1);
     const rad = (a * Math.PI) / 180;
     return { x: Math.cos(rad) * RADIUS, y: -Math.sin(rad) * RADIUS, angle: a };
   };
@@ -69,8 +86,11 @@ export default function RadialCommandMenu({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <div
-      className="fixed bottom-7 left-1/2 -translate-x-1/2 z-[90] flex flex-col items-center"
-      style={{ zIndex: "var(--ck-z-radial)" as unknown as number }}
+      className={`fixed z-[90] flex flex-col items-center ${docked ? "bottom-5" : "bottom-7 left-1/2 -translate-x-1/2"}`}
+      style={{
+        zIndex: "var(--ck-z-radial)" as unknown as number,
+        ...(docked ? { insetInlineEnd: "1.1rem" } : {}),
+      }}
     >
       {/* ستار خفيف عند الفتح */}
       <AnimatePresence>
@@ -83,10 +103,14 @@ export default function RadialCommandMenu({ isAdmin }: { isAdmin: boolean }) {
             transition={{ duration: 0.25 }}
             onClick={() => setOpen(false)}
             className="fixed inset-0 -z-10 cursor-default"
-            style={{
-              background: "radial-gradient(ellipse 70% 55% at 50% 100%, rgba(8,9,11,0.82), rgba(8,9,11,0.4) 55%, transparent)",
-              backdropFilter: "blur(2px)",
-            }}
+            style={
+              docked
+                ? { background: "rgba(8,9,11,0.72)", backdropFilter: "blur(2px)" }
+                : {
+                    background: "radial-gradient(ellipse 90% 70% at 50% 100%, rgba(8,9,11,0.92), rgba(8,9,11,0.55) 60%, rgba(8,9,11,0.2))",
+                    backdropFilter: "blur(3px)",
+                  }
+            }
           />
         )}
       </AnimatePresence>
@@ -94,7 +118,7 @@ export default function RadialCommandMenu({ isAdmin }: { isAdmin: boolean }) {
       {/* العُقَد المتفرّعة + خطوط الوصل */}
       <AnimatePresence>
         {open && (
-          <div className="absolute bottom-7 left-1/2 h-0 w-0" aria-hidden={!open}>
+          <div className={`absolute left-1/2 h-0 w-0 ${docked ? "bottom-6" : "bottom-7"}`} aria-hidden={!open}>
             {/* خطوط القياس (SVG) من المركز لكل عقدة */}
             <svg
               className="pointer-events-none absolute left-0 top-0 overflow-visible"
@@ -122,8 +146,6 @@ export default function RadialCommandMenu({ isAdmin }: { isAdmin: boolean }) {
               const p = polar(i, nodes.length);
               const active = isActive(n.to);
               const Icon = n.icon;
-              // محاذاة عمود التسمية حسب جهة العقدة
-              const onRight = p.x > 6;
               return (
                 <motion.button
                   key={n.to}
@@ -161,13 +183,15 @@ export default function RadialCommandMenu({ isAdmin }: { isAdmin: boolean }) {
                       {n.code}
                     </span>
                   </span>
+                  {/* رقاقة التسمية أسفل العقدة: تظهر باللمس دائمًا وبالتحويم على المؤشر الدقيق */}
                   <span
-                    className={`mono pointer-events-none absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-[10px] font-bold tracking-wide opacity-0 transition-opacity duration-200 group-hover:opacity-100`}
+                    className="mono pointer-events-none absolute top-full mt-1.5 whitespace-nowrap border px-1.5 py-0.5 text-[9px] font-bold opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-coarse:opacity-100"
                     style={{
+                      borderRadius: 2,
+                      background: "var(--ck-steel)",
+                      borderColor: active ? "var(--ck-laser)" : "var(--ck-hair-strong)",
                       color: active ? "var(--ck-laser-hot)" : "var(--ck-ink-dim)",
-                      [onRight ? "left" : "right"]: "100%",
-                      [onRight ? "marginLeft" : "marginRight"]: "10px",
-                    } as React.CSSProperties}
+                    }}
                   >
                     {t(n.labelKey)}
                   </span>
@@ -175,12 +199,16 @@ export default function RadialCommandMenu({ isAdmin }: { isAdmin: boolean }) {
               );
             })}
 
-            {/* زر الخروج — يتفرّع لأسفل المركز */}
+            {/* زر الخروج — أسفل المركز، وفي وضع الإرساء ينضم لنهاية القوس */}
             <motion.button
               onClick={handleLogout}
-              initial={{ y: 0, opacity: 0, scale: 0.4 }}
-              animate={{ y: 58, opacity: 1, scale: 1 }}
-              exit={{ y: 0, opacity: 0, scale: 0.4 }}
+              initial={{ x: 0, y: 0, opacity: 0, scale: 0.4 }}
+              animate={
+                docked
+                  ? (() => { const p = polar(nodes.length, nodes.length + 1); return { x: p.x * 1.32, y: p.y * 1.32, opacity: 1, scale: 1 }; })()
+                  : { x: 0, y: 58, opacity: 1, scale: 1 }
+              }
+              exit={{ x: 0, y: 0, opacity: 0, scale: 0.4 }}
               transition={{ duration: reduce ? 0 : 0.4, delay: reduce ? 0 : 0.03 * nodes.length, ease: [0.16, 1, 0.3, 1] }}
               className="absolute left-0 top-0 grid h-9 w-9 -translate-x-1/2 -translate-y-1/2 place-items-center border"
               style={{ borderRadius: 2, background: "var(--ck-steel)", borderColor: "var(--ck-hair-strong)" }}
@@ -199,8 +227,8 @@ export default function RadialCommandMenu({ isAdmin }: { isAdmin: boolean }) {
         whileTap={{ scale: 0.92 }}
         aria-expanded={open}
         aria-label={t("cockpit.command")}
-        className="relative grid h-16 w-16 place-items-center"
-        style={{ borderRadius: 3 }}
+        className={`relative grid place-items-center ${docked ? "h-12 w-12" : "h-16 w-16"}`}
+        style={{ borderRadius: 3, opacity: docked && !open ? 0.88 : 1 }}
       >
         {/* حلقة خارجية + علامات قياس دوّارة */}
         <motion.span
@@ -228,13 +256,15 @@ export default function RadialCommandMenu({ isAdmin }: { isAdmin: boolean }) {
         </span>
       </motion.button>
 
-      {/* تسمية الـ Hub */}
-      <span
-        className="mono mt-1 text-[9px] font-bold tracking-[0.2em]"
-        style={{ color: open ? "var(--ck-laser)" : "var(--ck-ink-mute)" }}
-      >
-        {open ? t("cockpit.release") : t("cockpit.command")}
-      </span>
+      {/* تسمية الـ Hub — تختفي في وضع الإرساء لتقليل الإشغال */}
+      {!docked && (
+        <span
+          className="mono mt-1 text-[9px] font-bold tracking-[0.2em]"
+          style={{ color: open ? "var(--ck-laser)" : "var(--ck-ink-mute)" }}
+        >
+          {open ? t("cockpit.release") : t("cockpit.command")}
+        </span>
+      )}
     </div>
   );
 }
