@@ -146,6 +146,15 @@ export default function ThemeBrandingTab() {
         </div>
       )}
 
+      {/* تنبيه: الواجهة الهندسية النشطة (القمرة) أسطحها ثابتة، ويسري منها لون الأكسنت فقط */}
+      <div className="bg-amber-50 border-2 border-amber-200 text-amber-800 text-xs font-bold p-3 rounded-xl flex items-start gap-2">
+        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+        <span>
+          الواجهة الحالية هندسية داكنة بأسطح ثابتة. يسري منها <span className="underline">لون «التيراكوتا/الأكسنت»</span> فقط
+          كـ«ضوء الأداة» في كل البرنامج — جرّب تغييره وستراه فورًا. أما الأسطح والخلفيات فمثبّتة في هذا المظهر.
+        </span>
+      </div>
+
       {/* ── Global colors ── */}
       {subTab === "global" && (
         <div className="space-y-4">

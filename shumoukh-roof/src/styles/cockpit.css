@@ -5,6 +5,10 @@
    مثل خطوط الليزر وأدوات القياس الهندسية.
    ============================================================ */
 
+/* لون ضوء الأداة الافتراضي على الجذر — يحقن نظام الثيم بديلاً عليه عبر inline
+   على <html>، فيسري على كامل القمرة لأنها ترث المتغيّر ولا تُعيد تعريفه. */
+:root { --ck-accent: #ed9450; }
+
 .cockpit-root {
   /* الأسطح — فولاذ بارد متدرّج العمق */
   --ck-void: #08090b;
@@ -23,12 +27,14 @@
   --ck-ink-dim: #a7adb4;
   --ck-ink-mute: #6a727b;
 
-  /* ضوء الأداة — الكهرماني/التيراكوتا هو "الليزر" */
-  --ck-laser: #ed9450;
-  --ck-laser-hot: #f3a866;
-  --ck-laser-deep: #c2703e;
-  --ck-laser-glow: rgba(237, 148, 80, 0.45);
-  --ck-laser-film: rgba(237, 148, 80, 0.08);
+  /* ضوء الأداة — يُشتق كله من --ck-accent (المعرّف على :root أدناه).
+     نظام الثيم يحقن قيمة المستخدم على <html> فتتجاوز الافتراضي حيًّا.
+     ملاحظة: لا نُعرّف --ck-accent هنا حتى لا يحجب حقن المستخدم. */
+  --ck-laser: var(--ck-accent);
+  --ck-laser-hot: color-mix(in srgb, var(--ck-accent) 78%, #ffffff);
+  --ck-laser-deep: color-mix(in srgb, var(--ck-accent) 80%, #000000);
+  --ck-laser-glow: color-mix(in srgb, var(--ck-accent) 45%, transparent);
+  --ck-laser-film: color-mix(in srgb, var(--ck-accent) 8%, transparent);
 
   /* إشارات الحالة */
   --ck-ok: #93a86b;       /* زيتوني — تمام */
@@ -188,17 +194,17 @@
   --color-deep-earth-800: #141920;
   --color-deep-earth-900: #0b0e12;
 
-  /* التيراكوتا → ضوء أداة (أفتح على الداكن) */
-  --color-terracotta-50: #2a1d13;
-  --color-terracotta-100: #342315;
-  --color-terracotta-200: #52351d;
-  --color-terracotta-300: #a86238;
-  --color-terracotta-400: #ed9450;
-  --color-terracotta-500: #e08544;
-  --color-terracotta-600: #f3a866;
-  --color-terracotta-700: #f7bd88;
-  --color-terracotta-800: #fbd3ab;
-  --color-terracotta-900: #fde9d3;
+  /* التيراكوتا → سُلّم مشتق من --ck-accent (ضوء الأداة) */
+  --color-terracotta-50: color-mix(in srgb, var(--ck-accent) 16%, #0e1116);
+  --color-terracotta-100: color-mix(in srgb, var(--ck-accent) 22%, #0e1116);
+  --color-terracotta-200: color-mix(in srgb, var(--ck-accent) 32%, #0e1116);
+  --color-terracotta-300: color-mix(in srgb, var(--ck-accent) 58%, #000000);
+  --color-terracotta-400: var(--ck-accent);
+  --color-terracotta-500: color-mix(in srgb, var(--ck-accent) 92%, #000000);
+  --color-terracotta-600: color-mix(in srgb, var(--ck-accent) 80%, #ffffff);
+  --color-terracotta-700: color-mix(in srgb, var(--ck-accent) 60%, #ffffff);
+  --color-terracotta-800: color-mix(in srgb, var(--ck-accent) 40%, #ffffff);
+  --color-terracotta-900: color-mix(in srgb, var(--ck-accent) 22%, #ffffff);
 
   /* الزيتوني */
   --color-olive-50: #1a2114;
@@ -235,10 +241,10 @@
   --ink-muted: #79828c;
   --ink-inverse: #10141a;
 
-  --accent-terracotta: #ed9450;
-  --accent-terracotta-soft: #2f2013;
-  --accent-terracotta-border: #a86238;
-  --accent-terracotta-glow: rgba(237, 148, 80, 0.16);
+  --accent-terracotta: var(--ck-accent);
+  --accent-terracotta-soft: color-mix(in srgb, var(--ck-accent) 18%, #0e1116);
+  --accent-terracotta-border: color-mix(in srgb, var(--ck-accent) 58%, #000000);
+  --accent-terracotta-glow: color-mix(in srgb, var(--ck-accent) 16%, transparent);
 
   --accent-olive: #93a86b;
   --accent-olive-soft: #202817;
