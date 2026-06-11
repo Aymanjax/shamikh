@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { db, storage } from "../../lib/firebase";
 import { useAuthStore } from "../../store/authStore";
+import { useT } from "../../i18n";
 import GlassButton from "../../components/ui/GlassButton";
 
 const NAME_MAX_LENGTH = 200;
@@ -13,6 +14,7 @@ const ADDRESS_MAX_LENGTH = 500;
 const PHONE_MAX_LENGTH = 20;
 
 export default function CompanyTab() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const [companyName, setCompanyName] = useState("");
   const [address, setAddress] = useState("");
@@ -80,7 +82,7 @@ export default function CompanyTab() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
-      setSaveError("فشل الحفظ، حاول مرة أخرى");
+      setSaveError("settings.errors.saveFailed");
     }
     setSaving(false);
   };
@@ -111,8 +113,8 @@ export default function CompanyTab() {
     return (
       <div className="earth-card p-8 text-center">
         <Building2 className="w-10 h-10 text-ink-muted mx-auto mb-3" />
-        <p className="text-sm font-black text-ink-primary">لم يتم تسجيل الدخول</p>
-        <p className="text-xs text-ink-muted mt-1">سجل الدخول لعرض إعدادات الشركة</p>
+        <p className="text-sm font-black text-ink-primary">{t("settings.notSignedIn")}</p>
+        <p className="text-xs text-ink-muted mt-1">{t("settings.company.signInPrompt")}</p>
       </div>
     );
   }
@@ -125,8 +127,8 @@ export default function CompanyTab() {
             <Building2 className="w-6 h-6 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl font-black text-ink-primary tracking-tight truncate">الشركة</h1>
-            <p className="text-sm text-ink-muted truncate">اسم الشركة، العنوان، الشعار</p>
+            <h1 className="text-xl font-black text-ink-primary tracking-tight truncate">{t("settings.company.title")}</h1>
+            <p className="text-sm text-ink-muted truncate">{t("settings.company.subtitle")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
@@ -134,20 +136,20 @@ export default function CompanyTab() {
             <ArrowRight className="w-5 h-5" />
           </Link>
           <GlassButton variant="primary" size="sm" icon={saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />} onClick={handleSave} disabled={saving}>
-            {saving ? "جارٍ الحفظ..." : saved ? "تم" : "حفظ"}
+            {saving ? t("settings.saving") : saved ? t("settings.done") : t("common.save")}
           </GlassButton>
         </div>
       </div>
 
       {saveError && (
-        <div className="bg-red-50 border-2 border-red-200 text-red-600 font-bold text-sm p-4 rounded" role="alert">{saveError}</div>
+        <div className="bg-red-50 border-2 border-red-200 text-red-600 font-bold text-sm p-4 rounded" role="alert">{t(saveError)}</div>
       )}
 
       <div className="earth-card p-5 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           {logoURL ? (
             <div className="relative shrink-0">
-              <img src={logoURL} alt="شعار الشركة" className="w-20 h-20 rounded object-cover border-2 border-earth-200" />
+              <img src={logoURL} alt={t("settings.company.logo")} className="w-20 h-20 rounded object-cover border-2 border-earth-200" />
               <button onClick={handleRemoveLogo} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 shadow">
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -155,7 +157,7 @@ export default function CompanyTab() {
           ) : (
             <label className="w-20 h-20 shrink-0 rounded border-2 border-dashed border-earth-300 flex items-center justify-center cursor-pointer hover:border-terracotta-400 transition bg-earth-100">
               {uploading ? (
-                <span className="text-xs text-ink-muted">جاري الرفع...</span>
+                <span className="text-xs text-ink-muted">{t("settings.company.uploading")}</span>
               ) : (
                 <Upload className="w-6 h-6 text-ink-muted" />
               )}
@@ -163,13 +165,13 @@ export default function CompanyTab() {
             </label>
           )}
           <div>
-            <h3 className="text-sm font-black text-ink-primary">شعار الشركة</h3>
-            <p className="text-xs text-ink-muted">jpg, png - مقاس مناسب</p>
+            <h3 className="text-sm font-black text-ink-primary">{t("settings.company.logo")}</h3>
+            <p className="text-xs text-ink-muted">{t("settings.company.logoHint")}</p>
           </div>
         </div>
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label htmlFor="company-name" className="text-sm font-bold text-ink-muted">اسم الشركة</label>
+            <label htmlFor="company-name" className="text-sm font-bold text-ink-muted">{t("settings.company.nameLabel")}</label>
             <span className="text-[10px] font-bold text-ink-muted font-mono">{companyName.length}/{NAME_MAX_LENGTH}</span>
           </div>
           <input
@@ -184,7 +186,7 @@ export default function CompanyTab() {
         </div>
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label htmlFor="company-address" className="text-sm font-bold text-ink-muted">العنوان</label>
+            <label htmlFor="company-address" className="text-sm font-bold text-ink-muted">{t("settings.company.addressLabel")}</label>
             <span className="text-[10px] font-bold text-ink-muted font-mono">{address.length}/{ADDRESS_MAX_LENGTH}</span>
           </div>
           <input
@@ -198,7 +200,7 @@ export default function CompanyTab() {
           />
         </div>
         <div>
-          <label htmlFor="company-phone" className="block text-sm font-bold text-ink-muted mb-1.5">رقم الهاتف</label>
+          <label htmlFor="company-phone" className="block text-sm font-bold text-ink-muted mb-1.5">{t("settings.phoneLabel")}</label>
           <input
             id="company-phone"
             value={phone}

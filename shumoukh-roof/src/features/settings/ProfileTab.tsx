@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
 import { db } from "../../lib/firebase";
 import { useAuthStore } from "../../store/authStore";
+import { useT } from "../../i18n";
 import GlassButton from "../../components/ui/GlassButton";
 
 const NAME_MAX_LENGTH = 100;
@@ -13,6 +14,7 @@ const PHONE_MAX_LENGTH = 20;
 const PHONE_PATTERN = /^[\d+\s\-().]+$/;
 
 export default function ProfileTab() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const [displayName, setDisplayName] = useState("");
   const [originalName, setOriginalName] = useState("");
@@ -48,7 +50,7 @@ export default function ProfileTab() {
       })
       .catch(() => {
         if (cancelledRef.current) return;
-        setLoadError("فشل تحميل بيانات الملف الشخصي");
+        setLoadError("settings.profile.loadError");
       })
       .finally(() => {
         if (!cancelledRef.current) setLoading(false);
@@ -62,7 +64,7 @@ export default function ProfileTab() {
     setNameError("");
     setDisplayName(value);
     if (value.length >= NAME_MAX_LENGTH) {
-      setNameError(`الحد الأقصى ${NAME_MAX_LENGTH} حرف`);
+      setNameError("settings.profile.nameMax");
     }
   }, []);
 
@@ -71,7 +73,7 @@ export default function ProfileTab() {
     if (value.length > PHONE_MAX_LENGTH) return;
     const stripped = value.replace(/\s/g, "");
     if (stripped.length > 0 && !PHONE_PATTERN.test(stripped)) {
-      setPhoneError("أرقام فقط");
+      setPhoneError("settings.profile.phoneDigitsOnly");
       return;
     }
     setPhone(value);
@@ -88,12 +90,12 @@ export default function ProfileTab() {
     if (!user) return;
     const trimmed = displayName.trim();
     if (!trimmed) {
-      setNameError("الاسم مطلوب");
+      setNameError("settings.profile.nameRequired");
       nameRef.current?.focus();
       return;
     }
     if (trimmed.length < 2) {
-      setNameError("الاسم قصير جداً");
+      setNameError("settings.profile.nameTooShort");
       nameRef.current?.focus();
       return;
     }
@@ -112,8 +114,8 @@ export default function ProfileTab() {
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
       const msg = err?.code === "auth/network-request-failed"
-        ? "لا يوجد اتصال بالإنترنت، حاول مرة أخرى"
-        : "فشل الحفظ، حاول مرة أخرى";
+        ? "settings.errors.network"
+        : "settings.errors.saveFailed";
       setNameError(msg);
     }
     setSaving(false);
@@ -145,8 +147,8 @@ export default function ProfileTab() {
     return (
       <div className="earth-card p-8 text-center">
         <User className="w-10 h-10 text-ink-muted mx-auto mb-3" />
-        <p className="text-sm font-black text-ink-primary">لم يتم تسجيل الدخول</p>
-        <p className="text-xs text-ink-muted mt-1">سجل الدخول لعرض الملف الشخصي</p>
+        <p className="text-sm font-black text-ink-primary">{t("settings.notSignedIn")}</p>
+        <p className="text-xs text-ink-muted mt-1">{t("settings.profile.signInPrompt")}</p>
       </div>
     );
   }
@@ -162,18 +164,18 @@ export default function ProfileTab() {
             <span className="text-white font-black text-base" aria-hidden="true">{firstChar}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-black text-ink-primary tracking-tight truncate">الملف الشخصي</h1>
-            <p className="text-sm text-ink-muted truncate">{user.email || "الاسم، البريد الإلكتروني، رقم الهاتف"}</p>
+            <h1 className="text-xl font-black text-ink-primary tracking-tight truncate">{t("settings.profile.title")}</h1>
+            <p className="text-sm text-ink-muted truncate">{user.email || t("settings.profile.subtitle")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
           {hasChanges && (
             <GlassButton variant="ghost" size="sm" icon={<X className="w-4 h-4" />} onClick={handleReset}>
-              إلغاء
+              {t("common.cancel")}
             </GlassButton>
           )}
           <GlassButton variant="primary" size="sm" icon={saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />} onClick={handleSave} disabled={saving || !hasChanges}>
-            {saving ? "جارٍ الحفظ..." : saved ? "تم" : "حفظ"}
+            {saving ? t("settings.saving") : saved ? t("settings.done") : t("common.save")}
           </GlassButton>
         </div>
       </div>
@@ -181,14 +183,14 @@ export default function ProfileTab() {
       {loadError && (
         <div className="bg-red-50 border-2 border-red-200 text-red-600 font-bold text-sm p-4 rounded-xl flex items-start gap-2" role="alert">
           <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
-          <span>{loadError}</span>
+          <span>{t(loadError)}</span>
         </div>
       )}
 
       <div className="earth-card p-5 space-y-4">
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label htmlFor="profile-name" className="text-sm font-bold text-ink-muted">الاسم</label>
+            <label htmlFor="profile-name" className="text-sm font-bold text-ink-muted">{t("settings.profile.nameLabel")}</label>
             <span className={`text-[10px] font-bold font-mono ${displayName.length > NAME_MAX_LENGTH * 0.85 ? "text-red-500" : "text-ink-muted"}`}>
               {displayName.length}/{NAME_MAX_LENGTH}
             </span>
@@ -209,11 +211,11 @@ export default function ProfileTab() {
             disabled={saving}
           />
           {nameError && (
-            <p id="profile-name-error" className="text-[11px] text-red-500 font-medium mt-1" role="alert">{nameError}</p>
+            <p id="profile-name-error" className="text-[11px] text-red-500 font-medium mt-1" role="alert">{t(nameError, { n: NAME_MAX_LENGTH })}</p>
           )}
         </div>
         <div>
-          <label htmlFor="profile-email" className="block text-sm font-bold text-ink-muted mb-1.5">البريد الإلكتروني</label>
+          <label htmlFor="profile-email" className="block text-sm font-bold text-ink-muted mb-1.5">{t("settings.profile.emailLabel")}</label>
           <input
             id="profile-email"
             value={user.email || ""}
@@ -221,10 +223,10 @@ export default function ProfileTab() {
             dir="ltr"
             className="w-full bg-earth-50 border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm outline-none text-ink-muted cursor-not-allowed min-h-[44px] break-all"
           />
-          <p className="text-xs text-ink-muted mt-1">لا يمكن تغيير البريد الإلكتروني</p>
+          <p className="text-xs text-ink-muted mt-1">{t("settings.profile.emailReadOnly")}</p>
         </div>
         <div>
-          <label htmlFor="profile-phone" className="block text-sm font-bold text-ink-muted mb-1.5">رقم الهاتف</label>
+          <label htmlFor="profile-phone" className="block text-sm font-bold text-ink-muted mb-1.5">{t("settings.phoneLabel")}</label>
           <input
             id="profile-phone"
             value={phone}
@@ -241,7 +243,7 @@ export default function ProfileTab() {
             disabled={saving}
           />
           {phoneError && (
-            <p id="profile-phone-error" className="text-[11px] text-red-500 font-medium mt-1" role="alert">{phoneError}</p>
+            <p id="profile-phone-error" className="text-[11px] text-red-500 font-medium mt-1" role="alert">{t(phoneError)}</p>
           )}
         </div>
       </div>

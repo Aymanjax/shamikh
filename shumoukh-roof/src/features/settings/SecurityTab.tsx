@@ -3,9 +3,11 @@ import { Shield, Check, ArrowRight, KeyRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
 import { auth } from "../../lib/firebase";
+import { useT } from "../../i18n";
 import GlassButton from "../../components/ui/GlassButton";
 
 export default function SecurityTab() {
+  const t = useT();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -15,9 +17,9 @@ export default function SecurityTab() {
 
   const handleSave = async () => {
     setError("");
-    if (!currentPassword || !newPassword) { setError("يرجى تعبئة جميع الحقول"); return; }
-    if (newPassword.length < 6) { setError("كلمة السر الجديدة يجب أن تكون 6 أحرف على الأقل"); return; }
-    if (newPassword !== confirmPassword) { setError("كلمة السر الجديدة غير متطابقة"); return; }
+    if (!currentPassword || !newPassword) { setError("settings.security.fillAllFields"); return; }
+    if (newPassword.length < 6) { setError("settings.security.newPasswordMinLength"); return; }
+    if (newPassword !== confirmPassword) { setError("settings.security.passwordMismatch"); return; }
 
     setSaving(true);
     try {
@@ -30,9 +32,9 @@ export default function SecurityTab() {
       setConfirmPassword("");
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
-      if (err.code === "auth/wrong-password") setError("كلمة السر الحالية غير صحيحة");
-      else if (err.code === "auth/weak-password") setError("كلمة السر ضعيفة - يجب أن تكون 6 أحرف على الأقل");
-      else setError("حدث خطأ. تأكد من صحة البيانات وحاول مجدداً");
+      if (err.code === "auth/wrong-password") setError("settings.security.wrongPassword");
+      else if (err.code === "auth/weak-password") setError("settings.security.weakPassword");
+      else setError("settings.security.genericError");
     }
     setSaving(false);
   };
@@ -45,8 +47,8 @@ export default function SecurityTab() {
             <Shield className="w-6 h-6 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl font-black text-ink-primary tracking-tight">الأمان</h1>
-            <p className="text-sm text-ink-muted">كلمة السر، المصادقة الثنائية</p>
+            <h1 className="text-xl font-black text-ink-primary tracking-tight">{t("settings.security.title")}</h1>
+            <p className="text-sm text-ink-muted">{t("settings.security.subtitle")}</p>
           </div>
         </div>
         <Link to="/settings" className="text-ink-muted hover:text-ink-secondary transition p-2 touch-target self-end sm:self-auto shrink-0">
@@ -57,31 +59,31 @@ export default function SecurityTab() {
       <div className="earth-card p-5 space-y-4">
         {error && (
           <div className="bg-red-50 border-2 border-red-200 text-red-600 font-bold text-sm rounded py-2.5 px-4">
-            {error}
+            {t(error)}
           </div>
         )}
         {saved && (
           <div className="bg-olive-100 border-2 border-olive-200 text-olive-500 font-bold text-sm rounded py-2.5 px-4 flex items-center gap-2">
-            <Check className="w-4 h-4" /> تم تغيير كلمة السر بنجاح
+            <Check className="w-4 h-4" /> {t("settings.security.passwordChanged")}
           </div>
         )}
         <div>
-          <label className="block text-sm font-bold text-ink-muted mb-1.5">كلمة السر الحالية</label>
+          <label className="block text-sm font-bold text-ink-muted mb-1.5">{t("settings.security.currentPassword")}</label>
           <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
             className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition font-medium min-h-[44px]" dir="ltr" />
         </div>
         <div>
-          <label className="block text-sm font-bold text-ink-muted mb-1.5">كلمة السر الجديدة</label>
+          <label className="block text-sm font-bold text-ink-muted mb-1.5">{t("settings.security.newPassword")}</label>
           <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
             className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition font-medium min-h-[44px]" dir="ltr" />
         </div>
         <div>
-          <label className="block text-sm font-bold text-ink-muted mb-1.5">تأكيد كلمة السر الجديدة</label>
+          <label className="block text-sm font-bold text-ink-muted mb-1.5">{t("settings.security.confirmPassword")}</label>
           <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
             className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition font-medium min-h-[44px]" dir="ltr" />
         </div>
         <GlassButton variant="primary" className="w-full justify-center min-h-[48px]" onClick={handleSave} disabled={saving} icon={<KeyRound className="w-4 h-4" />}>
-          {saving ? "..." : "تغيير كلمة السر"}
+          {saving ? "..." : t("settings.security.changePassword")}
         </GlassButton>
       </div>
     </div>

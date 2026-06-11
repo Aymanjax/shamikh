@@ -1,3 +1,5 @@
+import { t } from "../i18n";
+
 export const SUBSCRIPTION_TYPES = {
   FREE_TRIAL: "free_trial",
   LIMITED: "limited",
@@ -27,13 +29,13 @@ export function toJsDate(value: any): Date | null {
 }
 
 export function getSubscriptionLabel(type?: string) {
-  const map: Record<string, string> = {
-    free_trial: "فترة مجانية",
-    limited: "محدودة",
-    basic: "أساسية",
-    advanced: "متقدمة",
+  const keyMap: Record<string, string> = {
+    free_trial: "subscription.type.freeTrial",
+    limited: "subscription.type.limited",
+    basic: "subscription.type.basic",
+    advanced: "subscription.type.advanced",
   };
-  return map[type || ""] || "بدون اشتراك";
+  return t(keyMap[type || ""] || "subscription.type.none");
 }
 
 export function getDaysRemaining(subscriptionEndDate: any): number {

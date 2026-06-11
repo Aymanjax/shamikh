@@ -7,6 +7,7 @@ import { listDocuments, addDocument, deleteDocument, updateDocument } from "../.
 import { printInvoice } from "../../lib/printInvoice";
 import { useAuthStore } from "../../store/authStore";
 import GlassButton from "../../components/ui/GlassButton";
+import { useT } from "../../i18n";
 
 interface Invoice {
   id: string;
@@ -27,21 +28,15 @@ interface InvoiceForm {
 
 const defaultForm: InvoiceForm = { client: "", project: "", amount: 0, status: "draft" };
 
+// القيمة المخزنة في Firestore تبقى بالإنجليزية؛ label مفتاح ترجمة للعرض فقط
 const statusConfig: Record<string, { label: string; color: string; next: string }> = {
-  paid: { label: "مدفوعة", color: "tag-olive", next: "draft" },
-  pending: { label: "قيد الانتظار", color: "tag-amber", next: "paid" },
-  draft: { label: "مسودة", color: "bg-earth-100 text-earth-700 border border-earth-300 rounded-[3px]", next: "pending" },
-};
-
-const countLabel = (n: number): string => {
-  if (n === 0) return "لا توجد فواتير";
-  if (n === 1) return "فاتورة واحدة";
-  if (n === 2) return "فاتورتان";
-  if (n <= 10) return `${n} فواتير`;
-  return `${n} فاتورة`;
+  paid: { label: "invoices.status.paid", color: "tag-olive", next: "draft" },
+  pending: { label: "invoices.status.pending", color: "tag-amber", next: "paid" },
+  draft: { label: "invoices.status.draft", color: "bg-earth-100 text-earth-700 border border-earth-300 rounded-[3px]", next: "pending" },
 };
 
 export default function InvoicesPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const uid = useAuthStore((s) => s.user?.uid);
   const [search, setSearch] = useState("");
@@ -88,9 +83,9 @@ export default function InvoicesPage() {
   }, [form, createMutation]);
 
   const handleDelete = useCallback((id: string) => {
-    if (!confirm("حذف هذه الفاتورة؟ لا يمكن التراجع عن الحذف.")) return;
+    if (!confirm(t("invoices.deleteConfirm"))) return;
     deleteMutation.mutate(id);
-  }, [deleteMutation]);
+  }, [deleteMutation, t]);
 
   const handleStatusToggle = useCallback((inv: Invoice) => {
     const next = inv.status === "draft" ? "pending" : inv.status === "pending" ? "paid" : "draft";
@@ -104,8 +99,8 @@ export default function InvoicesPage() {
   if (error) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm font-black text-earth-800 mb-1">تعذر تحميل الفواتير</p>
-        <p className="text-xs text-earth-500">تحقق من اتصالك بالإنترنت وحاول مرة أخرى</p>
+        <p className="text-sm font-black text-earth-800 mb-1">{t("invoices.loadError")}</p>
+        <p className="text-xs text-earth-500">{t("invoices.loadErrorHint")}</p>
       </div>
     );
   }
@@ -119,12 +114,12 @@ export default function InvoicesPage() {
             <Receipt className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-earth-900 tracking-tight">الفواتير</h1>
-            <p className="text-xs text-earth-500 mt-0.5">إدارة الفواتير وعروض الأسعار</p>
+            <h1 className="text-2xl font-black text-earth-900 tracking-tight">{t("invoices.title")}</h1>
+            <p className="text-xs text-earth-500 mt-0.5">{t("invoices.subtitle")}</p>
           </div>
         </div>
         <GlassButton variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setModal(true)}>
-          فاتورة جديدة
+          {t("invoices.newInvoice")}
         </GlassButton>
       </div>
 
@@ -137,12 +132,12 @@ export default function InvoicesPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث باسم العميل أو المشروع"
+              placeholder={t("invoices.searchPlaceholder")}
               className="w-full bg-white border-2 border-earth-200 rounded-xl py-2 pr-9 pl-3 text-xs text-earth-900 outline-none focus:border-terracotta-500 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400"
             />
           </div>
           <div className="text-[10px] text-earth-500 font-mono">
-            {countLabel(filtered.length)}
+            {t("invoices.count", { n: filtered.length })}
           </div>
         </div>
 
@@ -158,9 +153,9 @@ export default function InvoicesPage() {
             <div className="w-14 h-14 mx-auto mb-4 rounded-sm bg-earth-100 border-2 border-earth-200 flex items-center justify-center">
               <FileText className="w-6 h-6 text-earth-400" />
             </div>
-            <p className="text-sm font-black text-earth-700">لا توجد فواتير</p>
+            <p className="text-sm font-black text-earth-700">{t("invoices.emptyTitle")}</p>
             <p className="text-[10px] text-earth-500 mt-1 max-w-xs mx-auto">
-              ابدأ بتسجيل أول فاتورة لتتبع مدفوعات مشاريعك
+              {t("invoices.emptyHint")}
             </p>
           </div>
         ) : (
@@ -193,7 +188,7 @@ export default function InvoicesPage() {
                         </div>
                         {inv.project && (
                           inv.projectId ? (
-                            <Link to={`/calculator/${inv.projectId}`} className="flex items-center gap-1.5 mt-0.5 hover:text-terracotta-500 transition-colors w-fit" title="فتح المشروع في الحاسبة">
+                            <Link to={`/calculator/${inv.projectId}`} className="flex items-center gap-1.5 mt-0.5 hover:text-terracotta-500 transition-colors w-fit" title={t("invoices.openProjectInCalculator")}>
                               <Hash className="w-2.5 h-2.5 text-earth-400 shrink-0" />
                               <span className="text-[10px] text-earth-500 truncate underline underline-offset-2 decoration-earth-300">{inv.project}</span>
                             </Link>
@@ -221,9 +216,9 @@ export default function InvoicesPage() {
                       <button
                         onClick={() => handleStatusToggle(inv)}
                         className={`shrink-0 text-[9px] font-bold px-2.5 py-1 rounded-[3px] border cursor-pointer transition ${status.color}`}
-                        title={`تغيير الحالة إلى ${statusConfig[status.next].label}`}
+                        title={t("invoices.changeStatusTo", { status: t(statusConfig[status.next].label) })}
                       >
-                        {status.label}
+                        {t(status.label)}
                       </button>
 
                       {/* Actions */}
@@ -231,14 +226,14 @@ export default function InvoicesPage() {
                         <button
                           onClick={() => printInvoice(inv)}
                           className="p-1.5 text-earth-500 hover:text-olive-600 transition cursor-pointer rounded-sm"
-                          title="تحميل الفاتورة"
+                          title={t("invoices.downloadInvoice")}
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDelete(inv.id)}
                           className="p-1.5 text-earth-500 hover:text-red-500 transition cursor-pointer rounded-sm"
-                          title="حذف الفاتورة"
+                          title={t("invoices.deleteInvoice")}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -273,12 +268,12 @@ export default function InvoicesPage() {
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-sm font-black text-earth-900 flex items-center gap-2">
                   <Receipt className="w-4 h-4" style={{ color: "var(--accent-terracotta)" }} />
-                  فاتورة جديدة
+                  {t("invoices.newInvoice")}
                 </h3>
                 <button
                   onClick={() => { setModal(false); setClientError(false); }}
                   className="text-earth-500 hover:text-earth-700 transition p-1 cursor-pointer rounded-sm"
-                  aria-label="إغلاق"
+                  aria-label={t("common.close")}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -287,14 +282,14 @@ export default function InvoicesPage() {
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label htmlFor="invoice-client" className="block text-xs font-black text-earth-700">
-                    العميل
+                    {t("invoices.client")}
                   </label>
                   <input
                     id="invoice-client"
                     ref={clientInputRef}
                     value={form.client}
                     onChange={(e) => { setForm((p) => ({ ...p, client: e.target.value })); setClientError(false); }}
-                    placeholder="اسم العميل"
+                    placeholder={t("invoices.clientPlaceholder")}
                     className={`w-full bg-white border-2 rounded-xl py-2.5 px-4 text-sm text-earth-900 outline-none transition placeholder:text-earth-400 ${
                       clientError
                         ? "border-red-300 focus:border-red-400 focus:ring-red-100"
@@ -302,31 +297,31 @@ export default function InvoicesPage() {
                     }`}
                   />
                   {clientError && (
-                    <p className="text-[11px] text-red-500 font-medium">اسم العميل مطلوب</p>
+                    <p className="text-[11px] text-red-500 font-medium">{t("invoices.clientRequired")}</p>
                   )}
                 </div>
                 <div className="space-y-1.5">
                   <label htmlFor="invoice-project" className="block text-xs font-black text-earth-700">
-                    المشروع
+                    {t("invoices.project")}
                   </label>
                   <input
                     id="invoice-project"
                     value={form.project}
                     onChange={(e) => setForm((p) => ({ ...p, project: e.target.value }))}
-                    placeholder="اختياري — اسم المشروع"
+                    placeholder={t("invoices.projectPlaceholder")}
                     className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm text-earth-900 outline-none focus:border-terracotta-500 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label htmlFor="invoice-amount" className="block text-xs font-black text-earth-700">
-                    المبلغ (د.أ)
+                    {t("invoices.amountLabel")}
                   </label>
                   <input
                     id="invoice-amount"
                     type="number"
                     value={form.amount || ""}
                     onChange={(e) => setForm((p) => ({ ...p, amount: +e.target.value }))}
-                    placeholder="٠"
+                    placeholder={t("invoices.amountPlaceholder")}
                     className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm text-earth-900 font-mono font-black outline-none focus:border-terracotta-500 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400"
                   />
                 </div>
@@ -336,7 +331,7 @@ export default function InvoicesPage() {
                     disabled={createMutation.isPending}
                     className="w-full bg-olive-700 hover:bg-olive-800 active:bg-olive-900 text-white font-bold py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:pointer-events-none border-r-3 border-olive-900"
                   >
-                    {createMutation.isPending ? "جارٍ الإنشاء..." : <><Check className="w-4 h-4" /> إنشاء الفاتورة</>}
+                    {createMutation.isPending ? t("invoices.creating") : <><Check className="w-4 h-4" /> {t("invoices.create")}</>}
                   </button>
                 </div>
               </div>

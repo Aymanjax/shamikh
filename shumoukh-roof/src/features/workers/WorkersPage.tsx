@@ -5,6 +5,7 @@ import { listDocuments, addDocument, deleteDocument } from "../../lib/firestoreS
 import { useAuthStore } from "../../store/authStore";
 import SubscriptionGuard from "../../components/SubscriptionGuard";
 import GlassButton from "../../components/ui/GlassButton";
+import { useT } from "../../i18n";
 
 interface Worker {
   id: string;
@@ -28,7 +29,20 @@ interface WorkerForm {
 const defaultForm: WorkerForm = { name: "", role: "مبلط", phone: "", project: "", wage: 25, days: 1 };
 const roles = ["مبلط", "حداد", "مساعد", "عامل", "مشرف", "سائق"];
 
+// القيمة المخزنة في Firestore تبقى بالعربية؛ الترجمة للعرض فقط
+const roleKeys: Record<string, string> = {
+  "مبلط": "workers.role.tiler",
+  "حداد": "workers.role.blacksmith",
+  "مساعد": "workers.role.assistant",
+  "عامل": "workers.role.laborer",
+  "مشرف": "workers.role.supervisor",
+  "سائق": "workers.role.driver",
+};
+const roleLabel = (t: (key: string) => string, role?: string): string =>
+  role ? (roleKeys[role] ? t(roleKeys[role]) : role) : "";
+
 export default function WorkersPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const uid = useAuthStore((s) => s.user?.uid);
   const [modal, setModal] = useState(false);
@@ -61,15 +75,15 @@ export default function WorkersPage() {
   }, [form, createMutation]);
 
   const handleDelete = useCallback((id: string, name: string) => {
-    if (!confirm(`حذف العامل "${name}"؟`)) return;
+    if (!confirm(t("workers.deleteConfirm", { name }))) return;
     deleteMutation.mutate(id);
-  }, [deleteMutation]);
+  }, [deleteMutation, t]);
 
   if (error) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm font-black text-earth-800 mb-1">تعذر تحميل بيانات العمال</p>
-        <p className="text-xs text-earth-500">تحقق من اتصالك بالإنترنت وحاول مرة أخرى</p>
+        <p className="text-sm font-black text-earth-800 mb-1">{t("workers.loadError")}</p>
+        <p className="text-xs text-earth-500">{t("workers.loadErrorHint")}</p>
       </div>
     );
   }
@@ -82,12 +96,12 @@ export default function WorkersPage() {
             <HardHat className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-earth-900 tracking-tight">العمال</h1>
-            <p className="text-sm text-earth-500">إدارة العمال والمهام اليومية</p>
+            <h1 className="text-xl font-black text-earth-900 tracking-tight">{t("workers.title")}</h1>
+            <p className="text-sm text-earth-500">{t("workers.subtitle")}</p>
           </div>
         </div>
         <GlassButton variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => setModal(true)}>
-          إضافة عامل
+          {t("workers.addWorker")}
         </GlassButton>
       </div>
 
@@ -101,8 +115,8 @@ export default function WorkersPage() {
         ) : workers.length === 0 ? (
           <div className="glass-card py-16 text-center text-earth-500">
             <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p className="font-black">لا يوجد عمال</p>
-            <p className="text-xs mt-1">أضف عامل جديد للبدء</p>
+            <p className="font-black">{t("workers.emptyTitle")}</p>
+            <p className="text-xs mt-1">{t("workers.emptyHint")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -114,12 +128,12 @@ export default function WorkersPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-black text-earth-900 text-sm truncate">{w.name}</h3>
-                    <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-sm">{w.role}</span>
+                    <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-sm">{roleLabel(t, w.role)}</span>
                   </div>
                   <button
                     onClick={() => handleDelete(w.id, w.name || "")}
                     className="text-earth-500 hover:text-red-500 transition cursor-pointer p-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-400"
-                    aria-label={`حذف العامل ${w.name}`}
+                    aria-label={t("workers.deleteAria", { name: w.name || "" })}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -136,12 +150,12 @@ export default function WorkersPage() {
                     </div>
                   )}
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5 text-earth-400" /> {w.days} يوم · {w.wage} د.أ/يوم
+                    <Calendar className="w-3.5 h-3.5 text-earth-400" /> {w.days} {t("common.day")} · {t("workers.wagePerDay", { wage: w.wage ?? 0 })}
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-earth-200 flex justify-between text-xs font-black">
-                  <span className="text-earth-500">الإجمالي</span>
-                  <span className="text-olive-600">{(w.days ?? 0) * (w.wage ?? 0)} د.أ</span>
+                  <span className="text-earth-500">{t("workers.total")}</span>
+                  <span className="text-olive-600">{(w.days ?? 0) * (w.wage ?? 0)} {t("common.currency")}</span>
                 </div>
               </div>
             ))}
@@ -156,51 +170,51 @@ export default function WorkersPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-black text-earth-900">إضافة عامل</h3>
-              <button onClick={() => setModal(false)} className="text-earth-500 hover:text-earth-700 p-1 rounded-sm" aria-label="إغلاق">
+              <h3 className="font-black text-earth-900">{t("workers.addWorker")}</h3>
+              <button onClick={() => setModal(false)} className="text-earth-500 hover:text-earth-700 p-1 rounded-sm" aria-label={t("common.close")}>
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-earth-700">الاسم</label>
+                  <label className="text-xs font-bold text-earth-700">{t("workers.name")}</label>
                   <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                     className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-earth-700">المهنة</label>
+                  <label className="text-xs font-bold text-earth-700">{t("workers.role")}</label>
                   <select value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
                     className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition">
-                    {roles.map((r) => <option key={r} value={r}>{r}</option>)}
+                    {roles.map((r) => <option key={r} value={r}>{roleLabel(t, r)}</option>)}
                   </select>
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-earth-700">الهاتف</label>
+                <label className="text-xs font-bold text-earth-700">{t("workers.phone")}</label>
                 <input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
                   className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-earth-700">المشروع</label>
+                <label className="text-xs font-bold text-earth-700">{t("workers.project")}</label>
                 <input value={form.project} onChange={(e) => setForm((p) => ({ ...p, project: e.target.value }))}
                   className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-earth-700">الأجر (د.أ/يوم)</label>
+                  <label className="text-xs font-bold text-earth-700">{t("workers.wageLabel")}</label>
                   <input type="number" value={form.wage} onChange={(e) => setForm((p) => ({ ...p, wage: +e.target.value }))}
                     className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition font-mono" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-earth-700">عدد الأيام</label>
+                  <label className="text-xs font-bold text-earth-700">{t("workers.daysLabel")}</label>
                   <input type="number" value={form.days} onChange={(e) => setForm((p) => ({ ...p, days: +e.target.value }))}
                     className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition font-mono" min={1} />
                 </div>
               </div>
               <button onClick={handleCreate} disabled={!form.name.trim() || createMutation.isPending}
                 className="w-full bg-olive-700 hover:bg-olive-800 disabled:opacity-40 text-white font-black py-2.5 rounded-sm transition text-sm border-r-3 border-olive-900">
-                {createMutation.isPending ? "جارٍ الإضافة..." : "إضافة"}
+                {createMutation.isPending ? t("workers.adding") : t("common.add")}
               </button>
             </div>
           </div>

@@ -6,7 +6,8 @@ import {
   Search, RotateCw, Ban, UserCheck, Shield,
   AlertCircle, Clock, CreditCard,
 } from "lucide-react";
-import { SUBSCRIPTION_TYPES, PLAN_OPTIONS, getSubscriptionLabel, getDaysRemaining } from "../../utils/subscriptionUtils";
+import { SUBSCRIPTION_TYPES, PLAN_OPTIONS, getDaysRemaining } from "../../utils/subscriptionUtils";
+import { useT } from "../../i18n";
 import { listAllUsers, updateUserRole, toggleBan, setSubscriptionByDays } from "./adminUserService";
 import type { UserProfile } from "./adminUserService";
 import SubscriptionModal from "./SubscriptionModal";
@@ -22,23 +23,23 @@ import AuditLogsTab from "./AuditLogsTab";
 type TabKey = "dashboard" | "users" | "projects" | "invoices" | "suppliers" | "workers" | "announcements" | "config" | "audit";
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
-  { key: "dashboard", label: "لوحة", icon: ShieldCheck },
-  { key: "users", label: "المستخدمين", icon: Users },
-  { key: "projects", label: "المشاريع", icon: FolderOpen },
-  { key: "invoices", label: "الفواتير", icon: FileText },
-  { key: "suppliers", label: "الموردين", icon: Truck },
-  { key: "workers", label: "العمال", icon: HardHat },
-  { key: "announcements", label: "الإعلانات", icon: Bell },
-  { key: "config", label: "الإعدادات", icon: Settings },
-  { key: "audit", label: "السجل", icon: History },
+  { key: "dashboard", label: "admin.tabs.dashboard", icon: ShieldCheck },
+  { key: "users", label: "admin.tabs.users", icon: Users },
+  { key: "projects", label: "nav.projects", icon: FolderOpen },
+  { key: "invoices", label: "nav.invoices", icon: FileText },
+  { key: "suppliers", label: "admin.tabs.suppliers", icon: Truck },
+  { key: "workers", label: "nav.workers", icon: HardHat },
+  { key: "announcements", label: "admin.tabs.announcements", icon: Bell },
+  { key: "config", label: "nav.settings", icon: Settings },
+  { key: "audit", label: "admin.tabs.audit", icon: History },
 ];
 
 const USER_FILTERS = [
-  { key: "all", label: "الكل" },
-  { key: "active", label: "نشطاء" },
-  { key: "expired", label: "منتهي" },
-  { key: "banned", label: "محظورين" },
-  { key: "admins", label: "مديرين" },
+  { key: "all", label: "common.all" },
+  { key: "active", label: "admin.users.filter.active" },
+  { key: "expired", label: "common.expired" },
+  { key: "banned", label: "admin.users.filter.banned" },
+  { key: "admins", label: "admin.users.filter.admins" },
 ];
 
 const PLAN_TAG_CLASSES: Record<string, string> = {
@@ -47,7 +48,13 @@ const PLAN_TAG_CLASSES: Record<string, string> = {
   advanced: "tag-terracotta",
 };
 
+// مفتاح ترجمة خطة الاشتراك — القيم المخزنة تبقى كما هي وتُترجم وقت العرض فقط
+const PLAN_KEYS = ["free_trial", "limited", "basic", "advanced"];
+const planLabelKey = (type?: string) =>
+  PLAN_KEYS.includes(type || "") ? `admin.plan.${type}` : "admin.plan.none";
+
 export default function AdminDashboard() {
+  const t = useT();
   const [tab, setTab] = useState<TabKey>("dashboard");
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -93,8 +100,8 @@ export default function AdminDashboard() {
 
   const applySubscriptionToAll = async () => {
     const nonAdmins = users.filter((u) => u.role !== "admin" && !u.banned);
-    const planLabel = PLAN_OPTIONS.find((o) => o.value === bulkPlan)?.label || bulkPlan;
-    if (!confirm(`تطبيق اشتراك "${planLabel}" لمدة ${bulkDays} يوم على ${nonAdmins.length} مستخدم؟`)) return;
+    const planLabel = t(planLabelKey(bulkPlan));
+    if (!confirm(t("admin.users.bulkConfirm", { plan: planLabel, days: bulkDays, count: nonAdmins.length }))) return;
     setBulkApplying(true);
     for (const u of nonAdmins) {
       try { await setSubscriptionByDays(u.uid, bulkPlan, bulkDays); }
@@ -127,16 +134,16 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-terracotta-500" />
             <span className="font-black font-mono text-earth-900">{users.length}</span>
-            <span className="text-sm text-earth-500 font-bold">مستخدم</span>
+            <span className="text-sm text-earth-500 font-bold">{t("admin.users.countLabel")}</span>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-64">
               <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-earth-400" />
               <input value={search} onChange={(e) => setSearch(e.target.value)}
-                placeholder="ابحث بالاسم أو البريد أو الشركة"
+                placeholder={t("admin.users.searchPlaceholder")}
                 className="w-full bg-white border-2 border-earth-200 rounded-xl py-2 pr-9 pl-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400" />
             </div>
-            <button onClick={loadUsers} className="text-earth-500 hover:text-earth-700 p-2 hover:bg-earth-100 rounded-sm transition cursor-pointer" title="تحديث القائمة" aria-label="تحديث القائمة">
+            <button onClick={loadUsers} className="text-earth-500 hover:text-earth-700 p-2 hover:bg-earth-100 rounded-sm transition cursor-pointer" title={t("admin.users.refreshList")} aria-label={t("admin.users.refreshList")}>
               <RotateCw className={`w-4 h-4 ${usersLoading ? "animate-spin" : ""}`} />
             </button>
           </div>
@@ -149,24 +156,24 @@ export default function AdminDashboard() {
                   ? "bg-earth-800 text-white border-earth-800"
                   : "bg-white text-earth-600 border-earth-200 hover:border-earth-300"
               }`}>
-              {f.label}
+              {t(f.label)}
             </button>
           ))}
         </div>
       </div>
 
       <div className="earth-card p-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-black text-earth-600 whitespace-nowrap">اشتراك جماعي:</span>
+        <span className="text-xs font-black text-earth-600 whitespace-nowrap">{t("admin.users.bulkLabel")}</span>
         <select value={bulkPlan} onChange={(e) => setBulkPlan(e.target.value)}
           className="bg-white border-2 border-earth-200 rounded-sm py-1.5 px-2 text-xs text-earth-900 outline-none cursor-pointer font-bold focus:border-terracotta-400">
-          {PLAN_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{o.label}</option>))}
+          {PLAN_OPTIONS.map((o) => (<option key={o.value} value={o.value}>{t(planLabelKey(o.value))}</option>))}
         </select>
         <input type="number" value={bulkDays} onChange={(e) => setBulkDays(Number(e.target.value))} min="1"
-          className="bg-white border-2 border-earth-200 rounded-sm py-1.5 px-2 text-xs text-earth-900 outline-none w-20 text-center font-mono font-black focus:border-terracotta-400" aria-label="عدد الأيام" />
-        <span className="text-[10px] text-earth-500 font-bold">يوم</span>
+          className="bg-white border-2 border-earth-200 rounded-sm py-1.5 px-2 text-xs text-earth-900 outline-none w-20 text-center font-mono font-black focus:border-terracotta-400" aria-label={t("admin.daysCount")} />
+        <span className="text-[10px] text-earth-500 font-bold">{t("common.day")}</span>
         <button onClick={applySubscriptionToAll} disabled={bulkApplying || users.length === 0}
           className="bg-terracotta-500 hover:bg-terracotta-600 active:bg-terracotta-700 disabled:opacity-40 text-white py-1.5 px-4 rounded-sm text-xs font-bold transition whitespace-nowrap border-r-3 border-terracotta-700 cursor-pointer">
-          {bulkApplying ? "جارٍ التطبيق..." : "تطبيق على الكل"}
+          {bulkApplying ? t("admin.users.applying") : t("admin.users.applyToAll")}
         </button>
       </div>
 
@@ -186,7 +193,7 @@ export default function AdminDashboard() {
       ) : filteredUsers.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {filteredUsers.map((u) => {
-            const planLabel = getSubscriptionLabel(u.subscription?.subscriptionType);
+            const planLabel = t(planLabelKey(u.subscription?.subscriptionType));
             const remaining = getDaysRemaining(u.subscription?.subscriptionEndDate);
             const planTag = PLAN_TAG_CLASSES[u.subscription?.subscriptionType || ""] || "bg-earth-100 text-earth-700 border-earth-300";
             return (
@@ -197,17 +204,17 @@ export default function AdminDashboard() {
                       {(u.displayName || u.email || "?")[0].toUpperCase()}
                     </div>
                     <div className="min-w-0 overflow-hidden">
-                      <p className="text-sm font-black text-earth-900 truncate" title={u.displayName || "بلا اسم"}>{u.displayName || "بلا اسم"}</p>
+                      <p className="text-sm font-black text-earth-900 truncate" title={u.displayName || t("admin.users.noName")}>{u.displayName || t("admin.users.noName")}</p>
                       <p className="text-xs text-earth-500 truncate" dir="ltr" title={u.email || ""}>{u.email}</p>
                       {u.companyName && <p className="text-xs text-earth-500 truncate" title={u.companyName}>{u.companyName}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {u.banned && <span className="text-[10px] font-black text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-[3px]">محظور</span>}
+                    {u.banned && <span className="text-[10px] font-black text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-[3px]">{t("admin.banned")}</span>}
                     <span className={`text-[10px] font-black px-2 py-0.5 rounded-[3px] border ${
                       u.role === "admin" ? "tag-terracotta" : "bg-earth-100 text-earth-600 border-earth-200"
                     }`}>
-                      {u.role === "admin" ? "مدير" : "مستخدم"}
+                      {u.role === "admin" ? t("admin.users.role.admin") : t("admin.users.role.user")}
                     </span>
                   </div>
                 </div>
@@ -218,7 +225,7 @@ export default function AdminDashboard() {
                         <CreditCard className="w-3 h-3" />{planLabel}
                       </span>
                       <span className={`text-[10px] font-black font-mono ${u.isExpired ? "text-red-500" : "text-olive-600"}`}>
-                        {u.isExpired ? "منتهي" : `${remaining} يوم`}
+                        {u.isExpired ? t("common.expired") : t("common.days", { n: remaining })}
                       </span>
                     </div>
                     {u.subscription?.subscriptionEndDate && (
@@ -233,17 +240,17 @@ export default function AdminDashboard() {
                   {u.role !== "admin" ? (
                     <button onClick={() => handleRole(u.uid, "admin")}
                       className="flex-1 text-[10px] font-black text-amber-700 bg-amber-50 hover:bg-amber-100 py-1.5 rounded-sm transition flex items-center justify-center gap-1 border border-amber-200 cursor-pointer">
-                      <Shield className="w-3 h-3" /> ترقية
+                      <Shield className="w-3 h-3" /> {t("admin.users.promote")}
                     </button>
                   ) : (
                     <button onClick={() => handleRole(u.uid, "user")}
                       className="flex-1 text-[10px] font-black text-earth-600 bg-earth-50 hover:bg-earth-100 py-1.5 rounded-sm transition flex items-center justify-center gap-1 border border-earth-200 cursor-pointer">
-                      <UserCheck className="w-3 h-3" /> تخفيض
+                      <UserCheck className="w-3 h-3" /> {t("admin.users.demote")}
                     </button>
                   )}
                   <button onClick={() => setSelectedUser(u)}
                     className="flex-1 text-[10px] font-black text-olive-700 bg-olive-50 hover:bg-olive-100 py-1.5 rounded-sm transition flex items-center justify-center gap-1 border border-olive-200 cursor-pointer">
-                    <Clock className="w-3 h-3" /> اشتراك
+                    <Clock className="w-3 h-3" /> {t("admin.users.subscription")}
                   </button>
                   <button onClick={() => handleBan(u.uid, u.banned || false)}
                     className={`flex-1 text-[10px] font-black py-1.5 rounded-sm transition flex items-center justify-center gap-1 border cursor-pointer ${
@@ -252,7 +259,7 @@ export default function AdminDashboard() {
                         : "text-red-600 bg-red-50 hover:bg-red-100 border-red-200"
                     }`}>
                     {u.banned ? <UserCheck className="w-3 h-3" /> : <Ban className="w-3 h-3" />}
-                    {u.banned ? "رفع الحظر" : "حظر"}
+                    {u.banned ? t("admin.unban") : t("admin.ban")}
                   </button>
                 </div>
               </div>
@@ -262,7 +269,7 @@ export default function AdminDashboard() {
       ) : (
         <div className="text-center py-12 text-earth-500">
           <Users className="w-10 h-10 mx-auto mb-2 opacity-50" />
-          <p className="text-sm font-black">لا يوجد مستخدمين مطابقين</p>
+          <p className="text-sm font-black">{t("admin.users.empty")}</p>
         </div>
       )}
     </div>
@@ -277,21 +284,21 @@ export default function AdminDashboard() {
           <ShieldCheck className="w-6 h-6 text-terracotta-400" />
         </div>
         <div>
-          <h1 className="text-xl font-black text-earth-900 tracking-tight">لوحة التحكم</h1>
-          <p className="text-sm text-earth-500">إدارة النظام والمستخدمين والاشتراكات</p>
+          <h1 className="text-xl font-black text-earth-900 tracking-tight">{t("admin.title")}</h1>
+          <p className="text-sm text-earth-500">{t("admin.subtitle")}</p>
         </div>
       </div>
 
       <div className="bg-white border border-earth-200 rounded-sm p-1.5 flex flex-wrap gap-1">
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)}
+        {TABS.map((tb) => (
+          <button key={tb.key} onClick={() => setTab(tb.key)}
             className={`py-2 px-3 rounded-sm text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              tab === t.key
+              tab === tb.key
                 ? "bg-earth-800 text-white border-r-2 border-terracotta-500"
                 : "bg-transparent text-earth-500 hover:text-earth-700 hover:bg-earth-50 border-r-2 border-transparent"
             }`}>
-            <t.icon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t.label}</span>
+            <tb.icon className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t(tb.label)}</span>
           </button>
         ))}
       </div>

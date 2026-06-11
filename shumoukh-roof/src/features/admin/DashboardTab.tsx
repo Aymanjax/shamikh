@@ -4,6 +4,7 @@ import {
   FolderOpen, FileText, Users, DollarSign, TrendingUp,
   Activity, Wifi, LogIn, Clock, HardHat,
 } from "lucide-react";
+import { useT, getLang } from "../../i18n";
 import { adminApi } from "./adminApiService";
 
 const ACCENTS = {
@@ -14,6 +15,7 @@ const ACCENTS = {
 };
 
 export default function DashboardTab() {
+  const t = useT();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [stats, setStats] = useState<any>(null);
@@ -55,20 +57,21 @@ export default function DashboardTab() {
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 font-bold text-sm p-4 rounded-sm flex items-center justify-between gap-3" role="alert">
         {error}
-        <button onClick={load} className="underline underline-offset-4 text-xs shrink-0 cursor-pointer">إعادة المحاولة</button>
+        <button onClick={load} className="underline underline-offset-4 text-xs shrink-0 cursor-pointer">{t("admin.dash.retry")}</button>
       </div>
     );
   }
 
+  const currency = t("common.currency");
   const cards = [
-    { label: "المستخدمين", value: stats?.users ?? analytics?.totalUsers ?? "—", icon: Users, accent: "terracotta" },
-    { label: "المشاريع", value: analytics?.totalProjects ?? "—", icon: FolderOpen, accent: "amber" },
-    { label: "الفواتير", value: stats?.invoices ?? analytics?.totalInvoices ?? "—", icon: FileText, accent: "olive" },
-    { label: "العمال", value: stats?.workers ?? analytics?.totalWorkers ?? "—", icon: HardHat, accent: "red" },
-    { label: "المدفوع", value: stats?.paidRevenue ? `${stats.paidRevenue.toFixed(0)} د.أ` : "—", icon: DollarSign, accent: "olive" },
-    { label: "المستحق", value: stats?.pendingRevenue ? `${stats.pendingRevenue.toFixed(0)} د.أ` : "—", icon: TrendingUp, accent: "amber" },
-    { label: "متصلون الآن", value: onlineCount, icon: Wifi, accent: "olive" },
-    { label: "تسجيلات اليوم", value: todayLogins.length, icon: LogIn, accent: "terracotta" },
+    { label: t("admin.tabs.users"), value: stats?.users ?? analytics?.totalUsers ?? "—", icon: Users, accent: "terracotta" },
+    { label: t("nav.projects"), value: analytics?.totalProjects ?? "—", icon: FolderOpen, accent: "amber" },
+    { label: t("nav.invoices"), value: stats?.invoices ?? analytics?.totalInvoices ?? "—", icon: FileText, accent: "olive" },
+    { label: t("nav.workers"), value: stats?.workers ?? analytics?.totalWorkers ?? "—", icon: HardHat, accent: "red" },
+    { label: t("admin.dash.paid"), value: stats?.paidRevenue ? `${stats.paidRevenue.toFixed(0)} ${currency}` : "—", icon: DollarSign, accent: "olive" },
+    { label: t("admin.dash.pending"), value: stats?.pendingRevenue ? `${stats.pendingRevenue.toFixed(0)} ${currency}` : "—", icon: TrendingUp, accent: "amber" },
+    { label: t("admin.dash.onlineNow"), value: onlineCount, icon: Wifi, accent: "olive" },
+    { label: t("admin.dash.todayLogins"), value: todayLogins.length, icon: LogIn, accent: "terracotta" },
   ];
 
   return (
@@ -92,11 +95,11 @@ export default function DashboardTab() {
       {stats?.byStatus && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="earth-card p-5">
-            <h3 className="font-black text-earth-900 text-sm mb-4">حالة الفواتير</h3>
+            <h3 className="font-black text-earth-900 text-sm mb-4">{t("admin.dash.invoiceStatus")}</h3>
             {[
-              { label: "مسودة", count: stats.byStatus.draft, color: "bg-earth-300" },
-              { label: "قيد الانتظار", count: stats.byStatus.pending, color: "bg-amber-500" },
-              { label: "مدفوعة", count: stats.byStatus.paid, color: "bg-olive-500" },
+              { label: t("admin.status.draft"), count: stats.byStatus.draft, color: "bg-earth-300" },
+              { label: t("admin.status.pending"), count: stats.byStatus.pending, color: "bg-amber-500" },
+              { label: t("admin.status.paid"), count: stats.byStatus.paid, color: "bg-olive-500" },
             ].map((s) => (
               <div key={s.label} className="flex items-center gap-3 mb-3">
                 <div className={`w-3 h-3 rounded-[3px] ${s.color}`} />
@@ -107,19 +110,19 @@ export default function DashboardTab() {
           </div>
 
           <div className="earth-card p-5">
-            <h3 className="font-black text-earth-900 text-sm mb-4">ملخص مالي</h3>
+            <h3 className="font-black text-earth-900 text-sm mb-4">{t("admin.dash.financialSummary")}</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-sm text-earth-600">إجمالي الإيرادات</span>
-                <span className="text-sm font-black font-mono text-earth-900">{stats.totalRevenue?.toFixed(0)} د.أ</span>
+                <span className="text-sm text-earth-600">{t("admin.dash.totalRevenue")}</span>
+                <span className="text-sm font-black font-mono text-earth-900">{stats.totalRevenue?.toFixed(0)} {currency}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-earth-600">المدفوع</span>
-                <span className="text-sm font-black font-mono text-olive-600">{stats.paidRevenue?.toFixed(0)} د.أ</span>
+                <span className="text-sm text-earth-600">{t("admin.dash.paid")}</span>
+                <span className="text-sm font-black font-mono text-olive-600">{stats.paidRevenue?.toFixed(0)} {currency}</span>
               </div>
               <div className="border-t border-earth-200 pt-2 flex justify-between">
-                <span className="text-sm font-black text-earth-900">المستحق</span>
-                <span className="text-sm font-black font-mono" style={{ color: "var(--accent-amber)" }}>{stats.pendingRevenue?.toFixed(0)} د.أ</span>
+                <span className="text-sm font-black text-earth-900">{t("admin.dash.pending")}</span>
+                <span className="text-sm font-black font-mono" style={{ color: "var(--accent-amber)" }}>{stats.pendingRevenue?.toFixed(0)} {currency}</span>
               </div>
             </div>
           </div>
@@ -130,7 +133,7 @@ export default function DashboardTab() {
         <div className="earth-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <LogIn className="w-4 h-4 text-terracotta-500" />
-            <h3 className="font-black text-earth-900 text-sm">تسجيلات اليوم ({todayLogins.length})</h3>
+            <h3 className="font-black text-earth-900 text-sm">{t("admin.dash.todayLogins")} ({todayLogins.length})</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {todayLogins.slice(0, 12).map((u: any) => (
@@ -142,7 +145,7 @@ export default function DashboardTab() {
                   <p className="text-xs font-bold text-earth-900 truncate" title={u.displayName || u.email || ""}>{u.displayName || u.email}</p>
                   <p className="text-[10px] text-earth-500 flex items-center gap-1 font-mono">
                     <Clock className="w-2.5 h-2.5" />
-                    {u.lastLogin ? new Date(u.lastLogin).toLocaleTimeString("ar-JO", { hour: "2-digit", minute: "2-digit" }) : "—"}
+                    {u.lastLogin ? new Date(u.lastLogin).toLocaleTimeString(getLang() === "ar" ? "ar-JO" : "en-GB", { hour: "2-digit", minute: "2-digit" }) : "—"}
                   </p>
                 </div>
               </div>
@@ -155,16 +158,16 @@ export default function DashboardTab() {
         <div className="earth-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Activity className="w-4 h-4 text-olive-600" />
-            <h3 className="font-black text-earth-900 text-sm">تفاصيل إضافية</h3>
+            <h3 className="font-black text-earth-900 text-sm">{t("admin.dash.moreDetails")}</h3>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: "موردين", value: analytics.totalSuppliers },
-              { label: "إعلانات", value: analytics.totalAnnouncements },
-              { label: "عروض نشطة", value: analytics.activeOffers },
-              { label: "فواتير مدفوعة", value: analytics.paidInvoices },
-              { label: "إجمالي الإيرادات", value: analytics.totalRevenue ? `${analytics.totalRevenue.toFixed(0)} د.أ` : "—" },
-              { label: "متصلون", value: onlineCount },
+              { label: t("admin.dash.suppliersCount"), value: analytics.totalSuppliers },
+              { label: t("admin.dash.announcementsCount"), value: analytics.totalAnnouncements },
+              { label: t("admin.dash.activeOffers"), value: analytics.activeOffers },
+              { label: t("admin.dash.paidInvoices"), value: analytics.paidInvoices },
+              { label: t("admin.dash.totalRevenue"), value: analytics.totalRevenue ? `${analytics.totalRevenue.toFixed(0)} ${currency}` : "—" },
+              { label: t("admin.dash.online"), value: onlineCount },
             ].map((item) => (
               <div key={item.label} className="bg-earth-50 border border-earth-200 rounded-sm p-3 text-center">
                 <p className="text-xs text-earth-500 font-bold">{item.label}</p>

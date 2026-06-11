@@ -12,6 +12,7 @@ import { useAuthStore } from "../../store/authStore";
 import { checkPermissions } from "../../utils/subscriptionUtils";
 import { projectStatusInfo, projectName, projectArea, projectDate } from "../../utils/projectDisplay";
 import type { SavedProject } from "../../utils/projectDisplay";
+import { useT, formatDate } from "../../i18n";
 
 import DepthHero from "../../components/ui/DepthHero";
 import CountUp from "../../components/ui/CountUp";
@@ -29,13 +30,14 @@ const accent = {
   red:        { c: "var(--accent-red)",        bg: "var(--accent-red-soft)" },
 } satisfies Record<Accent, { c: string; bg: string }>;
 
-const invoiceStatus: Record<string, { label: string; className: string }> = {
-  paid:    { label: "مدفوعة",      className: "tag-olive" },
-  pending: { label: "قيد الانتظار", className: "tag-amber" },
-  draft:   { label: "مسودة",       className: "bg-earth-100 text-earth-700 border border-earth-300 rounded-[3px]" },
+const invoiceStatus: Record<string, { labelKey: string; className: string }> = {
+  paid:    { labelKey: "dashboard.invoiceStatus.paid",    className: "tag-olive" },
+  pending: { labelKey: "dashboard.invoiceStatus.pending", className: "tag-amber" },
+  draft:   { labelKey: "dashboard.invoiceStatus.draft",   className: "bg-earth-100 text-earth-700 border border-earth-300 rounded-[3px]" },
 };
 
 export default function LandingPage() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const subscription = useAuthStore((s) => s.subscription);
   const uid = user?.uid;
@@ -78,12 +80,12 @@ export default function LandingPage() {
   const workerCost = workers.reduce((s, w) => s + (w.days ?? 0) * (w.wage ?? 0), 0);
 
   const stats: { icon: typeof FolderOpen; label: string; count: number; suffix?: string; accent: Accent; to: string }[] = [
-    { icon: FolderOpen,  label: "المشاريع",     count: projects.length,                   accent: "amber",      to: "/projects" },
-    { icon: FileText,    label: "الفواتير",     count: invoices.length,                   accent: "terracotta", to: "/invoices" },
-    { icon: DollarSign,  label: "المدفوع",      count: totalRevenue,   suffix: " د.أ",    accent: "olive",      to: "/invoices" },
-    { icon: TrendingUp,  label: "قيد الانتظار",  count: pendingRevenue, suffix: " د.أ",    accent: "amber",      to: "/invoices" },
-    { icon: Users,       label: "العمال",       count: workers.length,                    accent: "red",        to: "/workers" },
-    { icon: Calculator,  label: "تكلفة العمال",  count: workerCost,     suffix: " د.أ",    accent: "olive",      to: "/workers" },
+    { icon: FolderOpen,  label: t("nav.projects"),               count: projects.length,                                        accent: "amber",      to: "/projects" },
+    { icon: FileText,    label: t("nav.invoices"),               count: invoices.length,                                        accent: "terracotta", to: "/invoices" },
+    { icon: DollarSign,  label: t("dashboard.stats.paid"),       count: totalRevenue,   suffix: ` ${t("common.currency")}`,     accent: "olive",      to: "/invoices" },
+    { icon: TrendingUp,  label: t("dashboard.stats.pending"),    count: pendingRevenue, suffix: ` ${t("common.currency")}`,     accent: "amber",      to: "/invoices" },
+    { icon: Users,       label: t("nav.workers"),                count: workers.length,                                         accent: "red",        to: "/workers" },
+    { icon: Calculator,  label: t("dashboard.stats.workerCost"), count: workerCost,     suffix: ` ${t("common.currency")}`,     accent: "olive",      to: "/workers" },
   ];
 
   if (loading) {
@@ -110,13 +112,13 @@ export default function LandingPage() {
         <div className="w-12 h-12 rounded-sm bg-red-100 border-l-3 border-red-500 flex items-center justify-center mx-auto mb-4">
           <span className="text-red-500 font-black text-lg">!</span>
         </div>
-        <p className="text-sm font-black text-earth-800 mb-1">تعذر تحميل البيانات</p>
-        <p className="text-xs text-earth-500 mb-4">تحقق من اتصالك بالإنترنت ثم أعد المحاولة</p>
+        <p className="text-sm font-black text-earth-800 mb-1">{t("dashboard.error.title")}</p>
+        <p className="text-xs text-earth-500 mb-4">{t("dashboard.error.subtitle")}</p>
         <button
           onClick={() => queryClient.invalidateQueries()}
           className="bg-earth-700 text-white hover:bg-earth-800 active:bg-earth-900 rounded-sm px-4 py-2 text-xs font-bold transition-colors cursor-pointer border-r-2 border-earth-900"
         >
-          إعادة المحاولة
+          {t("dashboard.error.retry")}
         </button>
       </div>
     );
@@ -144,11 +146,11 @@ export default function LandingPage() {
           <span className={`flex items-center gap-2 text-xs font-bold ${perms.isExpired ? "text-red-700" : "text-amber-800"}`}>
             <ShieldAlert className="w-4 h-4 shrink-0" />
             {perms.isExpired
-              ? "انتهى اشتراكك، بياناتك محفوظة. جدد الآن لاستعادة كل الميزات."
-              : `اشتراكك ينتهي خلال ${perms.daysRemaining} يوم.`}
+              ? t("dashboard.subscription.expired")
+              : t("dashboard.subscription.expiring", { n: perms.daysRemaining })}
           </span>
           <span className={`text-[10px] font-black inline-flex items-center gap-1 shrink-0 ${perms.isExpired ? "text-red-700" : "text-amber-800"}`}>
-            التفاصيل <ArrowLeft className="w-3 h-3" />
+            {t("dashboard.subscription.details")} <ArrowLeft className="w-3 h-3" />
           </span>
         </Link>
       )}
@@ -163,16 +165,16 @@ export default function LandingPage() {
             <div className="min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="text-2xl md:text-3xl font-black text-earth-900 tracking-tight text-balance">
-                  مرحباً {user?.displayName || "بك"}
+                  {user?.displayName ? t("dashboard.hero.welcomeNamed", { name: user.displayName }) : t("dashboard.hero.welcome")}
                 </h1>
                 <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-olive-600 font-bold bg-olive-100 px-2 py-0.5 rounded-sm border border-olive-200">
                   <span className="depth-hero-badge-dot w-1.5 h-1.5 rounded-full bg-olive-600" />
-                  متصل
+                  {t("dashboard.hero.online")}
                 </span>
               </div>
               <p className="text-sm text-earth-500 mt-1">
-                {new Date().toLocaleDateString("ar-JO", { weekday: "long", day: "numeric", month: "long" })}
-                {" — "}دفترك اليوم: المشاريع، العمال، والفواتير في مكان واحد
+                {formatDate(new Date(), { weekday: "long", day: "numeric", month: "long" })}
+                {" — "}{t("dashboard.hero.subtitle")}
               </p>
             </div>
           </div>
@@ -181,7 +183,7 @@ export default function LandingPage() {
             className="shrink-0 bg-olive-700 text-white hover:bg-olive-800 active:bg-olive-900 rounded-sm px-4 py-2.5 text-sm font-bold flex items-center gap-2 transition-colors border-r-3 border-olive-900"
           >
             <Plus className="w-4 h-4" />
-            حساب جديد
+            {t("dashboard.hero.newCalculation")}
           </Link>
         </div>
       </DepthHero>
@@ -218,14 +220,14 @@ export default function LandingPage() {
           <div className="px-5 py-3.5 border-b border-earth-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FolderOpen className="w-4 h-4" style={{ color: "var(--accent-amber)" }} />
-              <h2 className="text-xs font-black text-earth-900">آخر المشاريع</h2>
+              <h2 className="text-xs font-black text-earth-900">{t("dashboard.recentProjects")}</h2>
             </div>
             <Link
               to="/projects"
               className="text-[10px] font-bold flex items-center gap-1 transition-colors hover:opacity-80 group"
               style={{ color: "var(--accent-olive)" }}
             >
-              عرض الكل <ArrowLeft className="w-3 h-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
+              {t("dashboard.viewAll")} <ArrowLeft className="w-3 h-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
             </Link>
           </div>
 
@@ -250,15 +252,15 @@ export default function LandingPage() {
                         </span>
                       </div>
                       <p className="text-[10px] text-earth-500 font-mono mt-0.5">
-                        {area > 0 ? `${area.toFixed(1)} م²` : "بدون رسم"}
-                        {p.summary?.totalTiles ? ` · ${p.summary.totalTiles} حبة` : ""}
+                        {area > 0 ? t("dashboard.areaSqm", { area: area.toFixed(1) }) : t("dashboard.noDrawing")}
+                        {p.summary?.totalTiles ? ` · ${t("dashboard.tilesCount", { n: p.summary.totalTiles })}` : ""}
                         {projectDate(p) ? ` · ${projectDate(p)}` : ""}
                       </p>
                     </div>
                     <span className="flex items-center gap-1.5 shrink-0 text-[10px] font-bold text-earth-400 group-hover:text-olive-600 transition-colors">
                       {p.summary?.totalCost ? (
                         <span className="font-black font-mono" style={{ color: "var(--accent-olive)" }}>
-                          {p.summary.totalCost} د.أ
+                          {p.summary.totalCost} {t("common.currency")}
                         </span>
                       ) : null}
                       <PencilRuler className="w-3.5 h-3.5" />
@@ -275,14 +277,14 @@ export default function LandingPage() {
           <div className="px-5 py-3.5 border-b border-earth-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Receipt className="w-4 h-4" style={{ color: "var(--accent-terracotta)" }} />
-              <h2 className="text-xs font-black text-earth-900">آخر الفواتير</h2>
+              <h2 className="text-xs font-black text-earth-900">{t("dashboard.recentInvoices")}</h2>
             </div>
             <Link
               to="/invoices"
               className="text-[10px] font-bold flex items-center gap-1 transition-colors hover:opacity-80 group"
               style={{ color: "var(--accent-olive)" }}
             >
-              عرض الكل <ArrowLeft className="w-3 h-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
+              {t("dashboard.viewAll")} <ArrowLeft className="w-3 h-3 transition-transform duration-200 group-hover:-translate-x-0.5" />
             </Link>
           </div>
 
@@ -291,8 +293,8 @@ export default function LandingPage() {
               <div className="w-12 h-12 mx-auto mb-3 rounded-sm bg-earth-100 border-2 border-earth-200 flex items-center justify-center">
                 <FileText className="w-5 h-5 text-earth-400" />
               </div>
-              <p className="text-xs font-black text-earth-700">لا توجد فواتير بعد</p>
-              <p className="text-[10px] text-earth-500 mt-1">أنشئ فاتورة من صفحة الفواتير أو من تفاصيل أي مشروع</p>
+              <p className="text-xs font-black text-earth-700">{t("dashboard.noInvoices.title")}</p>
+              <p className="text-[10px] text-earth-500 mt-1">{t("dashboard.noInvoices.subtitle")}</p>
             </div>
           ) : (
             <div className="divide-y divide-earth-100">
@@ -305,13 +307,13 @@ export default function LandingPage() {
                     className="px-5 py-3 flex items-center justify-between gap-3 transition-colors hover:bg-earth-50"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-black text-earth-900 truncate">{inv.client || "بدون اسم"}</p>
+                      <p className="text-xs font-black text-earth-900 truncate">{inv.client || t("dashboard.unnamedClient")}</p>
                       {inv.project && <p className="text-[10px] text-earth-500 truncate mt-0.5">{inv.project}</p>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs font-black font-mono text-earth-900" dir="ltr">{inv.amount ?? 0} JOD</span>
                       <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-[3px] border ${st.className}`}>
-                        {st.label}
+                        {t(st.labelKey)}
                       </span>
                     </div>
                   </Link>

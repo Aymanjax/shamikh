@@ -2,6 +2,7 @@ import { Lock, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { checkPermissions, getSubscriptionLabel } from "../utils/subscriptionUtils";
+import { useT } from "../i18n";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export default function SubscriptionGuard({ permission, children, fallback }: Props) {
+  const t = useT();
   const subscription = useAuthStore((s) => s.subscription);
   const perms = checkPermissions(subscription ?? undefined);
   const allowed = perms[permission];
@@ -29,18 +31,18 @@ export default function SubscriptionGuard({ permission, children, fallback }: Pr
             <Lock className="w-6 h-6 text-white" />
           </div>
           <h3 className="text-sm font-black text-earth-900 mb-1">
-            {perms.isExpired ? "انتهى اشتراكك" : "هذه الميزة غير متاحة في خطتك"}
+            {perms.isExpired ? t("subscription.guard.expiredTitle") : t("subscription.guard.lockedTitle")}
           </h3>
           <p className="text-xs text-earth-600 mb-4 leading-relaxed">
             {perms.isExpired
-              ? "بياناتك محفوظة، جدد الاشتراك لاستعادة الوصول الكامل."
-              : `خطتك الحالية (${planLabel}) لا تشمل هذه الميزة.`}
+              ? t("subscription.guard.expiredBody")
+              : t("subscription.guard.lockedBody", { plan: planLabel })}
           </p>
           <Link
             to="/subscription"
             className="inline-flex items-center gap-1.5 bg-olive-700 hover:bg-olive-800 active:bg-olive-900 text-white text-xs font-bold px-4 py-2.5 rounded-sm border-r-3 border-olive-900 transition-colors"
           >
-            عرض خطط الاشتراك
+            {t("subscription.guard.viewPlans")}
             <ArrowLeft className="w-3.5 h-3.5" />
           </Link>
         </div>

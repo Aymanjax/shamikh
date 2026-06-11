@@ -4,6 +4,7 @@ import { Package, Plus, X, Check, Save } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { useAuthStore } from "../../store/authStore";
+import { useT } from "../../i18n";
 import GlassButton from "../../components/ui/GlassButton";
 
 const DEFAULT_ITEMS = [
@@ -27,6 +28,7 @@ const DEFAULT_ITEMS = [
 const ITEM_NAME_MAX_LENGTH = 100;
 
 export default function ExtraItemsPage() {
+  const t = useT();
   const user = useAuthStore((s) => s.user);
   const [items, setItems] = useState<Array<{ name: string; unit: string }>>([]);
   const [saving, setSaving] = useState(false);
@@ -108,19 +110,19 @@ export default function ExtraItemsPage() {
             <Package className="w-6 h-6 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-xl font-black text-ink-primary tracking-tight">المواد الإضافية</h1>
-            <p className="text-sm text-ink-muted">إدارة المواد الإضافية في حساب البضاعة</p>
+            <h1 className="text-xl font-black text-ink-primary tracking-tight">{t("settings.extraItems.title")}</h1>
+            <p className="text-sm text-ink-muted">{t("settings.extraItems.subtitle")}</p>
           </div>
         </div>
         <GlassButton variant="primary" size="sm" icon={saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />} onClick={handleSave} disabled={saving}>
-          {saved ? "تم" : "حفظ"}
+          {saved ? t("settings.done") : t("common.save")}
         </GlassButton>
       </div>
 
       <div className="earth-card p-5">
         <div className="flex items-center gap-2 mb-4">
           <input value={newName} onChange={(e) => setNewName(e.target.value.slice(0, ITEM_NAME_MAX_LENGTH))}
-            placeholder="اسم المادة..."
+            placeholder={t("settings.extraItems.namePlaceholder")}
             maxLength={ITEM_NAME_MAX_LENGTH}
             className="flex-1 min-w-0 bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition font-medium min-h-[44px] break-words" />
           <select value={newUnit} onChange={(e) => setNewUnit(e.target.value)}
@@ -137,7 +139,7 @@ export default function ExtraItemsPage() {
 
          <div className="divide-y-2 divide-earth-200">
           {maxItemsWarning && (
-            <div className="text-[11px] text-red-500 font-bold py-2" role="alert">الحد الأقصى 100 مادة</div>
+            <div className="text-[11px] text-red-500 font-bold py-2" role="alert">{t("settings.extraItems.maxItems")}</div>
           )}
           {items.map((item, i) => (
             <div key={i} className="py-3 flex items-center gap-3 min-h-[44px]">
@@ -158,7 +160,7 @@ export default function ExtraItemsPage() {
           ))}
         </div>
         {items.length === 0 && (
-          <p className="text-sm text-ink-muted text-center py-6 font-bold">أضف أول مادة إضافية</p>
+          <p className="text-sm text-ink-muted text-center py-6 font-bold">{t("settings.extraItems.empty")}</p>
         )}
       </div>
     </div>

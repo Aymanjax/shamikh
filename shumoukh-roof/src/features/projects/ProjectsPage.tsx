@@ -13,8 +13,10 @@ import {
 } from "../../utils/projectDisplay";
 import type { SavedProject } from "../../utils/projectDisplay";
 import GlassButton from "../../components/ui/GlassButton";
+import { useT } from "../../i18n";
 
 export default function ProjectsPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -66,10 +68,10 @@ export default function ProjectsPage() {
     }), [projects, search, statusFilter]);
 
   const handleDelete = useCallback((p: SavedProject) => {
-    if (!confirm(`حذف مشروع "${projectName(p)}"؟ لا يمكن التراجع عن الحذف.`)) return;
+    if (!confirm(t("projects.deleteConfirm", { name: projectName(p) }))) return;
     deleteMutation.mutate(p.id);
     setDetail(null);
-  }, [deleteMutation]);
+  }, [deleteMutation, t]);
 
   const handleCreateInvoice = useCallback((p: SavedProject) => {
     createInvoiceMutation.mutate({
@@ -84,13 +86,13 @@ export default function ProjectsPage() {
   if (error) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm font-black text-earth-800 mb-1">تعذر تحميل المشاريع</p>
-        <p className="text-xs text-earth-500 mb-4">تحقق من اتصالك بالإنترنت وحاول مرة أخرى</p>
+        <p className="text-sm font-black text-earth-800 mb-1">{t("projects.loadError")}</p>
+        <p className="text-xs text-earth-500 mb-4">{t("projects.loadErrorHint")}</p>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: ["projects", uid] })}
           className="bg-earth-700 text-white hover:bg-earth-800 rounded-sm px-4 py-2 text-xs font-bold transition-colors cursor-pointer border-r-2 border-earth-900"
         >
-          إعادة المحاولة
+          {t("projects.retry")}
         </button>
       </div>
     );
@@ -105,15 +107,15 @@ export default function ProjectsPage() {
             <FolderOpen className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-earth-900 tracking-tight">المشاريع</h1>
+            <h1 className="text-xl font-black text-earth-900 tracking-tight">{t("projects.title")}</h1>
             <p className="text-sm text-earth-500">
-              {projects.length > 0 ? `${projects.length} مشروع محفوظ من الحاسبة` : "كل مشروع تحفظه من الحاسبة يظهر هنا"}
+              {projects.length > 0 ? t("projects.savedCount", { n: projects.length }) : t("projects.subtitle")}
             </p>
           </div>
         </div>
         <Link to="/calculator">
           <GlassButton variant="primary" size="sm" icon={<Calculator className="w-4 h-4" />}>
-            حساب جديد
+            {t("projects.newCalculation")}
           </GlassButton>
         </Link>
       </div>
@@ -126,13 +128,13 @@ export default function ProjectsPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="ابحث بالاسم أو الهاتف أو العنوان"
+              placeholder={t("projects.searchPlaceholder")}
               dir="rtl"
               className="w-full bg-white border-2 border-earth-200 rounded-xl py-2 pr-10 pl-3 text-sm text-earth-900 outline-none focus:border-terracotta-400 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400"
             />
           </div>
           <div className="flex gap-1.5 flex-wrap">
-            {[{ key: "all", label: "الكل" }, ...projectStatuses.map((s: string) => ({ key: s, label: projectStatusInfo(s).label }))].map((f) => (
+            {[{ key: "all", label: t("common.all") }, ...projectStatuses.map((s: string) => ({ key: s, label: projectStatusInfo(s).label }))].map((f) => (
               <button
                 key={f.key}
                 onClick={() => setStatusFilter(f.key)}
@@ -160,17 +162,17 @@ export default function ProjectsPage() {
               <FolderOpen className="w-6 h-6 text-earth-400" />
             </div>
             <p className="font-black text-earth-700">
-              {projects.length === 0 ? "لا توجد مشاريع بعد" : "لا نتائج مطابقة للبحث"}
+              {projects.length === 0 ? t("projects.emptyTitle") : t("projects.noSearchResults")}
             </p>
             {projects.length === 0 && (
               <>
-                <p className="text-xs mt-1 mb-4">ارسم السطح في الحاسبة واحفظه باسم العميل ليظهر هنا</p>
+                <p className="text-xs mt-1 mb-4">{t("projects.emptyHint")}</p>
                 <Link
                   to="/calculator"
                   className="inline-flex items-center gap-2 bg-olive-700 hover:bg-olive-800 text-white text-xs font-bold px-4 py-2.5 rounded-sm border-r-3 border-olive-900 transition-colors"
                 >
                   <PencilRuler className="w-4 h-4" />
-                  ابدأ أول حساب
+                  {t("projects.startFirstCalculation")}
                 </Link>
               </>
             )}
@@ -198,9 +200,9 @@ export default function ProjectsPage() {
                           </span>
                         </div>
                         <p className="text-[11px] text-earth-500 font-mono mt-0.5" dir="rtl">
-                          {area > 0 ? `${area.toFixed(1)} م²` : "بدون رسم"}
-                          {p.summary?.totalTiles ? ` · ${p.summary.totalTiles} حبة قرميد` : ""}
-                          {p.summary?.totalCost ? ` · ${p.summary.totalCost} د.أ` : ""}
+                          {area > 0 ? t("projects.areaValue", { value: area.toFixed(1) }) : t("projects.noDrawing")}
+                          {p.summary?.totalTiles ? ` · ${t("projects.tilesCount", { n: p.summary.totalTiles })}` : ""}
+                          {p.summary?.totalCost ? ` · ${p.summary.totalCost} ${t("common.currency")}` : ""}
                           {projectDate(p) ? ` · ${projectDate(p)}` : ""}
                         </p>
                       </div>
@@ -209,16 +211,16 @@ export default function ProjectsPage() {
                       <Link
                         to={`/calculator/${p.id}`}
                         className="p-2 text-earth-500 hover:text-olive-600 transition rounded-sm hover:bg-olive-50"
-                        title="فتح في الحاسبة"
-                        aria-label={`فتح ${projectName(p)} في الحاسبة`}
+                        title={t("projects.openInCalculator")}
+                        aria-label={t("projects.openInCalculatorAria", { name: projectName(p) })}
                       >
                         <Calculator className="w-4 h-4" />
                       </Link>
                       <button
                         onClick={() => handleDelete(p)}
                         className="p-2 text-earth-500 hover:text-red-500 transition rounded-sm hover:bg-red-50 cursor-pointer"
-                        title="حذف المشروع"
-                        aria-label={`حذف ${projectName(p)}`}
+                        title={t("projects.deleteProject")}
+                        aria-label={t("projects.deleteAria", { name: projectName(p) })}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -237,7 +239,7 @@ export default function ProjectsPage() {
           <div className="bg-white rounded-sm border border-earth-200 p-6 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-black text-earth-900">{projectName(detail)}</h3>
-              <button onClick={() => setDetail(null)} className="text-earth-500 hover:text-earth-700 p-1 rounded-sm cursor-pointer" aria-label="إغلاق">
+              <button onClick={() => setDetail(null)} className="text-earth-500 hover:text-earth-700 p-1 rounded-sm cursor-pointer" aria-label={t("common.close")}>
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -257,33 +259,33 @@ export default function ProjectsPage() {
             <div className="space-y-3 text-sm">
               <div className="bg-earth-50 border border-earth-200 rounded-sm p-3 grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-earth-500 text-xs font-bold">المساحة</span>
-                  <p className="font-black font-mono text-earth-900">{projectArea(detail).toFixed(1)} م²</p>
+                  <span className="text-earth-500 text-xs font-bold">{t("projects.area")}</span>
+                  <p className="font-black font-mono text-earth-900">{t("projects.areaValue", { value: projectArea(detail).toFixed(1) })}</p>
                 </div>
                 <div>
-                  <span className="text-earth-500 text-xs font-bold">القرميد</span>
-                  <p className="font-black font-mono text-earth-900">{detail.summary?.totalTiles || "—"} {detail.summary?.totalTiles ? "حبة" : ""}</p>
+                  <span className="text-earth-500 text-xs font-bold">{t("projects.tiles")}</span>
+                  <p className="font-black font-mono text-earth-900">{detail.summary?.totalTiles || "—"} {detail.summary?.totalTiles ? t("projects.tileUnit") : ""}</p>
                 </div>
                 <div>
-                  <span className="text-earth-500 text-xs font-bold">الميل</span>
+                  <span className="text-earth-500 text-xs font-bold">{t("projects.slope")}</span>
                   <p className="font-black font-mono text-earth-900">{detail.roof?.slope ?? "—"}%</p>
                 </div>
                 <div>
-                  <span className="text-earth-500 text-xs font-bold">عدد الأرجل</span>
+                  <span className="text-earth-500 text-xs font-bold">{t("projects.numLegs")}</span>
                   <p className="font-black font-mono text-earth-900">{detail.settings?.numLegs ?? "—"}</p>
                 </div>
               </div>
 
               {detail.summary?.totalCost ? (
                 <div className="text-white rounded-sm p-3 flex justify-between font-black" style={{ backgroundColor: "var(--accent-amber)" }}>
-                  <span>التكلفة التقديرية</span>
-                  <span className="font-mono" style={{ color: "var(--accent-amber-soft)" }}>{detail.summary.totalCost} د.أ</span>
+                  <span>{t("projects.estimatedCost")}</span>
+                  <span className="font-mono" style={{ color: "var(--accent-amber-soft)" }}>{detail.summary.totalCost} {t("common.currency")}</span>
                 </div>
               ) : null}
 
               {/* حالة المشروع */}
               <div className="space-y-1.5">
-                <label htmlFor="project-status" className="text-xs font-bold text-earth-700 block">حالة المشروع</label>
+                <label htmlFor="project-status" className="text-xs font-bold text-earth-700 block">{t("projects.projectStatus")}</label>
                 <div className="relative">
                   <select
                     id="project-status"
@@ -308,7 +310,7 @@ export default function ProjectsPage() {
                   to={`/calculator/${detail.id}`}
                   className="flex-1 bg-olive-700 hover:bg-olive-800 text-white font-black py-2.5 rounded-sm transition text-sm text-center border-r-3 border-olive-900 flex items-center justify-center gap-1.5"
                 >
-                  <Calculator className="w-4 h-4" /> فتح في الحاسبة
+                  <Calculator className="w-4 h-4" /> {t("projects.openInCalculator")}
                 </Link>
                 <button
                   onClick={() => handleCreateInvoice(detail)}
@@ -316,11 +318,11 @@ export default function ProjectsPage() {
                   className="flex-1 bg-terracotta-500 hover:bg-terracotta-600 disabled:opacity-40 text-white font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1.5 border-r-3 border-terracotta-700 cursor-pointer"
                 >
                   {invoiceCreated ? (
-                    <><Check className="w-4 h-4" /> أُنشئت</>
+                    <><Check className="w-4 h-4" /> {t("projects.invoiceCreated")}</>
                   ) : createInvoiceMutation.isPending ? (
-                    "جارٍ..."
+                    t("projects.creating")
                   ) : (
-                    <><FileText className="w-4 h-4" /> إنشاء فاتورة</>
+                    <><FileText className="w-4 h-4" /> {t("projects.createInvoice")}</>
                   )}
                 </button>
               </div>
