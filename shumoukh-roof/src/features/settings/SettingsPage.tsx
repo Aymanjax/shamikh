@@ -5,6 +5,7 @@ import {
   ChevronLeft, Settings as SettingsIcon, CreditCard, ArrowRight,
 } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
+import { useT } from "../../i18n";
 import { checkPermissions, getSubscriptionLabel } from "../../utils/subscriptionUtils";
 import ExtraItemsPage from "./ExtraItemsPage";
 import ProfileTab from "./ProfileTab";
@@ -17,24 +18,24 @@ type Section = { icon: typeof User; label: string; desc: string; tab: string };
 
 const groups: { title: string; sections: Section[] }[] = [
   {
-    title: "الحساب",
+    title: "settings.group.account",
     sections: [
-      { icon: User, label: "الملف الشخصي", desc: "الاسم، البريد الإلكتروني، رقم الهاتف", tab: "profile" },
-      { icon: Building2, label: "الشركة", desc: "اسم الشركة، العنوان، الشعار", tab: "company" },
-      { icon: Shield, label: "الأمان", desc: "كلمة السر وحماية الحساب", tab: "security" },
+      { icon: User, label: "settings.profile.title", desc: "settings.profile.subtitle", tab: "profile" },
+      { icon: Building2, label: "settings.company.title", desc: "settings.company.subtitle", tab: "company" },
+      { icon: Shield, label: "settings.security.title", desc: "settings.security.desc", tab: "security" },
     ],
   },
   {
-    title: "أدوات العمل",
+    title: "settings.group.tools",
     sections: [
-      { icon: Package, label: "المواد الإضافية", desc: "بنود إضافية تظهر في حاسبة البضاعة", tab: "extra-items" },
+      { icon: Package, label: "settings.extraItems.title", desc: "settings.extraItems.desc", tab: "extra-items" },
     ],
   },
   {
-    title: "التطبيق",
+    title: "settings.group.app",
     sections: [
-      { icon: Palette, label: "المظهر", desc: "الوضع الليلي وحجم الخط", tab: "appearance" },
-      { icon: Bell, label: "الإشعارات", desc: "التنبيهات داخل التطبيق", tab: "notifications" },
+      { icon: Palette, label: "appearance.title", desc: "settings.appearance.desc", tab: "appearance" },
+      { icon: Bell, label: "settings.notifications.title", desc: "settings.notifications.desc", tab: "notifications" },
     ],
   },
 ];
@@ -49,6 +50,7 @@ const tabs: Record<string, ReactNode> = {
 };
 
 export default function SettingsPage() {
+  const t = useT();
   const params = new URLSearchParams(useLocation().search);
   const activeTab = params.get("tab") || "";
   const subscription = useAuthStore((s) => s.subscription);
@@ -64,7 +66,7 @@ export default function SettingsPage() {
           className="inline-flex items-center gap-1.5 text-xs font-bold text-earth-600 hover:text-terracotta-500 transition-colors"
         >
           <ArrowRight className="w-3.5 h-3.5" />
-          رجوع إلى الإعدادات
+          {t("settings.backToSettings")}
         </Link>
         {tabs[activeTab]}
       </div>
@@ -78,8 +80,8 @@ export default function SettingsPage() {
           <SettingsIcon className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-xl font-black text-earth-900 tracking-tight">الإعدادات</h1>
-          <p className="text-sm text-earth-500">إدارة حسابك وأدوات عملك</p>
+          <h1 className="text-xl font-black text-earth-900 tracking-tight">{t("nav.settings")}</h1>
+          <p className="text-sm text-earth-500">{t("settings.subtitle")}</p>
         </div>
       </div>
 
@@ -94,17 +96,17 @@ export default function SettingsPage() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-black text-earth-900">
-              الاشتراك: {planLabel}
+              {t("settings.subscriptionLabel", { plan: planLabel })}
             </p>
             <p className={`text-xs font-bold ${subscriptionActive ? "text-earth-500" : "text-red-600"}`}>
               {subscriptionActive
-                ? `متبقي ${perms.daysRemaining} يوم`
-                : "منتهي — اضغط للتجديد"}
+                ? t("settings.daysRemaining", { n: perms.daysRemaining })
+                : t("settings.expiredRenew")}
             </p>
           </div>
         </div>
         <span className="text-xs font-bold text-olive-700 inline-flex items-center gap-1 shrink-0 group-hover:gap-2 transition-all">
-          إدارة الاشتراك
+          {t("settings.manageSubscription")}
           <ChevronLeft className="w-4 h-4" />
         </span>
       </Link>
@@ -112,7 +114,7 @@ export default function SettingsPage() {
       {/* أقسام الإعدادات */}
       {groups.map((g) => (
         <section key={g.title}>
-          <h2 className="text-xs font-black text-earth-500 mb-2 pr-1">{g.title}</h2>
+          <h2 className="text-xs font-black text-earth-500 mb-2 pr-1">{t(g.title)}</h2>
           <div className="earth-card divide-y divide-earth-100 overflow-hidden">
             {g.sections.map((s) => (
               <Link
@@ -124,8 +126,8 @@ export default function SettingsPage() {
                   <s.icon className="w-4.5 h-4.5 text-earth-600 group-hover:text-terracotta-500 transition-colors" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-black text-earth-900 text-sm">{s.label}</h3>
-                  <p className="text-xs text-earth-500 truncate">{s.desc}</p>
+                  <h3 className="font-black text-earth-900 text-sm">{t(s.label)}</h3>
+                  <p className="text-xs text-earth-500 truncate">{t(s.desc)}</p>
                 </div>
                 <ChevronLeft className="w-4 h-4 text-earth-300 shrink-0 group-hover:text-terracotta-500 group-hover:-translate-x-0.5 transition-all" />
               </Link>

@@ -1,4 +1,5 @@
 // عرض موحد لبيانات المشروع المحفوظ من الحاسبة عبر الصفحات (الرئيسية، المشاريع، الفواتير)
+import { t, formatDate } from "../i18n";
 
 export type SavedProject = {
   id: string;
@@ -11,20 +12,22 @@ export type SavedProject = {
   updatedAt?: string;
 };
 
-export const PROJECT_STATUS: Record<string, { label: string; className: string }> = {
-  draft:       { label: "مسودة",       className: "bg-earth-100 text-earth-700 border-earth-300" },
-  sent:        { label: "مُرسل",       className: "bg-terracotta-50 text-terracotta-500 border-terracotta-200" },
-  approved:    { label: "موافَق عليه", className: "tag-amber" },
-  in_progress: { label: "قيد التنفيذ", className: "tag-terracotta" },
-  completed:   { label: "مكتمل",       className: "tag-olive" },
+// التسميات تُقرأ من القاموس وقت الاستدعاء (وليس عند تحميل الوحدة) لتتبع اللغة الحالية
+const PROJECT_STATUS_CLASS: Record<string, string> = {
+  draft:       "bg-earth-100 text-earth-700 border-earth-300",
+  sent:        "bg-terracotta-50 text-terracotta-500 border-terracotta-200",
+  approved:    "tag-amber",
+  in_progress: "tag-terracotta",
+  completed:   "tag-olive",
 };
 
 export function projectStatusInfo(status?: string) {
-  return PROJECT_STATUS[status || "draft"] || PROJECT_STATUS.draft;
+  const key = status && PROJECT_STATUS_CLASS[status] ? status : "draft";
+  return { label: t(`misc.projectStatus.${key}`), className: PROJECT_STATUS_CLASS[key] };
 }
 
 export function projectName(p: SavedProject): string {
-  return p.client?.name?.trim() || "مشروع بدون اسم";
+  return p.client?.name?.trim() || t("misc.project.unnamed");
 }
 
 // مساحة المضلع بقانون الحذاء (متر مربع) عند غياب الملخص المحفوظ
@@ -51,5 +54,5 @@ export function projectDate(p: SavedProject): string {
   if (!p.createdAt) return "";
   const d = new Date(p.createdAt);
   if (isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("ar-JO", { month: "short", day: "numeric", year: "numeric" });
+  return formatDate(d, { month: "short", day: "numeric", year: "numeric" });
 }
