@@ -1,0 +1,129 @@
+/* ============================================================
+   COCKPIT — طبقة "الهندسة الدقيقة" (مظهر بديل معزول)
+   كل شيء محصور تحت .cockpit-root حتى لا يمس بقية التطبيق.
+   اللوحة: غرافيت/فولاذ بارد + ضوء أداة دافئ (تيراكوتا/كهرماني)
+   مثل خطوط الليزر وأدوات القياس الهندسية.
+   ============================================================ */
+
+.cockpit-root {
+  /* الأسطح — فولاذ بارد متدرّج العمق */
+  --ck-void: #08090b;
+  --ck-graphite: #0e1116;
+  --ck-steel: #141920;
+  --ck-steel-hi: #1b222b;
+  --ck-steel-line: #232b35;
+
+  /* خطوط رفيعة بلمسة دافئة (لا رمادي ميت) */
+  --ck-hair: rgba(233, 221, 208, 0.07);
+  --ck-hair-strong: rgba(233, 221, 208, 0.16);
+  --ck-grid: rgba(233, 221, 208, 0.035);
+
+  /* الحبر — أبيض دافئ للأساس، رمادي بارد للثانوي */
+  --ck-ink: #ece6dc;
+  --ck-ink-dim: #a7adb4;
+  --ck-ink-mute: #6a727b;
+
+  /* ضوء الأداة — الكهرماني/التيراكوتا هو "الليزر" */
+  --ck-laser: #ed9450;
+  --ck-laser-hot: #f3a866;
+  --ck-laser-deep: #c2703e;
+  --ck-laser-glow: rgba(237, 148, 80, 0.45);
+  --ck-laser-film: rgba(237, 148, 80, 0.08);
+
+  /* إشارات الحالة */
+  --ck-ok: #93a86b;       /* زيتوني — تمام */
+  --ck-ok-glow: rgba(147, 168, 107, 0.4);
+  --ck-warn: #d9a441;     /* كهرماني محذّر */
+  --ck-alert: #dc5640;    /* أحمر طوب */
+  --ck-alert-glow: rgba(220, 86, 64, 0.4);
+
+  --ck-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+
+  /* منحنيات حركة ميكانيكية (بدون ارتداد) */
+  --ck-ease: cubic-bezier(0.16, 1, 0.3, 1);     /* expo-out */
+  --ck-ease-mech: cubic-bezier(0.7, 0, 0.2, 1); /* دخول/خروج حاد */
+
+  /* مقياس z دلالي */
+  --ck-z-canvas: 1;
+  --ck-z-instrument: 20;
+  --ck-z-scrim: 80;
+  --ck-z-radial: 90;
+  --ck-z-toast: 100;
+
+  position: relative;
+  min-height: 100vh;
+  background: var(--ck-void);
+  color: var(--ck-ink);
+  font-family: var(--font-sans, "Noto Kufi Arabic", system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* شبكة المخطط الهندسي (blueprint) — خطوط قياس باهتة */
+.cockpit-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--ck-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ck-grid) 1px, transparent 1px),
+    radial-gradient(circle at 50% 0%, rgba(237, 148, 80, 0.05), transparent 60%);
+  background-size: 32px 32px, 32px 32px, 100% 100%;
+  mask-image: radial-gradient(ellipse 120% 80% at 50% 0%, #000 35%, transparent 90%);
+}
+
+/* أرقام/بيانات بخط آلة — الطابع الهندسي */
+.cockpit-root .mono { font-family: var(--ck-mono); font-feature-settings: "tnum" 1, "zero" 1; }
+
+/* لوحة فولاذية — حواف حادة، فصل باللون لا بالظل */
+.ck-panel {
+  background: var(--ck-steel);
+  border: 1px solid var(--ck-hair);
+  border-radius: 2px;
+  position: relative;
+}
+.ck-panel--raised { background: var(--ck-steel-hi); }
+
+/* علامات الزوايا (reticle) — مثل عدسة القياس */
+.ck-tick::before,
+.ck-tick::after {
+  content: "";
+  position: absolute;
+  width: 7px; height: 7px;
+  border-color: var(--ck-hair-strong);
+  border-style: solid;
+  pointer-events: none;
+}
+.ck-tick::before { top: -1px; inset-inline-start: -1px; border-width: 1px 0 0 1px; }
+.ck-tick::after  { bottom: -1px; inset-inline-end: -1px; border-width: 0 1px 1px 0; }
+
+/* وميض الليزر للعناصر النشطة */
+.ck-laserline {
+  background: linear-gradient(90deg, transparent, var(--ck-laser), transparent);
+  height: 1px;
+}
+
+/* شريط القياس المتحرك */
+@keyframes ck-scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes ck-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.ck-live-dot {
+  width: 6px; height: 6px; border-radius: 1px;
+  background: var(--ck-ok);
+  box-shadow: 0 0 8px var(--ck-ok-glow);
+  animation: ck-pulse 2.4s var(--ck-ease) infinite;
+}
+
+/* تمرير نظيف داخل اللوحات */
+.cockpit-root ::-webkit-scrollbar { width: 8px; height: 8px; }
+.cockpit-root ::-webkit-scrollbar-thumb { background: var(--ck-steel-line); border-radius: 0; }
+.cockpit-root ::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ck-live-dot { animation: none; }
+}

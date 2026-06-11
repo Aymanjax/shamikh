@@ -10,6 +10,7 @@ import { settings } from "./settings";
 import { subscription } from "./subscription";
 import { admin } from "./admin";
 import { misc } from "./misc";
+import { cockpit } from "./cockpit";
 
 export const ar = {
   ...common,
@@ -23,4 +24,5 @@ export const ar = {
   ...subscription,
   ...admin,
   ...misc,
+  ...cockpit,
 } as const;

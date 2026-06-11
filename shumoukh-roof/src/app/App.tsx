@@ -15,6 +15,7 @@ import SubscriptionPage from "../features/subscription/SubscriptionPage";
 import AdminDashboard from "../features/admin/AdminDashboard";
 import LoginPage from "../features/auth/LoginPage";
 import RegisterPage from "../features/auth/RegisterPage";
+import CockpitPage from "../features/cockpit/CockpitPage";
 
 export default function App() {
   const setUser = useAuthStore((s) => s.setUser);
@@ -52,6 +53,14 @@ export default function App() {
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/register" element={user ? <Navigate to="/" replace /> : <RegisterPage />} />
+      <Route
+        path="/cockpit"
+        element={
+          <ProtectedRoute>
+            <CockpitPage isAdmin={role === "admin"} />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/"
         element={
