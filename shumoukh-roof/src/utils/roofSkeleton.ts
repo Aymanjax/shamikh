@@ -203,154 +203,64 @@ export function customRectRoof(vertices, activeSides) {
     length: r(dist(ax,ay,bx,by)), type,
   });
 
-  // ── أداة: سقف هيب قياسي لمستطيل (x0,y0)→(x1,y1) ──
-  const standardHip = (x0, y0, x1, y1) => {
-    const w = x1 - x0, h = y1 - y0;
-    const off = Math.min(w, h) / 2;
-    if (w >= h) {
-      // ridge أفقي
-      const vL = [x0+off, y0+off], vR = [x1-off, y0+off];
-      hips.push(
-        s(x0,y0,vL[0],vL[1],'hip'), s(x0,y1,vL[0],vL[1],'hip'),
-        s(x1,y0,vR[0],vR[1],'hip'), s(x1,y1,vR[0],vR[1],'hip'),
-      );
-      if (vL[0] < vR[0]) ridges.push(s(vL[0],vL[1],vR[0],vR[1],'ridge'));
-      // degenerate: pyramid
-      else if (Math.abs(vL[0]-vR[0]) < 0.01) hips.splice(-4); // سيُعاد بعدها
-    } else {
-      // ridge رأسي
-      const vT = [x0+off, y0+off], vB = [x0+off, y1-off];
-      hips.push(
-        s(x0,y0,vT[0],vT[1],'hip'), s(x1,y0,vT[0],vT[1],'hip'),
-        s(x0,y1,vB[0],vB[1],'hip'), s(x1,y1,vB[0],vB[1],'hip'),
-      );
-      if (vT[1] < vB[1]) ridges.push(s(vT[0],vT[1],vB[0],vB[1],'ridge'));
-    }
-  };
-
-  // ── 4 جدران نشطة ──
-  if (top && right && bottom && left) {
-    standardHip(minX, minY, maxX, maxY);
-    return { ridges, hips, valleys, gables };
-  }
-
-  // ── يسار + يمين معطلان → ridge أفقي كامل ──
-  if (top && !right && bottom && !left) {
-    const ry = minY + H/2;
-    ridges.push(s(minX,ry,maxX,ry,'ridge'));
-    gables.push(s(minX,minY,minX,ry,'gable'),s(minX,ry,minX,maxY,'gable'));
-    gables.push(s(maxX,minY,maxX,ry,'gable'),s(maxX,ry,maxX,maxY,'gable'));
-    return { ridges, hips, valleys, gables };
-  }
-
-  // ── أعلى + أسفل معطلان → ridge رأسي كامل ──
-  if (!top && right && !bottom && left) {
-    const rx = minX + W/2;
-    ridges.push(s(rx,minY,rx,maxY,'ridge'));
-    gables.push(s(minX,minY,rx,minY,'gable'),s(rx,minY,maxX,minY,'gable'));
-    gables.push(s(minX,maxY,rx,maxY,'gable'),s(rx,maxY,maxX,maxY,'gable'));
-    return { ridges, hips, valleys, gables };
-  }
-
-  // ── جدار واحد معطل: حساب تقاطع الـ hips بدقة باستخدام معادلات المستقيمات ──
+  // ──────────────────────────────────────────────────────────────
+  // حل تحليلي موحّد لأي مستطيل محوري مع أي تركيبة جدران مائلة/جملون.
   //
-  // المبدأ الهندسي:
-  //   لكل زاوية بين جدارين نشطين متعامدين، الـ bisector بزاوية 45 درجة.
-  //   الـ hip من الزاوية العليا اليسرى:  x = minX + (y - minY)
-  //   الـ hip من الزاوية العليا اليمنى:  x = maxX - (y - minY)
-  //   الـ hip من الزاوية السفلى اليسرى:  x = minX + (maxY - y)
-  //   الـ hip من الزاوية السفلى اليمنى:  x = maxX - (maxY - y)
-  //
-  //   نحسب نقطة تقاطع الـ hips باستخدام حل المعادلتين، ثم يمتد الـ ridge
-  //   من نقطة الالتقاء إلى الجدار المعطل.
+  // المبدأ: كل ضلع مائل (نشط) ينزاح للداخل بسرعة 1، وكل ضلع جملون
+  // (معطّل) يبقى ثابتاً. تحت هذا الانزياح يبقى الشكل مستطيلاً دائماً،
+  // فتنهار إحدى الأبعاد أولاً (لحظة تكوّن النصوة):
+  //   عرض(t) = W − kx·t   حيث kx = عدد الأضلاع الرأسية النشطة (يسار/يمين)
+  //   ارتفاع(t) = H − ky·t حيث ky = عدد الأضلاع الأفقية النشطة (أعلى/أسفل)
+  // النصوة تتكوّن عند tStar = min(W/kx, H/ky)، ثم كل زاوية تترك أثراً:
+  //   • زاوية بين ضلعين نشطين  → hip (خط 45°)
+  //   • زاوية على ضلع جملون    → الأثر ينزلق على الجدار (gable)
+  //   • زاوية بين جملونين      → ثابتة (بلا أثر)
+  // هذه الصيغة تغطّي كل الحالات (0..4 جدران معطّلة) دون تقاطع خطوط.
+  // ──────────────────────────────────────────────────────────────
+  const aL = left ? 1 : 0, aR = right ? 1 : 0, aT = top ? 1 : 0, aB = bottom ? 1 : 0;
+  const kx = aL + aR;   // أضلاع رأسية نشطة
+  const ky = aT + aB;   // أضلاع أفقية نشطة
+  const tx = kx > 0 ? W / kx : Infinity;
+  const ty = ky > 0 ? H / ky : Infinity;
+  const tStar = Math.min(tx, ty);
 
-  const halfW = W / 2, halfH = H / 2;
-  const midX = (minX + maxX) / 2, midY = (minY + maxY) / 2;
-
-  // أسفل معطل — hips من الزاويتين العلويتين يلتقيان وينزل ridge للأسفل
-  if (top && right && !bottom && left) {
-    if (halfW <= H + 0.01) {
-      // الحالة الطبيعية: الـ hips يلتقيان عند (midX, minY+halfW)
-      const ax = midX, ay = minY + halfW;
-      hips.push(s(minX,minY,ax,ay,'hip'));
-      hips.push(s(maxX,minY,ax,ay,'hip'));
-      ridges.push(s(ax,ay,midX,maxY,'ridge'));
-      gables.push(s(minX,maxY,midX,maxY,'gable'));
-      gables.push(s(midX,maxY,maxX,maxY,'gable'));
-    } else {
-      // الـ hips يضربون الجدار الأسفل قبل الالتقاء
-      const lx = minX + H, rx = maxX - H;
-      hips.push(s(minX,minY,lx,maxY,'hip'));
-      hips.push(s(maxX,minY,rx,maxY,'hip'));
-      ridges.push(s(lx,maxY,rx,maxY,'ridge'));
-      gables.push(s(minX,maxY,lx,maxY,'gable'));
-      gables.push(s(rx,maxY,maxX,maxY,'gable'));
-    }
+  // كل الجدران جملون → سقف مسطّح بلا شدّات؛ نرسم الجدران الأربعة كجملونات
+  if (!isFinite(tStar)) {
+    gables.push(
+      s(minX,minY,maxX,minY,'gable'), s(maxX,minY,maxX,maxY,'gable'),
+      s(maxX,maxY,minX,maxY,'gable'), s(minX,maxY,minX,minY,'gable'),
+    );
     return { ridges, hips, valleys, gables };
   }
 
-  // أعلى معطل — hips من الزاويتين السفليتين يلتقيان ويطلع ridge للأعلى
-  if (!top && right && bottom && left) {
-    if (halfW <= H + 0.01) {
-      const ax = midX, ay = maxY - halfW;
-      hips.push(s(minX,maxY,ax,ay,'hip'));
-      hips.push(s(maxX,maxY,ax,ay,'hip'));
-      ridges.push(s(ax,ay,midX,minY,'ridge'));
-      gables.push(s(minX,minY,midX,minY,'gable'));
-      gables.push(s(midX,minY,maxX,minY,'gable'));
-    } else {
-      const lx = minX + H, rx = maxX - H;
-      hips.push(s(minX,maxY,lx,minY,'hip'));
-      hips.push(s(maxX,maxY,rx,minY,'hip'));
-      ridges.push(s(lx,minY,rx,minY,'ridge'));
-      gables.push(s(minX,minY,lx,minY,'gable'));
-      gables.push(s(rx,minY,maxX,minY,'gable'));
-    }
-    return { ridges, hips, valleys, gables };
+  // مواقع الزوايا النهائية بعد الانزياح حتى لحظة النصوة
+  const Lx = minX + aL * tStar, Rx = maxX - aR * tStar;
+  const Ty = minY + aT * tStar, By = maxY - aB * tStar;
+
+  // كل زاوية: نقطة البداية، نقطتها النهائية، وعدد أضلاعها النشطة
+  const cornerList = [
+    { x0: minX, y0: minY, fx: Lx, fy: Ty, act: aL + aT }, // أعلى-يسار (يسار، أعلى)
+    { x0: maxX, y0: minY, fx: Rx, fy: Ty, act: aT + aR }, // أعلى-يمين (أعلى، يمين)
+    { x0: maxX, y0: maxY, fx: Rx, fy: By, act: aR + aB }, // أسفل-يمين (يمين، أسفل)
+    { x0: minX, y0: maxY, fx: Lx, fy: By, act: aB + aL }, // أسفل-يسار (أسفل، يسار)
+  ];
+
+  for (const c of cornerList) {
+    if (dist(c.x0, c.y0, c.fx, c.fy) < 0.01) continue; // زاوية ثابتة (جملونان)
+    if (c.act === 2) hips.push(s(c.x0, c.y0, c.fx, c.fy, 'hip'));
+    else gables.push(s(c.x0, c.y0, c.fx, c.fy, 'gable')); // أثر منزلق على جدار الجملون
   }
 
-  // يمين معطل — hips من الزاويتين اليسريتين يلتقيان ويمتد ridge لليمين
-  if (top && !right && bottom && left) {
-    if (halfH <= W + 0.01) {
-      const ax = minX + halfH, ay = midY;
-      hips.push(s(minX,minY,ax,ay,'hip'));
-      hips.push(s(minX,maxY,ax,ay,'hip'));
-      ridges.push(s(ax,ay,maxX,midY,'ridge'));
-      gables.push(s(maxX,minY,maxX,midY,'gable'));
-      gables.push(s(maxX,midY,maxX,maxY,'gable'));
-    } else {
-      const ty = minY + W, by = maxY - W;
-      hips.push(s(minX,minY,maxX,ty,'hip'));
-      hips.push(s(minX,maxY,maxX,by,'hip'));
-      ridges.push(s(maxX,ty,maxX,by,'ridge'));
-      gables.push(s(maxX,minY,maxX,ty,'gable'));
-      gables.push(s(maxX,by,maxX,maxY,'gable'));
-    }
-    return { ridges, hips, valleys, gables };
+  // النصوة = القطعة بين موضعَي الزوايا النهائية المتمايزين
+  const uniq = [];
+  for (const p of [[Lx,Ty],[Rx,Ty],[Rx,By],[Lx,By]]) {
+    if (!uniq.some(q => Math.abs(q[0]-p[0]) < 0.01 && Math.abs(q[1]-p[1]) < 0.01)) uniq.push(p);
   }
-
-  // يسار معطل — hips من الزاويتين اليمنيتين يلتقيان ويمتد ridge لليسار
-  if (top && right && bottom && !left) {
-    if (halfH <= W + 0.01) {
-      const ax = maxX - halfH, ay = midY;
-      hips.push(s(maxX,minY,ax,ay,'hip'));
-      hips.push(s(maxX,maxY,ax,ay,'hip'));
-      ridges.push(s(ax,ay,minX,midY,'ridge'));
-      gables.push(s(minX,minY,minX,midY,'gable'));
-      gables.push(s(minX,midY,minX,maxY,'gable'));
-    } else {
-      const ty = minY + W, by = maxY - W;
-      hips.push(s(maxX,minY,minX,ty,'hip'));
-      hips.push(s(maxX,maxY,minX,by,'hip'));
-      ridges.push(s(minX,ty,minX,by,'ridge'));
-      gables.push(s(minX,minY,minX,ty,'gable'));
-      gables.push(s(minX,by,minX,maxY,'gable'));
-    }
-    return { ridges, hips, valleys, gables };
+  if (uniq.length === 2) {
+    ridges.push(s(uniq[0][0], uniq[0][1], uniq[1][0], uniq[1][1], 'ridge'));
   }
+  // uniq.length === 1 → هرم (بلا نصوة)
 
-  // fallback: hip عادي
-  standardHip(minX, minY, maxX, maxY);
   return { ridges, hips, valleys, gables };
 }
 
