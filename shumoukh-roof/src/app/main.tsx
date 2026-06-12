@@ -37,3 +37,12 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </StrictMode>
 );
+
+// تسجيل عامل التخزين للعمل بلا إنترنت والتثبيت — في الإنتاج فقط حتى لا يتعارض مع HMR
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      /* التثبيت اختياري؛ تجاهل الفشل بصمت */
+    });
+  });
+}

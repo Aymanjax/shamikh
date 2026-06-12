@@ -1,6 +1,11 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -14,6 +19,19 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+// تخزين محلي دائم (IndexedDB) — يتيح عمل التطبيق بلا إنترنت: القراءات تأتي من
+// المخبأ، والكتابات تُحفظ وتُزامَن تلقائياً عند عودة الشبكة. مع دعم تعدد التبويبات.
+// إن فشلت التهيئة (متصفح قديم/وضع خاص) نسقط إلى Firestore عادي دون كسر التطبيق.
+export const db = (() => {
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    });
+  } catch {
+    return getFirestore(app);
+  }
+})();
+
 export const storage = getStorage(app);
 export default app;

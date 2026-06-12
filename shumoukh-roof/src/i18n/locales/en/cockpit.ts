@@ -5,6 +5,8 @@ export const cockpit = {
   "cockpit.title": "Command Console",
   "cockpit.systemLabel": "SHUMOUKH SYS",
   "cockpit.online": "ONLINE",
+  "cockpit.offline": "OFFLINE · working locally",
+  "cockpit.install": "Install app",
   "cockpit.primaryReadout": "Total collected",
   "cockpit.outstanding": "Outstanding",
   "cockpit.unit": "JOD",
