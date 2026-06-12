@@ -230,7 +230,7 @@ export function customRectRoof(vertices, activeSides) {
       s(minX,minY,maxX,minY,'gable'), s(maxX,minY,maxX,maxY,'gable'),
       s(maxX,maxY,minX,maxY,'gable'), s(minX,maxY,minX,minY,'gable'),
     );
-    return { ridges, hips, valleys, gables };
+    return { ridges, hips, valleys, gables, slopeFaces: [] };
   }
 
   // مواقع الزوايا النهائية بعد الانزياح حتى لحظة النصوة
@@ -261,7 +261,35 @@ export function customRectRoof(vertices, activeSides) {
   }
   // uniq.length === 1 → هرم (بلا نصوة)
 
-  return { ridges, hips, valleys, gables };
+  // ── أوجه السقف المائلة (لرسم شبكة القرميد باتجاه ميل كل وجه) ──
+  // كل وجه = ضلع المزراب (eave) + أثرَا زاويتيه حتى النصوة. نخزّن المضلّع
+  // وحافة المزراب ليتمكّن الراسم من محاذاة شبكة القرميد مع اتجاه الميل.
+  const cf = { TL: [Lx, Ty], TR: [Rx, Ty], BR: [Rx, By], BL: [Lx, By] };
+  const orig = { TL: [minX, minY], TR: [maxX, minY], BR: [maxX, maxY], BL: [minX, maxY] };
+  const faceDefs = [
+    { on: top,    a: "TL", b: "TR" },
+    { on: right,  a: "TR", b: "BR" },
+    { on: bottom, a: "BR", b: "BL" },
+    { on: left,   a: "BL", b: "TL" },
+  ];
+  const slopeFaces = [];
+  for (const fd of faceDefs) {
+    if (!fd.on) continue;
+    const A = orig[fd.a], B = orig[fd.b], Bf = cf[fd.b], Af = cf[fd.a];
+    const ring = [];
+    for (const p of [A, B, Bf, Af]) {
+      const last = ring[ring.length - 1];
+      if (!last || dist(last[0], last[1], p[0], p[1]) > 0.01) ring.push(p);
+    }
+    while (ring.length > 1 && dist(ring[0][0], ring[0][1], ring[ring.length - 1][0], ring[ring.length - 1][1]) < 0.01) ring.pop();
+    if (ring.length < 3) continue;
+    slopeFaces.push({
+      poly: ring.map(p => ({ x: r(p[0]), y: r(p[1]) })),
+      eave: { ax: r(A[0]), ay: r(A[1]), bx: r(B[0]), by: r(B[1]) },
+    });
+  }
+
+  return { ridges, hips, valleys, gables, slopeFaces };
 }
 
 /* ──────────────────────────────────────────

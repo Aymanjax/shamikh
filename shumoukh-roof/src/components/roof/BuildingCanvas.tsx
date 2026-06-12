@@ -600,6 +600,50 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
     );
   }) : null;
 
+  // شبكة قرميد مائلة لكل وجه: مربعات محاذية لاتجاه ميل الوجه، مقصوصة داخل حدوده
+  const tileGridEls = useMemo(() => {
+    if (!closed || !skeleton || !skeleton.slopeFaces || skeleton.slopeFaces.length === 0) return null;
+    const stepPx = 0.4 * SCALE; // ~0.4م لكل مربع قرميد
+    return skeleton.slopeFaces.map((face, fi) => {
+      if (!face.poly || face.poly.length < 3 || !face.eave) return null;
+      const polyK = face.poly.map(p => toK(p));
+      const A = toK({ x: face.eave.ax, y: face.eave.ay });
+      const B = toK({ x: face.eave.bx, y: face.eave.by });
+      const ex = B.kx - A.kx, ey = B.ky - A.ky;
+      const el = Math.hypot(ex, ey);
+      if (el < 1e-6) return null;
+      const ux = ex / el, uy = ey / el;   // باتجاه المزراب
+      let nx = -uy, ny = ux;              // عمودي على المزراب
+      const cx = polyK.reduce((s, p) => s + p.kx, 0) / polyK.length;
+      const cy = polyK.reduce((s, p) => s + p.ky, 0) / polyK.length;
+      if ((cx - A.kx) * nx + (cy - A.ky) * ny < 0) { nx = -nx; ny = -ny; }
+      let suMin = Infinity, suMax = -Infinity, snMin = Infinity, snMax = -Infinity;
+      for (const p of polyK) {
+        const su = (p.kx - A.kx) * ux + (p.ky - A.ky) * uy;
+        const sn = (p.kx - A.kx) * nx + (p.ky - A.ky) * ny;
+        if (su < suMin) suMin = su; if (su > suMax) suMax = su;
+        if (sn < snMin) snMin = sn; if (sn > snMax) snMax = sn;
+      }
+      const P = (su, sn) => ({ x: A.kx + ux * su + nx * sn, y: A.ky + uy * su + ny * sn });
+      const lines = [];
+      for (let sn = snMin; sn <= snMax + 0.001; sn += stepPx) {
+        const a = P(suMin, sn), b = P(suMax, sn);
+        lines.push(<line key={`c${sn.toFixed(1)}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#c2703e" strokeWidth={0.6} strokeOpacity={0.4} />);
+      }
+      for (let su = suMin; su <= suMax + 0.001; su += stepPx) {
+        const a = P(su, snMin), b = P(su, snMax);
+        lines.push(<line key={`r${su.toFixed(1)}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#c2703e" strokeWidth={0.6} strokeOpacity={0.22} />);
+      }
+      const clipId = `tilegrid-${fi}`;
+      return (
+        <g key={`tg${fi}`}>
+          <clipPath id={clipId}><polygon points={polyK.map(p => `${p.kx},${p.ky}`).join(" ")} /></clipPath>
+          <g clipPath={`url(#${clipId})`}>{lines}</g>
+        </g>
+      );
+    });
+  }, [closed, skeleton]);
+
   const waterArrowEls = closed && waterDirections.length > 0 ? waterDirections.filter(d => d && d.isActive).map((d, i) => {
     const f = toK({ x: d.fromX, y: d.fromY });
     const t = toK({ x: d.toX, y: d.toY });
@@ -773,6 +817,7 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
           {axisLabels}
           {polygonFill}
           {roofFaceEls}
+          {tileGridEls}
           {waterArrowEls}
           {markedSkeleton && (
             <g className="skeleton">

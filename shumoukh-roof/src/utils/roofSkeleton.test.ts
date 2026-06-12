@@ -82,6 +82,19 @@ describe("customRectRoof — unified analytic solver", () => {
     expect(endpointsInBounds(res)).toBe(true);
   });
 
+  it("exposes one sloped face per active wall, each a valid polygon with an eave", () => {
+    expect(rect([]).slopeFaces).toHaveLength(4);            // 4 active
+    expect(rect(["bottom"]).slopeFaces).toHaveLength(3);   // 3 active
+    expect(rect(["left", "right"]).slopeFaces).toHaveLength(2);
+    expect(rect(["top", "left"]).slopeFaces).toHaveLength(2);
+    expect(rect(["top", "left", "right"]).slopeFaces).toHaveLength(1);
+    expect(rect(["top", "right", "bottom", "left"]).slopeFaces).toHaveLength(0);
+    for (const f of rect([]).slopeFaces) {
+      expect(f.poly.length).toBeGreaterThanOrEqual(3);
+      expect(f.eave).toBeTruthy();
+    }
+  });
+
   it("returns null for non-rectangular input (defers to the general engine)", () => {
     const tri = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 5, y: 8 }];
     expect(customRectRoof(tri, [])).toBeNull();
