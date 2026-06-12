@@ -8,11 +8,19 @@ type SubscriptionState = {
   isLinkedToNationalInvoice?: boolean;
 };
 
+// بيانات الشركة المستخدمة في ترويسة الفواتير المطبوعة (الشعار والهاتف والعنوان)
+export type CompanyProfile = {
+  logoURL?: string;
+  phone?: string;
+  address?: string;
+};
+
 interface AuthState {
   user: User | null;
   loading: boolean;
   role: string;
   companyName: string;
+  companyProfile: CompanyProfile | null;
   sessionInvalid: boolean;
   trialExpired: boolean;
   subscription: SubscriptionState | null;
@@ -20,6 +28,7 @@ interface AuthState {
   setRole: (role: string) => void;
   setLoading: (loading: boolean) => void;
   setCompanyName: (name: string) => void;
+  setCompanyProfile: (p: CompanyProfile | null) => void;
   setSubscription: (sub: SubscriptionState | null) => void;
   logout: () => void;
 }
@@ -29,6 +38,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   loading: true,
   role: "user",
   companyName: "",
+  companyProfile: null,
   sessionInvalid: false,
   trialExpired: false,
   subscription: null,
@@ -37,6 +47,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   setRole: (role) => set({ role }),
   setLoading: (loading) => set({ loading }),
   setCompanyName: (name) => set({ companyName: name }),
+  setCompanyProfile: (p) => set({ companyProfile: p }),
   setSubscription: (sub) => set({ subscription: sub }),
-  logout: () => set({ user: null, role: "user", companyName: "", subscription: null }),
+  logout: () => set({ user: null, role: "user", companyName: "", companyProfile: null, subscription: null }),
 }));

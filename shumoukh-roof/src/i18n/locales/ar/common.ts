@@ -10,6 +10,7 @@ export const common = {
   "nav.projects": "المشاريع",
   "nav.invoices": "الفواتير",
   "nav.workers": "العمال",
+  "nav.expenses": "المصاريف",
   "nav.subscription": "الاشتراك",
   "nav.settings": "الإعدادات",
   "nav.admin": "التحكم",

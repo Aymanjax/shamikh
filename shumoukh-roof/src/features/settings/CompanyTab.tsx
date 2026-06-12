@@ -79,6 +79,9 @@ export default function CompanyTab() {
         phone,
         logoURL,
       }, { merge: true });
+      // مزامنة المخزن فورًا حتى تظهر البيانات الجديدة في طباعة الفواتير بلا إعادة تحميل
+      useAuthStore.getState().setCompanyName(companyName.trim());
+      useAuthStore.getState().setCompanyProfile({ logoURL, phone, address: address.trim() });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {

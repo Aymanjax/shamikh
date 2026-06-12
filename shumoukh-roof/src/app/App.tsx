@@ -9,6 +9,7 @@ import LandingPage from "../features/dashboard/LandingPage";
 import CalculatorPage from "../features/calculator/CalculatorPage";
 import InvoicesPage from "../features/invoices/InvoicesPage";
 import WorkersPage from "../features/workers/WorkersPage";
+import ExpensesPage from "../features/expenses/ExpensesPage";
 import ProjectsPage from "../features/projects/ProjectsPage";
 import SettingsPage from "../features/settings/SettingsPage";
 import SubscriptionPage from "../features/subscription/SubscriptionPage";
@@ -30,6 +31,7 @@ export default function App() {
   const setUser = useAuthStore((s) => s.setUser);
   const setRole = useAuthStore((s) => s.setRole);
   const setCompanyName = useAuthStore((s) => s.setCompanyName);
+  const setCompanyProfile = useAuthStore((s) => s.setCompanyProfile);
   const setLoading = useAuthStore((s) => s.setLoading);
   const setSubscription = useAuthStore((s) => s.setSubscription);
   const user = useAuthStore((s) => s.user);
@@ -44,6 +46,11 @@ export default function App() {
           if (profile) {
             setRole(profile.role || "user");
             setCompanyName(profile.companyName || "");
+            setCompanyProfile({
+              logoURL: (profile as { logoURL?: string }).logoURL || "",
+              phone: (profile as { phone?: string }).phone || "",
+              address: (profile as { address?: string }).address || "",
+            });
             setSubscription(profile.subscription || null);
           }
           // Reload theme from Firestore now that the user is authenticated,
@@ -86,6 +93,7 @@ export default function App() {
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="invoices" element={<InvoicesPage />} />
         <Route path="workers" element={<WorkersPage />} />
+        <Route path="expenses" element={<ExpensesPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="subscription" element={<SubscriptionPage />} />
         <Route path="admin" element={<AdminDashboard />} />
