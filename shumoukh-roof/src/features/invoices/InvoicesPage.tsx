@@ -6,11 +6,19 @@ import { listDocuments, addDocument, deleteDocument, updateDocument } from "../.
 import { printInvoice } from "../../lib/printInvoice";
 import GlassButton from "../../components/ui/GlassButton";
 
+interface LineItem {
+  desc: string;
+  qty: number;
+  price: number;
+}
+
 interface Invoice {
   id: string;
   client?: string;
   project?: string;
   amount?: number;
+  subtotal?: number;
+  items?: LineItem[];
   status?: string;
   projectId?: string;
   createdAt?: unknown;
@@ -19,11 +27,15 @@ interface Invoice {
 interface InvoiceForm {
   client: string;
   project: string;
-  amount: number;
   status: string;
+  items: LineItem[];
 }
 
-const defaultForm: InvoiceForm = { client: "", project: "", amount: 0, status: "draft" };
+const emptyItem = (): LineItem => ({ desc: "", qty: 1, price: 0 });
+const defaultForm: InvoiceForm = { client: "", project: "", status: "draft", items: [emptyItem()] };
+
+const lineTotal = (it: LineItem): number => (Number(it.qty) || 0) * (Number(it.price) || 0);
+const sumItems = (items: LineItem[]): number => items.reduce((s, it) => s + lineTotal(it), 0);
 
 const statusConfig: Record<string, { label: string; color: string; next: string }> = {
   paid: { label: "مدفوعة", color: "tag-olive", next: "draft" },
@@ -54,7 +66,7 @@ export default function InvoicesPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: InvoiceForm) => addDocument("invoices", data),
+    mutationFn: (data: Record<string, unknown>) => addDocument("invoices", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       setModal(false);
@@ -80,8 +92,27 @@ export default function InvoicesPage() {
       clientInputRef.current?.focus();
       return;
     }
-    createMutation.mutate(form);
+    const items = form.items.filter((it) => it.desc.trim() || lineTotal(it) > 0);
+    const subtotal = sumItems(items);
+    createMutation.mutate({
+      client: form.client.trim(),
+      project: form.project.trim(),
+      status: form.status,
+      items,
+      subtotal,
+      amount: subtotal,
+    });
   }, [form, createMutation]);
+
+  const updateItem = useCallback((idx: number, patch: Partial<LineItem>) => {
+    setForm((p) => ({ ...p, items: p.items.map((it, i) => (i === idx ? { ...it, ...patch } : it)) }));
+  }, []);
+  const addItem = useCallback(() => setForm((p) => ({ ...p, items: [...p.items, emptyItem()] })), []);
+  const removeItem = useCallback((idx: number) => {
+    setForm((p) => ({ ...p, items: p.items.length > 1 ? p.items.filter((_, i) => i !== idx) : p.items }));
+  }, []);
+
+  const formSubtotal = sumItems(form.items);
 
   const handleDelete = useCallback((id: string) => {
     if (!confirm("حذف هذه الفاتورة؟ لا يمكن التراجع عن الحذف.")) return;
@@ -192,6 +223,9 @@ export default function InvoicesPage() {
                             <Hash className="w-2.5 h-2.5 text-earth-400 shrink-0" />
                             <span className="text-[10px] text-earth-500 truncate">{inv.project}</span>
                           </div>
+                        )}
+                        {inv.items && inv.items.length > 0 && (
+                          <span className="text-[9px] text-earth-400 mt-0.5 block">{inv.items.length} بند</span>
                         )}
                       </div>
 
@@ -306,18 +340,56 @@ export default function InvoicesPage() {
                     className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm text-earth-900 outline-none focus:border-terracotta-500 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label htmlFor="invoice-amount" className="block text-xs font-black text-earth-700">
-                    المبلغ (د.أ)
-                  </label>
-                  <input
-                    id="invoice-amount"
-                    type="number"
-                    value={form.amount || ""}
-                    onChange={(e) => setForm((p) => ({ ...p, amount: +e.target.value }))}
-                    placeholder="٠"
-                    className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm text-earth-900 font-mono font-black outline-none focus:border-terracotta-500 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400"
-                  />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-black text-earth-700">بنود الفاتورة</label>
+                    <span className="text-[10px] text-earth-500">الكمية × السعر</span>
+                  </div>
+                  <div className="space-y-2 max-h-56 overflow-y-auto">
+                    {form.items.map((it, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <input
+                          value={it.desc}
+                          onChange={(e) => updateItem(i, { desc: e.target.value })}
+                          placeholder="البند (مثال: قرميد)"
+                          className="flex-1 min-w-0 bg-white border-2 border-earth-200 rounded-lg py-2 px-3 text-xs text-earth-900 outline-none focus:border-terracotta-500 transition placeholder:text-earth-400"
+                        />
+                        <input
+                          type="number" inputMode="decimal" value={it.qty || ""}
+                          onChange={(e) => updateItem(i, { qty: +e.target.value })}
+                          placeholder="كمية" aria-label="الكمية"
+                          className="w-14 bg-white border-2 border-earth-200 rounded-lg py-2 px-2 text-xs text-center font-mono text-earth-900 outline-none focus:border-terracotta-500 transition placeholder:text-earth-400"
+                        />
+                        <input
+                          type="number" inputMode="decimal" value={it.price || ""}
+                          onChange={(e) => updateItem(i, { price: +e.target.value })}
+                          placeholder="سعر" aria-label="السعر"
+                          className="w-16 bg-white border-2 border-earth-200 rounded-lg py-2 px-2 text-xs text-center font-mono text-earth-900 outline-none focus:border-terracotta-500 transition placeholder:text-earth-400"
+                        />
+                        <span className="w-16 shrink-0 text-[10px] font-mono font-black text-earth-700 text-left" dir="ltr">
+                          {lineTotal(it).toFixed(2)}
+                        </span>
+                        <button
+                          onClick={() => removeItem(i)}
+                          disabled={form.items.length === 1}
+                          className="p-1.5 text-earth-400 hover:text-red-500 transition cursor-pointer rounded-sm disabled:opacity-30 disabled:cursor-default shrink-0"
+                          aria-label="حذف البند"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={addItem}
+                    className="w-full border-2 border-dashed border-earth-200 rounded-lg py-2 text-xs text-earth-500 hover:text-earth-700 hover:border-earth-300 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> إضافة بند
+                  </button>
+                  <div className="flex items-center justify-between bg-earth-50 border border-earth-200 rounded-lg px-4 py-2.5">
+                    <span className="text-xs font-black text-earth-700">الإجمالي</span>
+                    <span className="text-sm font-black font-mono text-olive-700" dir="ltr">{formSubtotal.toFixed(2)} <span className="text-[10px] text-earth-500">JOD</span></span>
+                  </div>
                 </div>
                 <div className="pt-1">
                   <button
