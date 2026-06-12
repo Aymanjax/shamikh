@@ -1,8 +1,9 @@
 import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence } from "framer-motion";
 import {
   FolderOpen, Trash2, Eye, Search, Calculator, FileText, X, Check, HardHat,
-  Bell, MessageCircle, Plus, CalendarClock, CircleDollarSign, Wallet,
+  Bell, MessageCircle, Plus, CalendarClock, CircleDollarSign, Wallet, ScrollText,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { listDocuments, deleteDocument, addDocument } from "../../lib/firestoreService";
@@ -15,6 +16,7 @@ import {
   type Payment,
 } from "./paymentsService";
 import { listExpenses, type Expense } from "../expenses/expensesService";
+import ContractModal from "./ContractModal";
 
 interface Project {
   id: string;
@@ -38,9 +40,12 @@ const STATUS_LABEL: Record<string, string> = {
 export default function ProjectsPage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const companyName = useAuthStore((s) => s.companyName);
+  const companyProfile = useAuthStore((s) => s.companyProfile);
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<Project | null>(null);
   const [invoiceCreated, setInvoiceCreated] = useState(false);
+  const [contractFor, setContractFor] = useState<Project | null>(null);
   const [payForm, setPayForm] = useState({ label: "", amount: 0, dueDate: "" });
 
   const { data: projects = [], isLoading: loading, error } = useQuery<Project[]>({
@@ -351,11 +356,35 @@ export default function ProjectsPage() {
                   className="flex-1 bg-olive-600 hover:bg-olive-700 text-earth-100 font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1 border-r-3 border-olive-800">
                   {invoiceCreated ? (<><Check className="w-4 h-4" /> تم</>) : createInvoiceMutation.isPending ? ("جارٍ...") : (<><FileText className="w-4 h-4" /> فاتورة</>)}
                 </button>
+                <button onClick={() => setContractFor(detail)}
+                  className="flex-1 bg-amber-600 hover:bg-amber-700 text-earth-100 font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1 border-r-3 border-amber-800">
+                  <ScrollText className="w-4 h-4" /> اتفاقية عمل
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* اتفاقية العمل — صيغة جاهزة للقرميد بالنظام الأردني، معبّأة من المشروع */}
+      <AnimatePresence>
+        {contractFor && (
+          <ContractModal
+            seed={{
+              projectId: contractFor.id,
+              companyName,
+              companyPhone: companyProfile?.phone,
+              clientName: contractFor.client?.name,
+              clientPhone: contractFor.client?.phone,
+              clientAddress: contractFor.client?.address,
+              area: contractFor.result?.flatArea || contractFor.result?.actualArea,
+              totalCost: contractFor.result?.totalCost,
+              payments: paymentsForProject(payments, contractFor.id),
+            }}
+            onClose={() => setContractFor(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
