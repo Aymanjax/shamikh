@@ -218,6 +218,25 @@
   --color-olive-800: #d3dcba;
   --color-olive-900: #e9efd9;
 
+  /* درجات الخلفية/الحدود الفاتحة في صفحات الميزات (amber/emerald/ice-blue/blue)
+     لا تمرّ عبر رموز القمرة، فكانت تظهر صناديق فاتحة على الداكن. نُحوّل فقط
+     الدرجات 50/100/200 (خلفيات وحدود، لا نصوص) إلى صبغات داكنة ناعمة. تبقى
+     الدرجات 300+ على قيمها الطبيعية لأنها مشبعة وتُقرأ على الداكن. */
+  --color-amber-50: color-mix(in srgb, #d9a441 14%, #0e1116);
+  --color-amber-100: color-mix(in srgb, #d9a441 20%, #0e1116);
+  --color-amber-200: color-mix(in srgb, #d9a441 30%, #0e1116);
+  --color-emerald-50: color-mix(in srgb, #2fae6e 14%, #0e1116);
+  --color-emerald-100: color-mix(in srgb, #2fae6e 20%, #0e1116);
+  --color-emerald-200: color-mix(in srgb, #2fae6e 30%, #0e1116);
+  --color-ice-blue-50: color-mix(in srgb, #3f8f88 16%, #0e1116);
+  --color-ice-blue-100: color-mix(in srgb, #3f8f88 22%, #0e1116);
+  --color-ice-blue-200: color-mix(in srgb, #3f8f88 32%, #0e1116);
+  --color-blue-50: color-mix(in srgb, #5a86c4 14%, #0e1116);
+  --color-blue-100: color-mix(in srgb, #5a86c4 20%, #0e1116);
+  --color-blue-200: color-mix(in srgb, #5a86c4 30%, #0e1116);
+  --color-green-50: color-mix(in srgb, #6ea84a 14%, #0e1116);
+  --color-green-100: color-mix(in srgb, #6ea84a 20%, #0e1116);
+
   /* أحمر التنبيه (Tailwind الافتراضي يُستخدم في الصفحات) */
   --color-red-50: #2a1512;
   --color-red-100: #341a16;
