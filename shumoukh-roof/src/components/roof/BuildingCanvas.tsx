@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { edgesFromVertices, isPolygonClosed, verticesFromEdges, isRectangular } from "../../utils/buildingGeometry";
 import { computeRoofSkeleton, customRectRoof, computeWaterDirections } from "../../utils/roofSkeleton";
-import { X, Plus, Trash2, Undo2, Redo2, Maximize2, Minimize2, ZoomIn, ZoomOut, Check, Move, Ruler, Grid3x3, Eye, EyeOff, GripVertical, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Hash } from "lucide-react";
+import { X, Plus, Trash2, Undo2, Redo2, Maximize2, Minimize2, ZoomIn, ZoomOut, Check, Move, Ruler, Grid3x3, Eye, EyeOff, GripVertical, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Hash, Printer } from "lucide-react";
 import { useT } from "../../i18n";
 
 const GRID_M = 20, PAD = 30, SZ = 700;
@@ -526,6 +526,49 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
 
   const handleClear = () => { onChange([]); setEdges([]); setGhost(null); axisLockRef.current = null; resetView(); };
 
+  // طباعة الرسمة: نسخ محتوى الـ SVG إلى نافذة طباعة بخلفية بيضاء مع إطار يحيط بالشكل
+  const handlePrintDrawing = () => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    let vb = `0 0 ${SZ} ${SZ}`;
+    if (vertices.length > 0) {
+      const xs = vertices.map((v) => v.x), ys = vertices.map((v) => v.y);
+      const pad = 2; // هامش بالمتر حول الشكل
+      const k1 = toK({ x: Math.min(...xs) - pad, y: Math.min(...ys) - pad });
+      const k2 = toK({ x: Math.max(...xs) + pad, y: Math.max(...ys) + pad });
+      vb = `${k1.kx} ${k1.ky} ${Math.max(40, k2.kx - k1.kx)} ${Math.max(40, k2.ky - k1.ky)}`;
+    }
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`
+      <!DOCTYPE html><html dir="rtl" lang="ar">
+      <head><meta charset="UTF-8"><title>مخطط السطح</title>
+      <style>
+        @page { margin: 10mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, sans-serif; }
+        body { background: #fff; color: #2d2418; padding: 16px; }
+        .hd { display: flex; justify-content: space-between; align-items: flex-end;
+              border-bottom: 2px solid #b0632e; padding-bottom: 8px; margin-bottom: 12px; }
+        .hd h1 { font-size: 16px; }
+        .hd p { font-size: 11px; color: #7a6a55; }
+        svg { width: 100%; height: auto; max-height: 88vh; background: #fff; }
+        @media print { body { padding: 0; } }
+      </style></head>
+      <body>
+        <div class="hd">
+          <div>
+            <h1>مخطط السطح</h1>
+            <p>${area > 0 ? `المساحة: ${area.toFixed(1)} م²` : "مخطط البناء"}${closed ? ` · ${edgesFromVerts.length} أضلاع` : ""}</p>
+          </div>
+          <p>${new Date().toLocaleDateString("ar-JO")}</p>
+        </div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}">${svg.innerHTML}</svg>
+        <script>window.print();</script>
+      </body></html>
+    `);
+    win.document.close();
+  };
+
   const handleVertexDown = (idx, e) => {
     if (!closed) return;
     e.preventDefault();
@@ -1021,6 +1064,10 @@ export default function BuildingCanvas({ vertices, sides, onChange, onToggleFaca
           <button onClick={handleRedo} disabled={!canRedo} title={t("calculator.draw.redo")}
             className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition ${canRedo ? "bg-slate-100 border-slate-200 text-ink-muted hover:text-ink-primary hover:border-ice-blue-400" : "bg-slate-100 border-slate-100 text-ink-muted/30"}`}>
             <Redo2 className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={handlePrintDrawing} disabled={vertices.length < 2} title="طباعة الرسمة"
+            className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition ${vertices.length >= 2 ? "bg-slate-100 border-slate-200 text-ink-muted hover:text-ink-primary hover:border-ice-blue-400" : "bg-slate-100 border-slate-100 text-ink-muted/30"}`}>
+            <Printer className="w-3.5 h-3.5" />
           </button>
           <button onClick={() => setGridStep((s) => (s === 0.5 ? 0.1 : 0.5))} title={t("calculator.draw.precision")}
             className={`px-2 h-7 rounded-lg border-2 text-[9px] font-bold transition ${gridStep === 0.1 ? "bg-amber-500/20 border-amber-500/30 text-amber-600" : "bg-slate-100 border-slate-200 text-ink-muted hover:text-ink-primary"}`}>

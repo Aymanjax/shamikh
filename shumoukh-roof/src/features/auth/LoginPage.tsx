@@ -6,6 +6,7 @@ import { LogIn, HardHat, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react"
 import { loginUser, loginWithGoogle } from "./authService";
 import { useAuthStore } from "../../store/authStore";
 import "../../styles/cockpit.css";
+import { useUiTheme } from "../../store/uiThemeStore";
 import { useT } from "../../i18n";
 
 const easing = [0.22, 1, 0.36, 1];
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const setUser = useAuthStore((s) => s.setUser);
   const reducedMotion = useReducedMotion();
   const t = useT();
+  const uiLight = useUiTheme((s) => s.light);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +60,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="cockpit-root min-h-screen bg-earth-100 flex items-center justify-center p-4 relative z-10">
+    <div className={`cockpit-root${uiLight ? " cockpit-light" : ""} min-h-screen bg-earth-100 flex items-center justify-center p-4 relative z-10`}>
       <div className="cockpit-grid" />
       <motion.div
         initial={{ opacity: 0, y: reducedMotion ? 0 : 16, x: reducedMotion ? 0 : 8 }}

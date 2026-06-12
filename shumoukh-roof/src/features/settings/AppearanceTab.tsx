@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
-import { Palette, ArrowRight, Languages } from "lucide-react";
+import { Palette, ArrowRight, Languages, Sun, Moon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useT, useLang, type Lang } from "../../i18n";
+import { useUiTheme } from "../../store/uiThemeStore";
 
 export default function AppearanceTab() {
   const t = useT();
   const [lang, setLang] = useLang();
+  const uiLight = useUiTheme((s) => s.light);
+  const setLight = useUiTheme((s) => s.setLight);
   const [fontSize, setFontSize] = useState(() => localStorage.getItem("fontSize") || "normal");
 
   useEffect(() => {
@@ -32,7 +35,24 @@ export default function AppearanceTab() {
       </div>
 
       <div className="earth-card p-5 space-y-6">
+        {/* لون الواجهة: داكن (هندسي) ↔ فاتح (أبيض) */}
         <div>
+          <h3 className="text-sm font-black text-ink-primary mb-3">لون الواجهة</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => setLight(false)}
+              className={`py-3 px-4 rounded-sm border-2 text-sm font-black transition min-h-[48px] flex items-center justify-center gap-2 ${
+                !uiLight ? "border-terracotta-400 bg-terracotta-100 text-terracotta-500" : "border-earth-200 bg-white text-ink-muted hover:border-earth-300"}`}>
+              <Moon className="w-4 h-4" /> داكن — هندسي
+            </button>
+            <button onClick={() => setLight(true)}
+              className={`py-3 px-4 rounded-sm border-2 text-sm font-black transition min-h-[48px] flex items-center justify-center gap-2 ${
+                uiLight ? "border-terracotta-400 bg-terracotta-100 text-terracotta-500" : "border-earth-200 bg-white text-ink-muted hover:border-earth-300"}`}>
+              <Sun className="w-4 h-4" /> فاتح — أبيض
+            </button>
+          </div>
+        </div>
+
+        <div className="border-t-2 border-earth-200 pt-6">
           <h3 className="text-sm font-black text-ink-primary mb-3">{t("appearance.fontSize")}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[

@@ -1,11 +1,12 @@
 // قشرة الواجهة الهندسية: خلفية مخطط، شريط أدوات علوي، والقائمة الدائرية.
 // معزولة تحت .cockpit-root فلا تؤثر على بقية التطبيق.
 import { useEffect, useState, type ReactNode } from "react";
-import { Download } from "lucide-react";
+import { Download, Sun, Moon } from "lucide-react";
 import { useT } from "../../i18n";
 import RadialCommandMenu from "./RadialCommandMenu";
 import NotificationBell from "../ui/NotificationBell";
 import { usePwa } from "../../hooks/usePwa";
+import { useUiTheme } from "../../store/uiThemeStore";
 import "../../styles/cockpit.css";
 
 function clock(lang: "ar" | "en") {
@@ -20,6 +21,8 @@ export default function CockpitShell({ isAdmin, children }: { isAdmin: boolean; 
   const lang = (document.documentElement.lang as "ar" | "en") || "ar";
   const [now, setNow] = useState(() => clock(lang));
   const { canInstall, online, promptInstall } = usePwa();
+  const light = useUiTheme((s) => s.light);
+  const toggleLight = useUiTheme((s) => s.toggle);
 
   useEffect(() => {
     const id = setInterval(() => setNow(clock(lang)), 30_000);
@@ -27,13 +30,13 @@ export default function CockpitShell({ isAdmin, children }: { isAdmin: boolean; 
   }, [lang]);
 
   return (
-    <div className="cockpit-root">
+    <div className={`cockpit-root${light ? " cockpit-light" : ""}`}>
       <div className="cockpit-grid" />
 
       {/* شريط الأدوات العلوي */}
       <header
         className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b px-4 py-2.5 md:px-7"
-        style={{ background: "rgba(14,17,22,0.85)", borderColor: "var(--ck-hair)", backdropFilter: "blur(8px)", zIndex: 20 }}
+        style={{ background: "color-mix(in srgb, var(--ck-graphite) 85%, transparent)", borderColor: "var(--ck-hair)", backdropFilter: "blur(8px)", zIndex: 20 }}
       >
         <div className="flex items-center gap-3">
           <span className="ck-live-dot" style={online ? undefined : { background: "var(--ck-warn)", boxShadow: "0 0 8px var(--ck-warn)" }} />
@@ -45,6 +48,14 @@ export default function CockpitShell({ isAdmin, children }: { isAdmin: boolean; 
           </span>
         </div>
         <div className="flex items-center gap-4">
+          {/* تبديل لون الواجهة: داكن ↔ أبيض */}
+          <button onClick={toggleLight}
+            className="grid h-7 w-7 place-items-center rounded-sm border transition"
+            style={{ borderColor: "var(--ck-hair-strong)", color: "var(--ck-ink-dim)", background: "var(--ck-steel)" }}
+            title={light ? "الوضع الداكن" : "الوضع الفاتح"}
+            aria-label={light ? "الوضع الداكن" : "الوضع الفاتح"}>
+            {light ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
+          </button>
           {canInstall && (
             <button onClick={promptInstall}
               className="mono flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[10px] font-bold tracking-wide transition"

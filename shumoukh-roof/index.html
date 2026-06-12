@@ -19,6 +19,10 @@
     </style>
   </head>
   <body>
+    <script>
+      // خلفية أول رسم حسب وضع اللون المحفوظ (يمنع وميض اللون المعاكس)
+      try { if (localStorage.getItem("uiLight") === "1") { document.body.style.background = "#f5f0eb"; document.documentElement.style.background = "#f5f0eb"; } } catch (e) {}
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/app/main.tsx"></script>
   </body>

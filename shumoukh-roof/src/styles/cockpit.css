@@ -64,6 +64,40 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* ============================================================
+   الوضع الفاتح (الأبيض): نفس القشرة والقائمة الدائرية، لكن
+   بأسطح الورق الدافئة الأصلية. لا تُطبق إعادة تعريف اللوحة
+   الداكنة هنا، فتعود كل الصفحات لثيمها الفاتح تلقائيًا.
+   ============================================================ */
+.cockpit-root.cockpit-light {
+  --ck-void: #ece6dd;
+  --ck-graphite: #f5f0eb;
+  --ck-steel: #faf7f4;
+  --ck-steel-hi: #ffffff;
+  --ck-steel-line: #e8ddd2;
+
+  --ck-hair: rgba(45, 36, 24, 0.10);
+  --ck-hair-strong: rgba(45, 36, 24, 0.22);
+  --ck-grid: rgba(45, 36, 24, 0.05);
+
+  --ck-ink: #2d2418;
+  --ck-ink-dim: #5a4a38;
+  --ck-ink-mute: #9a8670;
+
+  /* ضوء الأداة أدكن على الفاتح ليبقى مقروءًا */
+  --ck-laser: color-mix(in srgb, var(--ck-accent) 72%, #000000);
+  --ck-laser-hot: color-mix(in srgb, var(--ck-accent) 88%, #000000);
+  --ck-laser-deep: color-mix(in srgb, var(--ck-accent) 55%, #000000);
+  --ck-laser-glow: color-mix(in srgb, var(--ck-accent) 30%, transparent);
+  --ck-laser-film: color-mix(in srgb, var(--ck-accent) 10%, transparent);
+
+  --ck-ok: #57664c;
+  --ck-ok-glow: rgba(87, 102, 76, 0.35);
+  --ck-warn: #8f6f1e;
+  --ck-alert: #b91c1c;
+  --ck-alert-glow: rgba(185, 28, 28, 0.3);
+}
+
 /* شبكة المخطط الهندسي (blueprint) — خطوط قياس باهتة */
 .cockpit-grid {
   position: fixed;
@@ -126,9 +160,9 @@
 }
 
 /* تمرير نظيف داخل اللوحات */
-.cockpit-root ::-webkit-scrollbar { width: 8px; height: 8px; }
-.cockpit-root ::-webkit-scrollbar-thumb { background: var(--ck-steel-line); border-radius: 0; }
-.cockpit-root ::-webkit-scrollbar-track { background: transparent; }
+.cockpit-root:not(.cockpit-light) ::-webkit-scrollbar { width: 8px; height: 8px; }
+.cockpit-root:not(.cockpit-light) ::-webkit-scrollbar-thumb { background: var(--ck-steel-line); border-radius: 0; }
+.cockpit-root:not(.cockpit-light) ::-webkit-scrollbar-track { background: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
   .ck-live-dot { animation: none; }
@@ -141,7 +175,7 @@
    المبدأ: السطوح الفاتحة تصبح داكنة، الحبر الداكن يصبح فاتحًا،
    والتيراكوتا تتحول لضوء أداة كهرماني.
    ============================================================ */
-.cockpit-root {
+.cockpit-root:not(.cockpit-light) {
   /* السطوح: earth-50/100 كانت فاتحة → فولاذ متدرج */
   --color-earth-50: #1b222b;
   --color-earth-100: #10141a;
@@ -286,28 +320,28 @@
 }
 
 /* عناصر theme.css ذات الألوان الصلبة */
-.cockpit-root .earth-card,
-.cockpit-root .glass-card {
+.cockpit-root:not(.cockpit-light) .earth-card,
+.cockpit-root:not(.cockpit-light) .glass-card {
   border-color: rgba(233, 221, 208, 0.09);
   border-radius: 2px;
 }
-.cockpit-root .earth-card:hover,
-.cockpit-root .glass-card:hover {
+.cockpit-root:not(.cockpit-light) .earth-card:hover,
+.cockpit-root:not(.cockpit-light) .glass-card:hover {
   border-color: rgba(233, 221, 208, 0.18);
 }
-.cockpit-root ::-webkit-scrollbar-thumb { background: #29323d; }
-.cockpit-root ::-webkit-scrollbar-thumb:hover { background: #3a4452; }
+.cockpit-root:not(.cockpit-light) ::-webkit-scrollbar-thumb { background: #29323d; }
+.cockpit-root:not(.cockpit-light) ::-webkit-scrollbar-thumb:hover { background: #3a4452; }
 
-.cockpit-root .shimmer-skeleton {
+.cockpit-root:not(.cockpit-light) .shimmer-skeleton {
   background: linear-gradient(90deg, #1b222b 25%, #232b35 50%, #1b222b 75%);
   background-size: 200% 100%;
 }
 @media (prefers-reduced-motion: reduce) {
-  .cockpit-root .shimmer-skeleton { background: #1b222b; }
+  .cockpit-root:not(.cockpit-light) .shimmer-skeleton { background: #1b222b; }
 }
 
 /* شبكة المخطط القديمة (AmbientGrid) داخل القمرة: خطوط أوضح قليلًا */
-.cockpit-root .ambient-grid-pattern {
+.cockpit-root:not(.cockpit-light) .ambient-grid-pattern {
   background-image:
     repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(233, 221, 208, 0.03) 47px, rgba(233, 221, 208, 0.03) 48px),
     repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(233, 221, 208, 0.03) 47px, rgba(233, 221, 208, 0.03) 48px);
