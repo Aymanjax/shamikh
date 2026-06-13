@@ -81,35 +81,38 @@ export function computeRoofSkeleton(
   const onSameGable = (s: { x: number; y: number }, e: { x: number; y: number }) =>
     gableSegs.some(g => pointOnSeg(s, g) && pointOnSeg(e, g));
 
-  // A ridge that reaches a gable wall perpendicularly is a stub poking into the
-  // gable region; a roof ridge should stop at the interior junction (valley/hip),
-  // not run up to the gable wall. Drop such stubs (keep ridges that run *along*
-  // a gable, i.e. the high edge of a shed).
-  const ridgeStubIntoGable = (arc: { start: { x: number; y: number }; end: { x: number; y: number } }) => {
-    const ax = arc.end.x - arc.start.x, ay = arc.end.y - arc.start.y;
-    const al = Math.hypot(ax, ay) || 1;
-    for (const g of gableSegs) {
-      const onS = pointOnSeg(arc.start, g), onE = pointOnSeg(arc.end, g);
-      if (!onS && !onE) continue;
-      const gx = g.end.x - g.start.x, gy = g.end.y - g.start.y;
-      const gl = Math.hypot(gx, gy) || 1;
-      const parallel = Math.abs((ax / al) * (gy / gl) - (ay / al) * (gx / gl)) < 1e-3;
-      if (!parallel) return true; // touches gable but not along it → perpendicular stub
-    }
-    return false;
-  };
-
+  // First pass: classify arcs, dropping sliding-along-gable traces.
+  const rawRidges: SkEdge[] = [];
   for (const arc of arcs) {
-    const dx = arc.end.x - arc.start.x;
-    const dy = arc.end.y - arc.start.y;
-    const length = Math.sqrt(dx * dx + dy * dy);
+    const length = Math.hypot(arc.end.x - arc.start.x, arc.end.y - arc.start.y);
     if (length < 1e-9) continue;
     if (onSameGable(arc.start, arc.end)) continue;
-    if (arc.eType === 'ridge' && ridgeStubIntoGable(arc)) continue;
     const edge: SkEdge = { start: arc.start, end: arc.end, length, type: arc.eType };
-    if (arc.eType === 'ridge') ridges.push(edge);
+    if (arc.eType === 'ridge') rawRidges.push(edge);
     else if (arc.eType === 'hip') hips.push(edge);
     else valleys.push(edge);
+  }
+
+  // Valley junctions: points where a valley ends. A ridge must terminate here.
+  const valleyPts = valleys.flatMap(v => [v.start, v.end]);
+  const nearValley = (p: { x: number; y: number }) =>
+    valleyPts.some(q => Math.hypot(p.x - q.x, p.y - q.y) < 0.05);
+  const gableSegAt = (p: { x: number; y: number }) => gableSegs.find(g => pointOnSeg(p, g));
+
+  // Second pass: a ridge that reaches a gable wall is the high ridge of the
+  // gabled end and is kept — UNLESS its interior end is a valley junction, in
+  // which case the ridge must stop at the valley, so drop the stub up to the wall.
+  for (const r of rawRidges) {
+    const g = gableSegAt(r.start) ? r.start : (gableSegAt(r.end) ? r.end : null);
+    if (g) {
+      const interior = (g === r.start) ? r.end : r.start;
+      const seg = gableSegAt(g)!;
+      const ax = r.end.x - r.start.x, ay = r.end.y - r.start.y, al = Math.hypot(ax, ay) || 1;
+      const gx = seg.end.x - seg.start.x, gy = seg.end.y - seg.start.y, gl = Math.hypot(gx, gy) || 1;
+      const parallel = Math.abs((ax / al) * (gy / gl) - (ay / al) * (gx / gl)) < 1e-3;
+      if (!parallel && nearValley(interior)) continue; // ridge stops at the valley
+    }
+    ridges.push(r);
   }
 
   const vertices3D = vertices.map(v => ({ x: v.x, y: v.y }));

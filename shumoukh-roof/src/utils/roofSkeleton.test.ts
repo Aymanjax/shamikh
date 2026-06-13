@@ -133,16 +133,16 @@ const near = (a: Pt, x: number, y: number, e = 0.05) =>
 const touches = (s: Seg, x: number, y: number) => near(s.start, x, y) || near(s.end, x, y);
 
 describe("computeRoofSkeleton — gable-aware engine (ridge stops at valley)", () => {
-  it("L-shape, top wall gable → ridge stays interior, no stub up to the wall", () => {
+  it("L-shape, top wall gable → ridge runs up to the wall (no valley blocks it)", () => {
     const verts = [
       { x: 0, y: 0 }, { x: 8, y: 0 }, { x: 8, y: 5 },
       { x: 4, y: 5 }, { x: 4, y: 10 }, { x: 0, y: 10 },
     ];
     const sides = verts.map((_, i) => ({ isActive: i !== 0 })); // edge 0 (top) = gable
     const sk = computeRoofSkeleton(verts, 30, sides) as unknown as Skel;
-    // no ridge runs up to the gabled top wall (y ≈ 0)
+    // the top junction has no valley, so the ridge reaches the gabled top wall (y ≈ 0)
     const onTopWall = (p: Pt) => Math.abs(p.y) < 0.05 && p.x >= -0.05 && p.x <= 8.05;
-    expect(sk.ridges.some((r) => onTopWall(r.start) || onTopWall(r.end))).toBe(false);
+    expect(sk.ridges.some((r) => onTopWall(r.start) || onTopWall(r.end))).toBe(true);
     // the gable wall is emitted, and its corners carry no hips
     expect(sk.gables.length).toBeGreaterThanOrEqual(1);
     expect(sk.hips.some((h) => touches(h, 0, 0) || touches(h, 8, 0))).toBe(false);
