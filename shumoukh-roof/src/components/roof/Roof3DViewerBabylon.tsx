@@ -1,16 +1,11 @@
 // @ts-nocheck
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import {
   Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, Color3, Color4,
   MeshBuilder, VertexData, StandardMaterial, Mesh,
   LinesMesh, CreateGround, CreateLines,
 } from "@babylonjs/core";
 import { createRoofVertexData } from "../../utils/roofGeometry";
-import {
-  ensureOCCT, isOCCTReady,
-  generateRoof3D,
-  occtShapeToBabylonMesh,
-} from "../../services/occt";
 
 const COLORS = {
   ridge: new Color3(1, 0.3, 0.1),
@@ -31,52 +26,60 @@ const VIEWS = {
   left: { alpha: Math.PI, beta: Math.PI / 3, radius: 20 },
 };
 
-/* ---------- legacy height map + VertexData (fallback) ---------- */
+/* ---------- gable-aware height map + VertexData ---------- */
 
-function buildHeightMap(skeleton, slopeFactor) {
+// distance from point p to segment a→b
+function ptSegDist(p, a, b) {
+  const ex = b.x - a.x, ey = b.y - a.y;
+  const l2 = ex * ex + ey * ey;
+  if (l2 < 1e-9) return Math.hypot(p.x - a.x, p.y - a.y);
+  let t = ((p.x - a.x) * ex + (p.y - a.y) * ey) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p.x - (a.x + t * ex), p.y - (a.y + t * ey));
+}
+
+// eave edges = polygon edges that are NOT gable walls (gables stay vertical)
+function eaveEdges(vertices, skeleton) {
+  const gables = skeleton?.gables || [];
+  const sameEdge = (g, a, b) => {
+    const m = (p, q) => Math.hypot(p.x - q.x, p.y - q.y) < 0.05;
+    return (m(g.start, a) && m(g.end, b)) || (m(g.start, b) && m(g.end, a));
+  };
+  const eaves = [];
+  const n = vertices.length;
+  for (let i = 0; i < n; i++) {
+    const a = vertices[i], b = vertices[(i + 1) % n];
+    if (Math.hypot(b.x - a.x, b.y - a.y) < 1e-6) continue;
+    if (!gables.some((g) => sameEdge(g, a, b))) eaves.push([a, b]);
+  }
+  return eaves;
+}
+
+// Roof height at a vertex = distance to the nearest eave × slope. Gable-wall
+// vertices end up raised (their nearest eave is far), giving a vertical gable.
+function buildHeightMap(skeleton, slopeFactor, vertices) {
   const map = {};
   if (!skeleton?.faces) return map;
+  const eaves = eaveEdges(vertices || [], skeleton);
+  if (eaves.length === 0) return map;
+  const heightAt = (v) => {
+    let m = Infinity;
+    for (const [a, b] of eaves) { const d = ptSegDist(v, a, b); if (d < m) m = d; }
+    return m * slopeFactor;
+  };
   for (const face of skeleton.faces) {
-    if (face.length < 3) continue;
-    const vs = face.map((p) => ({ x: p.x, y: p.y }));
-    const cx = vs.reduce((s, v) => s + v.x, 0) / vs.length;
-    const cy = vs.reduce((s, v) => s + v.y, 0) / vs.length;
-    const faceCenter = { x: cx, y: cy };
-
-    let minDist = Infinity;
-    let closestEdge = null;
-    const n = face.length;
-    for (let i = 0; i < n; i++) {
-      const a = face[i];
-      const b = face[(i + 1) % n];
-      const ex = b.x - a.x, ey = b.y - a.y;
-      const len = Math.sqrt(ex * ex + ey * ey);
-      if (len < 0.001) continue;
-      const t = Math.max(0, Math.min(1, ((faceCenter.x - a.x) * ex + (faceCenter.y - a.y) * ey) / (len * len)));
-      const px = a.x + t * ex, py = a.y + t * ey;
-      const d = Math.sqrt((faceCenter.x - px) ** 2 + (faceCenter.y - py) ** 2);
-      if (d < minDist) { minDist = d; closestEdge = { a, b }; }
-    }
-
-    if (!closestEdge) continue;
-
-    const roofHeight = minDist * slopeFactor;
-
-    for (const v of vs) {
+    for (const v of face) {
       const key = `${v.x.toFixed(4)},${v.y.toFixed(4)}`;
-      const existing = map[key];
-      if (existing === undefined || roofHeight > existing) {
-        map[key] = roofHeight;
-      }
+      if (map[key] === undefined) map[key] = heightAt(v);
     }
   }
   return map;
 }
 
-function buildRoofMesh(skeleton, slopeFactor, scene) {
+function buildRoofMesh(skeleton, slopeFactor, scene, vertices) {
   if (!skeleton?.faces || skeleton.faces.length === 0) return null;
 
-  const heightMap = buildHeightMap(skeleton, slopeFactor);
+  const heightMap = buildHeightMap(skeleton, slopeFactor, vertices);
   const vd = createRoofVertexData(skeleton, heightMap);
   if (!vd.positions || vd.positions.length === 0) return null;
 
@@ -91,26 +94,6 @@ function buildRoofMesh(skeleton, slopeFactor, scene) {
   mesh.receiveShadows = true;
 
   return mesh;
-}
-
-/* ---------- OCCT-powered mesh builder ---------- */
-
-function buildOcctRoofMesh(vertices, skeleton, slope, scene) {
-  const roof3d = generateRoof3D(skeleton, vertices, slope);
-  if (!roof3d || !roof3d.shape) {
-    return { mesh: null, stats: null };
-  }
-
-  const mesh = occtShapeToBabylonMesh(roof3d.shape, scene, "occt-roof");
-
-  const mat = new StandardMaterial("occtRoofMat", scene);
-  mat.diffuseColor = COLORS.roofOcct;
-  mat.specularColor = new Color3(0.05, 0.05, 0.05);
-  mat.backFaceCulling = true;
-  mesh.material = mat;
-  mesh.receiveShadows = true;
-
-  return { mesh, stats: roof3d.stats };
 }
 
 /* ---------- shared skeleton line builder ---------- */
@@ -175,32 +158,7 @@ export default function Roof3DViewerBabylon({ vertices, skeleton, slope, tile })
   const meshesRef = useRef([]);
   const animRef = useRef(null);
 
-  const [occtState, setOcctState] = useState({
-    loading: false,
-    ready: false,
-    error: null,
-    stats: null,
-    engine: "legacy", // "occt" | "legacy"
-  });
-
   const slopeFactor = slope ? slope / 100 : 0.4;
-
-  // Initialise OCCT engine on mount
-  useEffect(() => {
-    if (!skeleton || !vertices || vertices.length < 3) return;
-
-    setOcctState((s) => ({ ...s, loading: true }));
-
-    ensureOCCT().then(({ ready, error }) => {
-      setOcctState((s) => ({
-        ...s,
-        loading: false,
-        ready,
-        error,
-        engine: ready ? "occt" : "legacy",
-      }));
-    });
-  }, [skeleton, vertices]);
 
   const buildScene = useCallback(() => {
     const canvas = canvasRef.current;
@@ -243,29 +201,13 @@ export default function Roof3DViewerBabylon({ vertices, skeleton, slope, tile })
     groundMat.alpha = 0.5;
     ground.material = groundMat;
 
-    // -- Build roof geometry ----------------------------------------
+    // -- Build roof geometry (GPU mesh from our gable-aware skeleton) ----
     if (skeleton && vertices?.length >= 3) {
-      if (occtState.ready && isOCCTReady()) {
-        // OCCT-powered solid
-        try {
-          const { mesh, stats } = buildOcctRoofMesh(vertices, skeleton, slope, scene);
-          if (mesh) {
-            meshesRef.current.push(mesh);
-            setOcctState((s) => ({ ...s, stats }));
-          }
-        } catch (err) {
-          console.warn("[OCCT] build failed, falling back:", err);
-          const legacy = buildRoofMesh(skeleton, slopeFactor, scene);
-          if (legacy) meshesRef.current.push(legacy);
-        }
-      } else {
-        // Legacy VertexData path
-        const legacy = buildRoofMesh(skeleton, slopeFactor, scene);
-        if (legacy) meshesRef.current.push(legacy);
-      }
+      const roof = buildRoofMesh(skeleton, slopeFactor, scene, vertices);
+      if (roof) meshesRef.current.push(roof);
 
-      // Skeleton lines (with 3D heights when available)
-      const heightMap = buildHeightMap(skeleton, slopeFactor);
+      // Skeleton lines (ridges/hips/valleys) lifted to their 3D heights
+      const heightMap = buildHeightMap(skeleton, slopeFactor, vertices);
       const skelLines = buildSkeletonLines(skeleton, heightMap, scene);
       meshesRef.current.push(...skelLines);
     }
@@ -282,7 +224,7 @@ export default function Roof3DViewerBabylon({ vertices, skeleton, slope, tile })
       engine.dispose();
       window.removeEventListener("resize", resize);
     };
-  }, [vertices, skeleton, slopeFactor, occtState.ready]);
+  }, [vertices, skeleton, slopeFactor]);
 
   useEffect(() => {
     buildScene();
@@ -323,38 +265,7 @@ export default function Roof3DViewerBabylon({ vertices, skeleton, slope, tile })
             </button>
           ))}
         </div>
-
-        {/* Engine badge */}
-        <div className="ml-auto flex items-center gap-2">
-          {occtState.loading && (
-            <span className="px-2 py-0.5 text-[9px] font-bold bg-blue-500/30 backdrop-blur-sm text-blue-200 rounded-full border border-blue-400/20 animate-pulse">
-              تحميل محرك CAD…
-            </span>
-          )}
-          {occtState.ready && (
-            <span className="px-2 py-0.5 text-[9px] font-bold bg-emerald-500/30 backdrop-blur-sm text-emerald-200 rounded-full border border-emerald-400/20">
-              OCCT
-            </span>
-          )}
-          {!occtState.loading && !occtState.ready && (
-            <span className="px-2 py-0.5 text-[9px] font-bold bg-amber-500/20 backdrop-blur-sm text-amber-200/60 rounded-full border border-amber-400/10">
-              VertexData
-            </span>
-          )}
-          {occtState.stats && (
-            <span className="px-2 py-0.5 text-[9px] font-mono bg-black/40 backdrop-blur-sm text-paper/60 rounded-lg border border-white/10">
-              {occtState.stats.totalArea.toFixed(1)} م²
-            </span>
-          )}
-        </div>
       </div>
-
-      {/* Error overlay */}
-      {occtState.error && (
-        <div className="absolute top-12 left-2 z-10 bg-red-500/20 backdrop-blur-sm border border-red-400/30 rounded-lg px-2.5 py-1">
-          <span className="text-[9px] text-red-200">OCCT: {occtState.error}</span>
-        </div>
-      )}
 
       <canvas ref={canvasRef} className="w-full h-[400px] rounded-2xl" style={{ height: "400px" }} />
     </div>
