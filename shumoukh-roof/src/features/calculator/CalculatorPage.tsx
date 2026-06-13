@@ -112,7 +112,7 @@ export default function CalculatorPage() {
   const [input, setInput] = useState({
     slope: 40, numLegs: 6, legHeight: 2.7,
     withDecor: true, enableInsulation: false,
-    tileIndex: 0,
+    tileIndex: 0, breakagePercent: 5,
   });
   const [customFields, setCustomFields] = useState([]);
   const [dragIdx, setDragIdx] = useState(null);
@@ -171,6 +171,7 @@ export default function CalculatorPage() {
       if (settings?.legHeight != null) setInput((prev) => ({ ...prev, legHeight: settings.legHeight }));
       if (settings?.withDecor != null) setInput((prev) => ({ ...prev, withDecor: settings.withDecor }));
       if (settings?.enableInsulation != null) setInput((prev) => ({ ...prev, enableInsulation: settings.enableInsulation }));
+      if (settings?.breakagePercent != null) setInput((prev) => ({ ...prev, breakagePercent: settings.breakagePercent }));
       setProjectLoading(false);
     });
     return () => { cancelled = true; };
@@ -453,6 +454,7 @@ export default function CalculatorPage() {
     slopePercent: input.slope, spacingCm: 55,
     numLegs: input.numLegs, legHeight: input.legHeight,
     withDecor: input.withDecor, enableInsulation: input.enableInsulation, tile,
+    breakagePercent: input.breakagePercent,
   }), [sides, vertices, area, boundingDims, input, tile, skeletonVer]);
 
   const costResult = useMemo(() => {
@@ -719,6 +721,26 @@ export default function CalculatorPage() {
                   ))}
                 </div>
               </div>
+            </div>
+
+            <div className="mt-4 p-3 rounded-sm bg-earth-50 border border-earth-200">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[9px] text-earth-500 font-bold tracking-wider">نسبة الكسر / الهدر للقرميد</label>
+                <span className="text-[10px] font-black font-mono text-terracotta-500">{input.breakagePercent}%</span>
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                {[0, 5, 7, 10].map((v) => (
+                  <button key={v} onClick={() => setInput((p) => ({ ...p, breakagePercent: v }))}
+                    className={`px-3 py-1 rounded-sm text-[10px] font-bold border transition cursor-pointer ${input.breakagePercent === v ? "bg-terracotta-100 border-terracotta-300 text-terracotta-600" : "bg-white border-earth-300 text-earth-500 hover:border-terracotta-300"}`}>
+                    {v === 0 ? "بدون" : `${v}%`}
+                  </button>
+                ))}
+              </div>
+              {closed && result.tilesBreakage > 0 && (
+                <p className="text-[9px] text-earth-500 mt-2">
+                  يضيف <strong className="text-terracotta-500 font-mono">{result.tilesBreakage}</strong> حبة احتياطي كسر وقصّ (عند الأودية والحواف)
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2 mt-4">
