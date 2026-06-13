@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { computeStraightSkeleton } from "./straightSkeleton";
+import { computeRoofSkeleton as computeEventSkeleton } from "./skeleton";
 import { initCGAL, isCGALReady, computeCGALSkeleton, cgalReady } from "./roofSkeletonCGAL";
 
 const EPS = 0.001;
@@ -54,6 +55,20 @@ export function computeRoofSkeleton(vertices, _slopePercent, sides) {
 
     coords = coords.filter((c, i, a) => dist(c[0], c[1], a[(i+1)%a.length][0], a[(i+1)%a.length][1]) >= EPS);
     if (coords.length < 3) return _empty("أضلاع متكررة — راجع الشكل");
+
+    // محرك الأحداث (edge + split events) يحسب الشدّات بدقة للأشكال المعقّدة
+    // والوديان دون تقاطع. نستخدمه عندما لا توجد جدران معطّلة (لا يدعم الجملونات).
+    const anyDisabled = sides && sides.some((sd) => sd && sd.isActive === false);
+    if (!anyDisabled) {
+      try {
+        const ev = computeEventSkeleton(coords.map((c) => ({ x: c[0], y: c[1] })));
+        if (ev && (ev.ridges.length || ev.hips.length || ev.valleys.length)) {
+          return { ridges: ev.ridges, hips: ev.hips, valleys: ev.valleys, gables: [], faces: [], faceHeights: [] };
+        }
+      } catch (e) {
+        console.warn("event skeleton failed, falling back to iterative:", e);
+      }
+    }
 
     coords = ensureCCW(coords);
     const nOrig = coords.length;

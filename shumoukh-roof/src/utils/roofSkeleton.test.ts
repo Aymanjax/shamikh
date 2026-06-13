@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { customRectRoof } from "./roofSkeleton";
 
+type Pt = { x: number; y: number };
+type Seg = { start: Pt; end: Pt; length: number; type: string };
+type Face = { poly: Pt[]; eave: { ax: number; ay: number; bx: number; by: number } };
+type Skel = { ridges: Seg[]; hips: Seg[]; valleys: Seg[]; gables: Seg[]; slopeFaces: Face[] };
+
 // Rectangle 10 (W) × 6 (H), vertices ordered TL, TR, BR, BL (screen coords, y-down).
 // Edge → role mapping (from _mapSideRoles): 0=top, 1=right, 2=bottom, 3=left.
 const ROLES = ["top", "right", "bottom", "left"] as const;
@@ -14,14 +19,14 @@ function rect(disabled: Role[] = []) {
     { x: 0, y: 6 }, // BL
   ];
   const sides = ROLES.map((role) => ({ isActive: !disabled.includes(role) }));
-  return customRectRoof(verts, sides) as any;
+  return customRectRoof(verts, sides) as unknown as Skel;
 }
 
-const allSegs = (res: any) => [...res.ridges, ...res.hips, ...res.valleys, ...res.gables];
+const allSegs = (res: Skel) => [...res.ridges, ...res.hips, ...res.valleys, ...res.gables];
 
 /** Every endpoint must stay inside the rectangle — the core "lines don't escape/cross" guard. */
-function endpointsInBounds(res: any) {
-  return allSegs(res).every((e: any) =>
+function endpointsInBounds(res: Skel) {
+  return allSegs(res).every((e: Seg) =>
     e.start.x >= -0.01 && e.start.x <= 10.01 && e.start.y >= -0.01 && e.start.y <= 6.01 &&
     e.end.x >= -0.01 && e.end.x <= 10.01 && e.end.y >= -0.01 && e.end.y <= 6.01);
 }
@@ -63,7 +68,7 @@ describe("customRectRoof — unified analytic solver", () => {
     // Hip runs from the active–active corner (BR) to the ridge end.
     const hip = res.hips[0];
     const corners = [hip.start, hip.end];
-    expect(corners.some((p: any) => Math.abs(p.x - 10) < 0.01 && Math.abs(p.y - 6) < 0.01)).toBe(true);
+    expect(corners.some((p: Pt) => Math.abs(p.x - 10) < 0.01 && Math.abs(p.y - 6) < 0.01)).toBe(true);
   });
 
   it("three walls disabled (only bottom active) → mono-pitch ridge, no hips", () => {
