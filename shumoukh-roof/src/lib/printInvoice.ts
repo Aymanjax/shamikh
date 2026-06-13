@@ -59,6 +59,17 @@ export function printCalculatorResult(result: any, input: any, tileName: string,
 
 export function printInvoice(invoice: any) {
   const statusMap: Record<string, string> = { paid: "مدفوعة", pending: "قيد الانتظار", draft: "مسودة" };
+  const items: Array<{ desc?: string; qty?: number; price?: number }> = Array.isArray(invoice.items) ? invoice.items : [];
+  const subtotal = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.price) || 0), 0);
+  const grandTotal = items.length ? subtotal : Number(invoice.amount) || 0;
+  const itemsHtml = items.length
+    ? `<table>
+        <thead><tr><th>#</th><th>البند</th><th>الكمية</th><th>السعر</th><th>المجموع</th></tr></thead>
+        <tbody>
+          ${items.map((it, i) => `<tr><td>${i + 1}</td><td>${it.desc || "—"}</td><td>${it.qty ?? 0}</td><td>${(Number(it.price) || 0).toFixed(2)}</td><td>${((Number(it.qty) || 0) * (Number(it.price) || 0)).toFixed(2)}</td></tr>`).join("")}
+        </tbody>
+      </table>`
+    : "";
   const win = window.open("", "_blank");
   if (!win) return;
   win.document.write(`
@@ -74,6 +85,10 @@ export function printInvoice(invoice: any) {
       .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
       .box div { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
       .box span { color: #64748b; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 8px; }
+      th { background: #1e293b; color: white; padding: 8px 12px; text-align: right; }
+      td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; }
+      tr:nth-child(even) td { background: #f8fafc; }
       .total { background: #3b82f6; color: white; padding: 12px 20px; border-radius: 8px; margin-top: 16px; display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; }
       .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #94a3b8; }
       @media print { body { padding: 0; } }
@@ -88,7 +103,8 @@ export function printInvoice(invoice: any) {
         <div><span>المشروع</span>${invoice.project || "—"}</div>
         <div><span>الحالة</span>${statusMap[invoice.status] || invoice.status}</div>
       </div>
-      <div class="total"><span>المبلغ</span><span>${invoice.amount || 0} د.أ</span></div>
+      ${itemsHtml}
+      <div class="total"><span>المبلغ الإجمالي</span><span>${grandTotal.toFixed(2)} د.أ</span></div>
       <div class="footer">www.shumoukh.com</div>
       <script>window.print();window.close();</script>
     </body></html>
