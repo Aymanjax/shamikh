@@ -1,31 +1,21 @@
 // @ts-nocheck
 import { MARKET_LENGTHS } from "./constants";
 import { computeRoofSkeleton, calcTarabeeshFromSkeleton, customRectRoof } from "./roofSkeleton";
+import {
+  calcActualArea, calcFacadeTotal, calcIron4x8, calcIron10x10, calcDecorOptimal,
+  calcDecorBundles, calcDecorBrooz, calcBesh, calcWoodBases, calcTarpaulin,
+  calcTiles, calcTileStarts, calcTarabeesh, calcInsulation,
+  optimizeBorders, optimizeIronFrame, optimizeBorderSections,
+} from "./tileMath";
 
-export function calcActualArea(length: number, width: number, slopePercent: number) {
-  const flat = length * width;
-  const s = slopePercent / 100;
-  const slp = Math.sqrt(1 + s * s);
-  return { flatArea: flat, actualArea: flat * slp, slopeMultiplier: slp };
-}
-
-export function calcFacadeTotal(numFacades: number, length: number, width: number) {
-  if (numFacades === 2) return +(length + width).toFixed(2);
-  if (numFacades === 3) return +(length * 2 + width).toFixed(2);
-  if (numFacades === 4) return +(2 * (length + width)).toFixed(2);
-  return 0;
-}
-
-export function calcIron4x8(actualArea: number) {
-  return Math.ceil(actualArea / 2);
-}
-
-export function calcIron10x10(totalFacadeLength: number, numLegs: number, legHeight: number) {
-  const frame = Math.ceil(totalFacadeLength / 6);
-  const piecesPerTube = legHeight > 0 ? Math.floor(6 / legHeight) : 0;
-  const legs = piecesPerTube > 0 ? Math.ceil(numLegs / piecesPerTube) : 0;
-  return { frame, legs, total: frame + legs };
-}
+// Re-export the typed core formulas (now living in tileMath.ts, type-checked +
+// unit-tested) so existing import sites keep working unchanged.
+export {
+  calcActualArea, calcFacadeTotal, calcIron4x8, calcIron10x10, calcDecorOptimal,
+  calcDecorBundles, calcDecorBrooz, calcBesh, calcWoodBases, calcTarpaulin,
+  calcTiles, calcTileStarts, calcTarabeesh, calcInsulation,
+  optimizeBorders, optimizeIronFrame, optimizeBorderSections,
+} from "./tileMath";
 
 export function suggestLegs(sides: any[], maxSpan = 4) {
   if (!sides || sides.length === 0) return null;
@@ -49,163 +39,8 @@ export function suggestLegs(sides: any[], maxSpan = 4) {
   return { min, max, total, label: `${total} أرجل` };
 }
 
-export function optimizeIronFrame(sections: number[], carryWaste = true) {
-  if (!sections || sections.length === 0) return null;
-  const optimized: any[] = [];
-  let carry = 0;
-  for (let i = 0; i < sections.length; i++) {
-    const origLen = sections[i];
-    const effLen = Math.max(0, origLen - carry);
-    const pieces = effLen > 0 ? Math.ceil(effLen / 6) : 0;
-    const bought = pieces * 6;
-    const waste = +(bought - effLen).toFixed(2);
-    optimized.push({ sectionIndex: i, requiredLength: origLen, effectiveLength: effLen, pieces, bought, waste });
-    carry = carryWaste && waste > 2 ? waste : 0;
-  }
-  const totalNeeded = sections.reduce((s, l) => s + l, 0);
-  const totalPieces = optimized.reduce((s, o) => s + o.pieces, 0);
-  const totalBought = totalPieces * 6;
-  return { sections: optimized, totalPieces, total: totalBought, totalNeeded, waste: +(totalBought - totalNeeded).toFixed(2), wastePercent: totalNeeded > 0 ? +((totalBought / totalNeeded - 1) * 100).toFixed(1) : 0 };
-}
-
-export function calcDecorOptimal(minSide: number, availableLengths: number[]) {
-  if (minSide <= 0) return { optimalLen: 0, wasteCm: 0 };
-  for (const l of availableLengths) {
-    if (l >= minSide) return { optimalLen: l, wasteCm: Math.round((l - minSide) * 100) };
-  }
-  const last = availableLengths[availableLengths.length - 1];
-  return { optimalLen: last, wasteCm: Math.round((last - minSide) * 100) };
-}
-
-export function calcDecorBundles(maxSide: number) {
-  if (maxSide <= 0) return 0;
-  return Math.round(maxSide / 0.90);
-}
-
-export function calcDecorBrooz(facadeCount: number, optimalLen: number) {
-  if (!facadeCount || !optimalLen) return { sheets: 0, bundles: 0, len: 0 };
-  const sheets = facadeCount * 3;
-  const bundles = Math.ceil(sheets / 10);
-  return { sheets, bundles, len: optimalLen };
-}
-
-export function optimizeBorders(totalLength: number) {
-  if (totalLength <= 0) return { lengths: {} as Record<string, number>, total: 0, platesTotal: 0, waste: 0, wastePercent: 0 };
-  let fullSixes = 0;
-  let remainder = totalLength;
-  if (totalLength > 12) {
-    fullSixes = Math.floor(totalLength / 6) - 1;
-    remainder = totalLength - fullSixes * 6;
-  }
-  let bestSum = Infinity;
-  let bestCombo: number[] = [];
-  for (const l of MARKET_LENGTHS) {
-    if (l >= remainder && l < bestSum) { bestSum = l; bestCombo = [l]; }
-  }
-  for (const l1 of MARKET_LENGTHS) {
-    for (const l2 of MARKET_LENGTHS) {
-      const sum = l1 + l2;
-      if (sum >= remainder && sum < bestSum) { bestSum = sum; bestCombo = [l1, l2]; }
-    }
-  }
-  const lengths: Record<string, number> = {};
-  if (fullSixes > 0) lengths[6.0] = fullSixes;
-  bestCombo.forEach((len) => { lengths[len] = (lengths[len] || 0) + 1; });
-  return {
-    lengths, total: +(fullSixes * 6 + bestSum).toFixed(2),
-    platesTotal: (fullSixes > 0 ? fullSixes : 0) + bestCombo.length,
-    waste: +((fullSixes * 6 + bestSum) - totalLength).toFixed(2),
-    wastePercent: +((((fullSixes * 6 + bestSum) / totalLength) - 1) * 100).toFixed(1),
-  };
-}
-
-export function optimizeBorderSections(sections: number[]) {
-  if (!sections || sections.length === 0) return null;
-  const optimized: any[] = [];
-  let carry = 0;
-  for (let i = 0; i < sections.length; i++) {
-    const origLen = sections[i];
-    const effLen = Math.max(0, origLen - carry);
-    const opt = optimizeBorders(effLen);
-    optimized.push({ sectionIndex: i, requiredLength: origLen, effectiveLength: effLen, ...opt });
-    carry = opt.waste > 2 ? opt.waste : 0;
-  }
-  const totalNeeded = sections.reduce((s, l) => s + l, 0);
-  const totalBought = optimized.reduce((s, o) => s + o.total, 0);
-  const allLengths: Record<string, number> = {};
-  optimized.forEach((o) => {
-    Object.entries(o.lengths).forEach(([len, count]) => {
-      allLengths[len] = (allLengths[len] || 0) + (count as number);
-    });
-  });
-  return { sections: optimized, lengths: allLengths, total: totalBought, platesTotal: optimized.reduce((s, o) => s + o.platesTotal, 0), totalNeeded, waste: +(totalBought - totalNeeded).toFixed(2), wastePercent: totalNeeded > 0 ? +((totalBought / totalNeeded - 1) * 100).toFixed(1) : 0 };
-}
-
-export function calcBesh(actualArea: number, withDecor: boolean) {
-  if (withDecor) return Math.ceil(actualArea);
-  return Math.ceil(actualArea / 2);
-}
-
-export function calcWoodBases(sharshefLength: number, spacingCm = 55) {
-  if (sharshefLength <= 0) return 0;
-  return Math.ceil(sharshefLength / (spacingCm / 100));
-}
-
-export function calcTarpaulin(actualArea: number) {
-  if (actualArea <= 0) return { text: "0 رول", rolls50: 0, rolls25: 0, rolls75: 0 };
-  if (actualArea <= 25) return { text: "1 رول (25م)", rolls50: 0, rolls25: 1, rolls75: 0 };
-  const full50 = Math.floor(actualArea / 50);
-  const remainder = actualArea % 50;
-  let text: string, rolls50 = full50, rolls25 = 0, rolls75 = 0;
-  if (remainder === 0) {
-    rolls75 = Math.ceil(full50 / 1.5);
-    text = `${full50} رول (50م)`;
-  } else if (remainder <= 25) {
-    rolls25 = 1;
-    text = full50 > 0 ? `${full50} رول (50م) + 1 رول (25م)` : "1 رول (25م)";
-  } else {
-    rolls50 = full50 + 1;
-    text = `${full50 + 1} رول (50م)`;
-  }
-  return { text, rolls50, rolls25, rolls75 };
-}
-
-export function calcTiles(actualArea: number, tile: any) {
-  return Math.ceil(actualArea * tile.count);
-}
-
-export function calcTileStarts(numFacades: number) {
-  return numFacades || 0;
-}
-
-export function calcTarabeesh(length: number, width: number, slopePercent: number, roofType = "hip", activeRatio = 1) {
-  if (!length || !width || !slopePercent) return 0;
-  const shorter = Math.min(length, width);
-  const longer = Math.max(length, width);
-  const slope = slopePercent / 100;
-  const height = (shorter / 2) * slope;
-  if (roofType === "shed") return 0;
-  if (roofType === "gable") {
-    const ridge = longer;
-    const gableEdge = Math.sqrt((shorter / 2) * (shorter / 2) + height * height);
-    const numEdges = Math.round(activeRatio * 2);
-    const total = ridge + numEdges * gableEdge;
-    return +total.toFixed(2);
-  }
-  const ridge = longer - shorter;
-  const horizontalDiag = shorter / Math.sqrt(2);
-  const slopedHip = Math.sqrt(horizontalDiag * horizontalDiag + height * height);
-  const numHips = Math.round(activeRatio * 4);
-  const total = ridge + numHips * slopedHip;
-  return +total.toFixed(2);
-}
-
-export function calcInsulation(actualArea: number, totalFacadeLength: number, iron4x8: number) {
-  return { zaftaRolls: Math.ceil(actualArea / 9), latiSheets: Math.ceil(actualArea / 2.9), zaftaRulers: Math.round((iron4x8 || 0) * 0.75) };
-}
-
 export function calcAll(input: any) {
-  const { slopePercent = 20, spacingCm = 55, numLegs = 6, legHeight = 2.7, withDecor = true, enableInsulation = false, tile, ironCarryWaste = true } = input;
+  const { slopePercent = 20, spacingCm = 55, numLegs = 6, legHeight = 2.7, withDecor = true, enableInsulation = false, tile, ironCarryWaste = true, breakagePercent = 0 } = input;
 
   if (input.sides && input.sides.length > 0) {
     const s = slopePercent / 100;
@@ -269,7 +104,9 @@ export function calcAll(input: any) {
         faces: skel.faces || [],
       };
     }
-    return { flatArea: +totalFlat.toFixed(2), actualArea: +actual.toFixed(2), slopeMultiplier: slopeMul, totalFacadeLength, iron4x8: ir4, iron10x10: { frame: ironFrame.totalPieces, legs: ironLegs, total: ironFrame.totalPieces + ironLegs }, ironFrame, tarabeeshTubes, totalIronAll: ir4 + ironFrame.totalPieces + ironLegs + tarabeeshTubes, decor: { optimalLen: decorOpt.optimalLen, wasteCm: decorOpt.wasteCm, bundles: decorBundles }, decorBrooz: calcDecorBrooz(facadeSides.length, decorOpt.optimalLen), beshQty: calcBesh(actual, withDecor), woodBases: wb, borders, tarpaulin: calcTarpaulin(actual), totalTiles: calcTiles(actual, tile), tileStarts: cornerStarts, tarabeesh: tarabeeshVal, longAsas, metalSheets, nonFacadeTotal, tileSelected: tile, insulation: ins, roofSkeleton: displaySkeleton };
+    const totalTilesBase = calcTiles(actual, tile, 0);
+    const totalTiles = calcTiles(actual, tile, breakagePercent);
+    return { flatArea: +totalFlat.toFixed(2), actualArea: +actual.toFixed(2), slopeMultiplier: slopeMul, totalFacadeLength, iron4x8: ir4, iron10x10: { frame: ironFrame.totalPieces, legs: ironLegs, total: ironFrame.totalPieces + ironLegs }, ironFrame, tarabeeshTubes, totalIronAll: ir4 + ironFrame.totalPieces + ironLegs + tarabeeshTubes, decor: { optimalLen: decorOpt.optimalLen, wasteCm: decorOpt.wasteCm, bundles: decorBundles }, decorBrooz: calcDecorBrooz(facadeSides.length, decorOpt.optimalLen), beshQty: calcBesh(actual, withDecor), woodBases: wb, borders, tarpaulin: calcTarpaulin(actual), totalTiles, totalTilesBase, breakagePercent, tilesBreakage: totalTiles - totalTilesBase, tileStarts: cornerStarts, tarabeesh: tarabeeshVal, longAsas, metalSheets, nonFacadeTotal, tileSelected: tile, insulation: ins, roofSkeleton: displaySkeleton };
   }
 
   if (input.sections && input.sections.length > 0) {
@@ -295,7 +132,9 @@ export function calcAll(input: any) {
     const wb = borders.sections.reduce((sum: number, sec: any) => sum + calcWoodBases(sec.requiredLength, spacingCm), 0);
     const ir4 = calcIron4x8(actual);
     const ins = enableInsulation ? calcInsulation(actual, totalFacade, ir4) : null;
-    return { flatArea: +totalFlat.toFixed(2), actualArea: +actual.toFixed(2), slopeMultiplier: slopeMul, totalFacadeLength: totalFacade, iron4x8: ir4, iron10x10: calcIron10x10(totalFacade, numLegs, legHeight), ironFrame: null, decor: { optimalLen: decorOpt.optimalLen, wasteCm: decorOpt.wasteCm, bundles: withDecor ? decorBundlesTotal : 0 }, decorBrooz: calcDecorBrooz(input.sections.reduce((sum: number, sec: any) => sum + (sec.numFacades || 2), 0), decorOpt.optimalLen), beshQty: input.sections.reduce((sum: number, sec: any) => sum + calcBesh(sec.length * sec.width * slopeMul, withDecor), 0), woodBases: wb, borders, tarpaulin: calcTarpaulin(actual), totalTiles: calcTiles(actual, tile), tileStarts: input.sections.reduce((sum: number, sec: any) => sum + calcTileStarts(sec.numFacades || 2), 0), tarabeesh: calcTarabeesh(largestMax, largestMin, slopePercent), tarabeeshTubes: Math.ceil(calcTarabeesh(largestMax, largestMin, slopePercent) / 6), totalIronAll: ir4 + calcIron10x10(totalFacade, numLegs, legHeight).total + Math.ceil(calcTarabeesh(largestMax, largestMin, slopePercent) / 6), longAsas: 0, metalSheets: 0, nonFacadeTotal: 0, tileSelected: tile, insulation: ins };
+    const totalTilesBase = calcTiles(actual, tile, 0);
+    const totalTiles = calcTiles(actual, tile, breakagePercent);
+    return { flatArea: +totalFlat.toFixed(2), actualArea: +actual.toFixed(2), slopeMultiplier: slopeMul, totalFacadeLength: totalFacade, iron4x8: ir4, iron10x10: calcIron10x10(totalFacade, numLegs, legHeight), ironFrame: null, decor: { optimalLen: decorOpt.optimalLen, wasteCm: decorOpt.wasteCm, bundles: withDecor ? decorBundlesTotal : 0 }, decorBrooz: calcDecorBrooz(input.sections.reduce((sum: number, sec: any) => sum + (sec.numFacades || 2), 0), decorOpt.optimalLen), beshQty: input.sections.reduce((sum: number, sec: any) => sum + calcBesh(sec.length * sec.width * slopeMul, withDecor), 0), woodBases: wb, borders, tarpaulin: calcTarpaulin(actual), totalTiles, totalTilesBase, breakagePercent, tilesBreakage: totalTiles - totalTilesBase, tileStarts: input.sections.reduce((sum: number, sec: any) => sum + calcTileStarts(sec.numFacades || 2), 0), tarabeesh: calcTarabeesh(largestMax, largestMin, slopePercent), tarabeeshTubes: Math.ceil(calcTarabeesh(largestMax, largestMin, slopePercent) / 6), totalIronAll: ir4 + calcIron10x10(totalFacade, numLegs, legHeight).total + Math.ceil(calcTarabeesh(largestMax, largestMin, slopePercent) / 6), longAsas: 0, metalSheets: 0, nonFacadeTotal: 0, tileSelected: tile, insulation: ins };
   }
 
   const { length = 5, width = 4, numFacades = 2 } = input;
@@ -311,12 +150,13 @@ export function calcAll(input: any) {
   const borders = input.borderSections?.length ? optimizeBorderSections(input.borderSections) : optimizeBorders(totalFacadeLength);
   const woodBases = input.borderSections?.length ? borders!.sections.reduce((sum: number, sec: any) => sum + calcWoodBases(sec.requiredLength, spacingCm), 0) : calcWoodBases(borders.total, spacingCm);
   const tarpaulin = calcTarpaulin(actualArea);
-  const totalTiles = calcTiles(actualArea, tile);
+  const totalTilesBase = calcTiles(actualArea, tile, 0);
+  const totalTiles = calcTiles(actualArea, tile, breakagePercent);
   const tileStarts = calcTileStarts(numFacades);
   const tarabeesh = calcTarabeesh(length, width, slopePercent);
   const tarabeeshTubes = Math.ceil(tarabeesh / 6);
   const insulation = enableInsulation ? calcInsulation(actualArea, totalFacadeLength, iron4x8) : null;
-  return { flatArea, actualArea, slopeMultiplier, totalFacadeLength, iron4x8, iron10x10, ironFrame: null, tarabeeshTubes, totalIronAll: iron4x8 + iron10x10.total + tarabeeshTubes, decor: { optimalLen: decorOptimal.optimalLen, wasteCm: decorOptimal.wasteCm, bundles: decorBundles }, decorBrooz: calcDecorBrooz(numFacades, decorOptimal.optimalLen), beshQty, woodBases, borders, tarpaulin, totalTiles, tileStarts, tarabeesh, longAsas: 0, metalSheets: 0, nonFacadeTotal: 0, tileSelected: tile, insulation };
+  return { flatArea, actualArea, slopeMultiplier, totalFacadeLength, iron4x8, iron10x10, ironFrame: null, tarabeeshTubes, totalIronAll: iron4x8 + iron10x10.total + tarabeeshTubes, decor: { optimalLen: decorOptimal.optimalLen, wasteCm: decorOptimal.wasteCm, bundles: decorBundles }, decorBrooz: calcDecorBrooz(numFacades, decorOptimal.optimalLen), beshQty, woodBases, borders, tarpaulin, totalTiles, totalTilesBase, breakagePercent, tilesBreakage: totalTiles - totalTilesBase, tileStarts, tarabeesh, longAsas: 0, metalSheets: 0, nonFacadeTotal: 0, tileSelected: tile, insulation };
 }
 
 const EXTRA_FORMULAS: Record<string, string> = {
