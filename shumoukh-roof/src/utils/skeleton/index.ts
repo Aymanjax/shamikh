@@ -81,12 +81,31 @@ export function computeRoofSkeleton(
   const onSameGable = (s: { x: number; y: number }, e: { x: number; y: number }) =>
     gableSegs.some(g => pointOnSeg(s, g) && pointOnSeg(e, g));
 
+  // A ridge that reaches a gable wall perpendicularly is a stub poking into the
+  // gable region; a roof ridge should stop at the interior junction (valley/hip),
+  // not run up to the gable wall. Drop such stubs (keep ridges that run *along*
+  // a gable, i.e. the high edge of a shed).
+  const ridgeStubIntoGable = (arc: { start: { x: number; y: number }; end: { x: number; y: number } }) => {
+    const ax = arc.end.x - arc.start.x, ay = arc.end.y - arc.start.y;
+    const al = Math.hypot(ax, ay) || 1;
+    for (const g of gableSegs) {
+      const onS = pointOnSeg(arc.start, g), onE = pointOnSeg(arc.end, g);
+      if (!onS && !onE) continue;
+      const gx = g.end.x - g.start.x, gy = g.end.y - g.start.y;
+      const gl = Math.hypot(gx, gy) || 1;
+      const parallel = Math.abs((ax / al) * (gy / gl) - (ay / al) * (gx / gl)) < 1e-3;
+      if (!parallel) return true; // touches gable but not along it → perpendicular stub
+    }
+    return false;
+  };
+
   for (const arc of arcs) {
     const dx = arc.end.x - arc.start.x;
     const dy = arc.end.y - arc.start.y;
     const length = Math.sqrt(dx * dx + dy * dy);
     if (length < 1e-9) continue;
     if (onSameGable(arc.start, arc.end)) continue;
+    if (arc.eType === 'ridge' && ridgeStubIntoGable(arc)) continue;
     const edge: SkEdge = { start: arc.start, end: arc.end, length, type: arc.eType };
     if (arc.eType === 'ridge') ridges.push(edge);
     else if (arc.eType === 'hip') hips.push(edge);
