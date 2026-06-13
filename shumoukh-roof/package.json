@@ -10,7 +10,9 @@
     "cap:android": "npx cap open android",
     "cap:ios": "npx cap open ios",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@babylonjs/core": "^9.11.0",
@@ -37,7 +39,8 @@
     "react-router-dom": "^7.16.0",
     "straight-skeleton": "^3.0.0",
     "tailwindcss": "^4.3.0",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.14",
+    "fastpriorityqueue": "^0.8.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -51,6 +54,7 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^3"
   }
 }
