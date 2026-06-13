@@ -57,17 +57,19 @@ export function computeRoofSkeleton(vertices, _slopePercent, sides) {
     if (coords.length < 3) return _empty("أضلاع متكررة — راجع الشكل");
 
     // محرك الأحداث (edge + split events) يحسب الشدّات بدقة للأشكال المعقّدة
-    // والوديان دون تقاطع. نستخدمه عندما لا توجد جدران معطّلة (لا يدعم الجملونات).
+    // والوديان دون تقاطع. نحسب أولاً سقف هيب كامل، ثم — إن وُجدت جدران معطّلة —
+    // نطبّق تحويل الجملون اللاحق (applyGables) لتحويل ميل تلك الجدران إلى جملون.
     const anyDisabled = sides && sides.some((sd) => sd && sd.isActive === false);
-    if (!anyDisabled) {
-      try {
-        const ev = computeEventSkeleton(coords.map((c) => ({ x: c[0], y: c[1] })));
-        if (ev && (ev.ridges.length || ev.hips.length || ev.valleys.length)) {
-          return { ridges: ev.ridges, hips: ev.hips, valleys: ev.valleys, gables: [], faces: [], faceHeights: [] };
-        }
-      } catch (e) {
-        console.warn("event skeleton failed, falling back to iterative:", e);
+    try {
+      const ev = computeEventSkeleton(coords.map((c) => ({ x: c[0], y: c[1] })));
+      if (ev && (ev.ridges.length || ev.hips.length || ev.valleys.length)) {
+        const out = anyDisabled
+          ? applyGables(ev, coords.map((c) => ({ x: c[0], y: c[1] })), sides)
+          : ev;
+        return { ridges: out.ridges, hips: out.hips, valleys: out.valleys, gables: out.gables || [], faces: [], faceHeights: [] };
       }
+    } catch (e) {
+      console.warn("event skeleton failed, falling back to iterative:", e);
     }
 
     coords = ensureCCW(coords);
@@ -320,6 +322,63 @@ export function customRectRoof(vertices, activeSides) {
   }
 
   return { ridges, hips, valleys, gables, slopeFaces };
+}
+
+/* ──────────────────────────────────────────
+   تحويل الجملون اللاحق (post-process gables)
+   ياخذ هيكل هيب كامل من محرك الأحداث، ويحوّل ميل كل جدار معطّل إلى جملون:
+   نحذف الـ hips الطالعة من طرفَي الجدار، ونرفع النصوة حتى منتصف الجدار (M)،
+   ونرسم الجدار نفسه كجملون. هذا يتجنّب تقاطع الخطوط الذي ينتجه المحرك التكراري.
+   ────────────────────────────────────────── */
+
+function applyGables(skel, verts, sides) {
+  const n = verts.length;
+  const gableEdges = [];
+  for (let i = 0; i < n && sides && i < sides.length; i++) {
+    if (sides[i] && sides[i].isActive === false) {
+      const A = verts[i], B = verts[(i + 1) % n];
+      gableEdges.push({ A, B, M: { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 } });
+    }
+  }
+  if (gableEdges.length === 0) return skel;
+
+  const keyOf = (p) => `${r(p.x, 2)},${r(p.y, 2)}`;
+  const cornerToM = new Map();
+  const gableKeys = new Set();
+  for (const g of gableEdges) {
+    cornerToM.set(keyOf(g.A), g.M);
+    cornerToM.set(keyOf(g.B), g.M);
+    gableKeys.add(keyOf(g.A));
+    gableKeys.add(keyOf(g.B));
+  }
+  const atGable = (p) => gableKeys.has(keyOf(p));
+
+  const ridges = [...(skel.ridges || [])];
+  const valleys = [...(skel.valleys || [])];
+  const gables = [...(skel.gables || [])];
+  const hips = [];
+
+  for (const g of gableEdges) {
+    gables.push(_seg(g.A.x, g.A.y, g.M.x, g.M.y, "gable"));
+    gables.push(_seg(g.M.x, g.M.y, g.B.x, g.B.y, "gable"));
+  }
+
+  const seen = new Set();
+  for (const hip of (skel.hips || [])) {
+    const sAt = atGable(hip.start), eAt = atGable(hip.end);
+    if (!sAt && !eAt) { hips.push(hip); continue; }
+    if (sAt && eAt) continue; // طرفاه على جدران جملون → احذف
+    const corner = sAt ? hip.start : hip.end;
+    const inner = sAt ? hip.end : hip.start;
+    const M = cornerToM.get(keyOf(corner));
+    if (!M) { hips.push(hip); continue; }
+    const k = `${keyOf(M)}|${keyOf(inner)}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    if (dist(M.x, M.y, inner.x, inner.y) > 0.01) ridges.push(_seg(M.x, M.y, inner.x, inner.y, "ridge"));
+  }
+
+  return { ...skel, ridges, hips, valleys, gables };
 }
 
 /* ──────────────────────────────────────────

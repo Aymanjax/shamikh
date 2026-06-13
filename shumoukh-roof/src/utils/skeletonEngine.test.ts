@@ -41,10 +41,17 @@ describe("roofSkeleton routes complex all-active shapes through the event engine
     expect(all.every((e: Seg) => Lbounds(e.start) && Lbounds(e.end))).toBe(true);
   });
 
-  it("L-shape WITH a disabled wall (iterative path) keeps every line inside the footprint", () => {
-    const sides = L.map((_, i) => ({ isActive: i !== 0 })); // أول جدار جملون
+  it("L-shape WITH a gable wall: event engine + gable transform, no escaping lines", () => {
+    const sides = L.map((_, i) => ({ isActive: i !== 0 })); // edge0 (0,0)->(6,0) gable
     const res = roofSkeleton(L, 30, sides);
     const all = [...res.ridges, ...res.hips, ...res.valleys, ...res.gables];
     expect(all.every((e: Seg) => Lbounds(e.start) && Lbounds(e.end))).toBe(true);
+    // the gable wall is drawn as gable segments
+    expect(res.gables.length).toBeGreaterThanOrEqual(2);
+    // no hip should start/end exactly on a gable-wall vertex (those become gables)
+    const onGableVtx = (p: Pt) =>
+      (Math.abs(p.x - 0) < 0.05 && Math.abs(p.y - 0) < 0.05) ||
+      (Math.abs(p.x - 6) < 0.05 && Math.abs(p.y - 0) < 0.05);
+    expect(res.hips.every((h: Seg) => !onGableVtx(h.start) && !onGableVtx(h.end))).toBe(true);
   });
 });
