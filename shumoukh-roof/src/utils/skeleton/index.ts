@@ -34,9 +34,9 @@ export function computeRoofSkeleton(vertices: { x: number; y: number }[]): Skele
   const n = vertices.length;
   if (n < 3) return emptyResult();
 
-  // Convert to Point[] and ensure CCW
+  // Convert to Point[] and ensure the winding the core expects (offsets inward).
   const pts: Point[] = vertices.map(v => [v.x, v.y]);
-  if (polygonArea(pts) > 0) pts.reverse();
+  if (polygonArea(pts) < 0) pts.reverse();
 
   // Run the straight skeleton algorithm
   const ss = new StraightSkeleton();
@@ -95,9 +95,14 @@ interface ExtractedArc {
 function nearVertex(
   c: { x: number; y: number },
   vertices: { x: number; y: number }[],
-  eps = 1e-6
+  eps = 1e-3
 ): boolean {
   return vertices.some((v) => Math.hypot(v.x - c.x, v.y - c.y) < eps);
+}
+
+/** Stable key at centimetre resolution so nearby vertices don't collide. */
+function vKey(x: number, y: number): string {
+  return `${Math.round(x * 100)},${Math.round(y * 100)}`;
 }
 
 /**
@@ -125,7 +130,7 @@ function reflexVertices(vertices: { x: number; y: number }[]): Set<string> {
     const cross = e1x * e2y - e1y * e2x;
     const isReflex = ccw ? cross < 0 : cross > 0;
     if (isReflex) {
-      reflex.add(`${Math.round(curr.x)},${Math.round(curr.y)}`);
+      reflex.add(vKey(curr.x, curr.y));
     }
   }
   return reflex;
@@ -138,7 +143,7 @@ function endpointType(
   c: { x: number; y: number },
   reflexVertSet: Set<string>
 ): 'hip' | 'valley' {
-  const key = `${Math.round(c.x)},${Math.round(c.y)}`;
+  const key = vKey(c.x, c.y);
   return reflexVertSet.has(key) ? 'valley' : 'hip';
 }
 
