@@ -121,3 +121,44 @@ describe("customRectRoof — unified analytic solver", () => {
     }
   });
 });
+
+// ── computeRoofSkeleton: gable post-process on non-rectangular shapes ──
+// Regression for the spurious-triangle bug: gabling a wall whose two corners
+// reach two *different* inner skeleton nodes used to push a ridge from the wall
+// midpoint M to each node, forming a triangle. The midpoint must now connect to
+// a single point on the ridge network instead.
+import { computeRoofSkeleton } from "./roofSkeleton";
+
+const near = (a: Pt, x: number, y: number, e = 0.05) =>
+  Math.abs(a.x - x) < e && Math.abs(a.y - y) < e;
+const touches = (s: Seg, x: number, y: number) => near(s.start, x, y) || near(s.end, x, y);
+
+describe("computeRoofSkeleton — gable post-process (no spurious triangle)", () => {
+  it("L-shape, top wall gable → single ridge stub to midpoint, no triangle", () => {
+    const verts = [
+      { x: 0, y: 0 }, { x: 8, y: 0 }, { x: 8, y: 5 },
+      { x: 4, y: 5 }, { x: 4, y: 10 }, { x: 0, y: 10 },
+    ];
+    const sides = verts.map((_, i) => ({ isActive: i !== 0 })); // edge 0 (top) = gable
+    const sk = computeRoofSkeleton(verts, 30, sides) as unknown as Skel;
+    const M = { x: 4, y: 0 }; // midpoint of the gabled top wall
+    // exactly ONE ridge touches the wall midpoint (the stub) — not two (triangle)
+    const ridgesAtM = sk.ridges.filter((r) => touches(r, M.x, M.y));
+    expect(ridgesAtM).toHaveLength(1);
+    // no hip may dangle off the two gable corners (0,0) / (8,0)
+    expect(sk.hips.some((h) => touches(h, 0, 0) || touches(h, 8, 0))).toBe(false);
+  });
+
+  it("T-shape, top wall gable → single ridge stub to junction, no triangle", () => {
+    const verts = [
+      { x: 0, y: 0 }, { x: 12, y: 0 }, { x: 12, y: 4 }, { x: 8, y: 4 },
+      { x: 8, y: 12 }, { x: 4, y: 12 }, { x: 4, y: 4 }, { x: 0, y: 4 },
+    ];
+    const sides = verts.map((_, i) => ({ isActive: i !== 0 })); // top wall gable
+    const sk = computeRoofSkeleton(verts, 30, sides) as unknown as Skel;
+    const M = { x: 6, y: 0 };
+    const ridgesAtM = sk.ridges.filter((r) => touches(r, M.x, M.y));
+    expect(ridgesAtM).toHaveLength(1);
+    expect(sk.hips.some((h) => touches(h, 0, 0) || touches(h, 12, 0))).toBe(false);
+  });
+});

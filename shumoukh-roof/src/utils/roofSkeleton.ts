@@ -363,19 +363,50 @@ function applyGables(skel, verts, sides) {
     gables.push(_seg(g.M.x, g.M.y, g.B.x, g.B.y, "gable"));
   }
 
-  const seen = new Set();
+  // إسقاط نقطة على أقرب قطعة من شبكة النصوة (ridges)
+  const closestOnRidges = (P) => {
+    let best = null, bestD = Infinity;
+    for (const e of (skel.ridges || [])) {
+      const ax = e.start.x, ay = e.start.y, bx = e.end.x, by = e.end.y;
+      const dx = bx - ax, dy = by - ay;
+      const L2 = dx * dx + dy * dy;
+      let t = L2 > 0 ? ((P.x - ax) * dx + (P.y - ay) * dy) / L2 : 0;
+      t = Math.max(0, Math.min(1, t));
+      const qx = ax + t * dx, qy = ay + t * dy;
+      const d = dist(P.x, P.y, qx, qy);
+      if (d < bestD) { bestD = d; best = { x: qx, y: qy }; }
+    }
+    return best;
+  };
+
+  // الشدّات الملامسة لزوايا جملون تُحذف؛ نجمع عُقدها الداخلية لكل زاوية جملون
+  const innerByGableCorner = new Map();
   for (const hip of (skel.hips || [])) {
     const sAt = atGable(hip.start), eAt = atGable(hip.end);
-    if (!sAt && !eAt) { hips.push(hip); continue; }
-    if (sAt && eAt) continue; // طرفاه على جدران جملون → احذف
+    if (!sAt && !eAt) { hips.push(hip); continue; }  // شدّة داخلية → تبقى
+    if (sAt && eAt) continue;                         // بين جدارَي جملون → تُحذف
     const corner = sAt ? hip.start : hip.end;
-    const inner = sAt ? hip.end : hip.start;
-    const M = cornerToM.get(keyOf(corner));
-    if (!M) { hips.push(hip); continue; }
-    const k = `${keyOf(M)}|${keyOf(inner)}`;
+    const inner  = sAt ? hip.end   : hip.start;
+    innerByGableCorner.set(keyOf(corner), inner);
+  }
+
+  // لكل جدار جملون: نصوة واحدة من منتصفه (M) إلى أقرب نقطة على شبكة النصوة،
+  // (وإن غابت الشبكة — كهرم — فإلى أقرب عقدة داخلية لشدّاته المحذوفة). هذا
+  // يمنع تكوّن المثلّث الناتج عن ربط M بعقدتين داخليتين مختلفتين.
+  const seen = new Set();
+  for (const g of gableEdges) {
+    let P = closestOnRidges(g.M);
+    if (!P) {
+      const cands = [innerByGableCorner.get(keyOf(g.A)), innerByGableCorner.get(keyOf(g.B))].filter(Boolean);
+      for (const c of cands) {
+        if (!P || dist(g.M.x, g.M.y, c.x, c.y) < dist(g.M.x, g.M.y, P.x, P.y)) P = c;
+      }
+    }
+    if (!P) continue;
+    const k = `${keyOf(g.M)}|${keyOf(P)}`;
     if (seen.has(k)) continue;
     seen.add(k);
-    if (dist(M.x, M.y, inner.x, inner.y) > 0.01) ridges.push(_seg(M.x, M.y, inner.x, inner.y, "ridge"));
+    if (dist(g.M.x, g.M.y, P.x, P.y) > 0.01) ridges.push(_seg(g.M.x, g.M.y, P.x, P.y, "ridge"));
   }
 
   return { ...skel, ridges, hips, valleys, gables };
