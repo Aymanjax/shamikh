@@ -35,6 +35,8 @@ export class EdgeEvent extends SkeletonEvent {
     const next = n1.next!;
     n0.next = next;
     next.prev = n0;
+    // n0 now owns the edge that n1 used to own (n1→next); inherit its gable flag.
+    n0.edgeIsGable = n1.edgeIsGable;
 
     if (n0.isReflex() || n1.isReflex()) n0.skelNode.setReflex();
     n1.skelNode.remapIncoming(n0.skelNode);

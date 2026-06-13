@@ -57,16 +57,13 @@ export function computeRoofSkeleton(vertices, _slopePercent, sides) {
     if (coords.length < 3) return _empty("أضلاع متكررة — راجع الشكل");
 
     // محرك الأحداث (edge + split events) يحسب الشدّات بدقة للأشكال المعقّدة
-    // والوديان دون تقاطع. نحسب أولاً سقف هيب كامل، ثم — إن وُجدت جدران معطّلة —
-    // نطبّق تحويل الجملون اللاحق (applyGables) لتحويل ميل تلك الجدران إلى جملون.
-    const anyDisabled = sides && sides.some((sd) => sd && sd.isActive === false);
+    // والوديان دون تقاطع. الجدران الجملون تُمرَّر للمحرّك كأضلاع ثابتة لا تنزاح،
+    // فتنزلق زواياها على الجدار وينتج سقف شدّ (lean-to) مطابق للنموذج الاحترافي.
+    const gableFlags = coords.map((_, i) => !!(sides && sides[i] && sides[i].isActive === false));
     try {
-      const ev = computeEventSkeleton(coords.map((c) => ({ x: c[0], y: c[1] })));
-      if (ev && (ev.ridges.length || ev.hips.length || ev.valleys.length)) {
-        const out = anyDisabled
-          ? applyGables(ev, coords.map((c) => ({ x: c[0], y: c[1] })), sides)
-          : ev;
-        return { ridges: out.ridges, hips: out.hips, valleys: out.valleys, gables: out.gables || [], faces: [], faceHeights: [] };
+      const ev = computeEventSkeleton(coords.map((c) => ({ x: c[0], y: c[1] })), gableFlags);
+      if (ev && (ev.ridges.length || ev.hips.length || ev.valleys.length || ev.gables.length)) {
+        return { ridges: ev.ridges, hips: ev.hips, valleys: ev.valleys, gables: ev.gables || [], faces: [], faceHeights: [] };
       }
     } catch (e) {
       console.warn("event skeleton failed, falling back to iterative:", e);

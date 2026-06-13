@@ -122,43 +122,44 @@ describe("customRectRoof — unified analytic solver", () => {
   });
 });
 
-// ── computeRoofSkeleton: gable post-process on non-rectangular shapes ──
-// Regression for the spurious-triangle bug: gabling a wall whose two corners
-// reach two *different* inner skeleton nodes used to push a ridge from the wall
-// midpoint M to each node, forming a triangle. The midpoint must now connect to
-// a single point on the ridge network instead.
+// ── computeRoofSkeleton: gable-aware engine (lean-to / shed model) ──
+// A gabled wall is a fixed (non-offsetting) edge, so its corners slide along it
+// (no spurious triangle) and the roof ridge stops at the interior junction
+// instead of running up to the gable wall.
 import { computeRoofSkeleton } from "./roofSkeleton";
 
 const near = (a: Pt, x: number, y: number, e = 0.05) =>
   Math.abs(a.x - x) < e && Math.abs(a.y - y) < e;
 const touches = (s: Seg, x: number, y: number) => near(s.start, x, y) || near(s.end, x, y);
 
-describe("computeRoofSkeleton — gable post-process (no spurious triangle)", () => {
-  it("L-shape, top wall gable → single ridge stub to midpoint, no triangle", () => {
+describe("computeRoofSkeleton — gable-aware engine (ridge stops at valley)", () => {
+  it("L-shape, top wall gable → ridge runs up to the wall (no valley blocks it)", () => {
     const verts = [
       { x: 0, y: 0 }, { x: 8, y: 0 }, { x: 8, y: 5 },
       { x: 4, y: 5 }, { x: 4, y: 10 }, { x: 0, y: 10 },
     ];
     const sides = verts.map((_, i) => ({ isActive: i !== 0 })); // edge 0 (top) = gable
     const sk = computeRoofSkeleton(verts, 30, sides) as unknown as Skel;
-    const M = { x: 4, y: 0 }; // midpoint of the gabled top wall
-    // exactly ONE ridge touches the wall midpoint (the stub) — not two (triangle)
-    const ridgesAtM = sk.ridges.filter((r) => touches(r, M.x, M.y));
-    expect(ridgesAtM).toHaveLength(1);
-    // no hip may dangle off the two gable corners (0,0) / (8,0)
+    // the top junction has no valley, so the ridge reaches the gabled top wall (y ≈ 0)
+    const onTopWall = (p: Pt) => Math.abs(p.y) < 0.05 && p.x >= -0.05 && p.x <= 8.05;
+    expect(sk.ridges.some((r) => onTopWall(r.start) || onTopWall(r.end))).toBe(true);
+    // the gable wall is emitted, and its corners carry no hips
+    expect(sk.gables.length).toBeGreaterThanOrEqual(1);
     expect(sk.hips.some((h) => touches(h, 0, 0) || touches(h, 8, 0))).toBe(false);
   });
 
-  it("T-shape, top wall gable → single ridge stub to junction, no triangle", () => {
+  it("T-shape, top wall gable → ridge stops at the valley junction, not the wall", () => {
     const verts = [
       { x: 0, y: 0 }, { x: 12, y: 0 }, { x: 12, y: 4 }, { x: 8, y: 4 },
       { x: 8, y: 12 }, { x: 4, y: 12 }, { x: 4, y: 4 }, { x: 0, y: 4 },
     ];
     const sides = verts.map((_, i) => ({ isActive: i !== 0 })); // top wall gable
     const sk = computeRoofSkeleton(verts, 30, sides) as unknown as Skel;
-    const M = { x: 6, y: 0 };
-    const ridgesAtM = sk.ridges.filter((r) => touches(r, M.x, M.y));
-    expect(ridgesAtM).toHaveLength(1);
+    // ridge does not reach the gabled top wall (y ≈ 0) …
+    const onTopWall = (p: Pt) => Math.abs(p.y) < 0.05 && p.x >= -0.05 && p.x <= 12.05;
+    expect(sk.ridges.some((r) => onTopWall(r.start) || onTopWall(r.end))).toBe(false);
+    // … it stops at the valley junction (6,2)
+    expect(sk.ridges.some((r) => touches(r, 6, 2))).toBe(true);
     expect(sk.hips.some((h) => touches(h, 0, 0) || touches(h, 12, 0))).toBe(false);
   });
 });
