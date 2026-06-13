@@ -30,19 +30,39 @@ export interface SkeletonResult {
  * Computes the roof skeleton for a given polygon.
  * @param vertices - polygon vertices in order (no holes)
  */
-export function computeRoofSkeleton(vertices: { x: number; y: number }[]): SkeletonResult {
+export function computeRoofSkeleton(
+  vertices: { x: number; y: number }[],
+  gables: boolean[] = [],
+): SkeletonResult {
   const n = vertices.length;
   if (n < 3) return emptyResult();
+
+  // Gable edges as drawable segments + midpoints (orientation-proof matching).
+  const gableSegs: SkEdge[] = [];
+  const gableMids: Point[] = [];
+  for (let i = 0; i < n; i++) {
+    if (!gables[i]) continue;
+    const a = vertices[i], b = vertices[(i + 1) % n];
+    gableSegs.push({ start: { x: a.x, y: a.y }, end: { x: b.x, y: b.y }, length: Math.hypot(b.x - a.x, b.y - a.y), type: 'gable' });
+    gableMids.push([(a.x + b.x) / 2, (a.y + b.y) / 2]);
+  }
 
   // Convert to Point[] and ensure the winding the core expects (offsets inward).
   const pts: Point[] = vertices.map(v => [v.x, v.y]);
   if (polygonArea(pts) < 0) pts.reverse();
 
+  // Per-edge gable flags aligned to pts (match by midpoint so reversal is safe).
+  const edgeGable: boolean[] = pts.map((p, i) => {
+    const q = pts[(i + 1) % pts.length];
+    const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+    return gableMids.some(m => Math.hypot(m[0] - mx, m[1] - my) < 1e-6);
+  });
+
   // Run the straight skeleton algorithm
   const ss = new StraightSkeleton();
   ss.setDistance(-Infinity); // shrink inward indefinitely
   ss.setEpsilon(0.0001);
-  ss.execute(pts);
+  ss.execute(pts, [], edgeGable);
 
   // Extract skeleton arcs from the node graph
   const initialNodes = ss.getInitialNodes();
@@ -56,11 +76,17 @@ export function computeRoofSkeleton(vertices: { x: number; y: number }[]): Skele
   const hips: SkEdge[] = [];
   const valleys: SkEdge[] = [];
 
+  // An arc whose both endpoints lie on the same gable wall is the trace of a
+  // corner sliding along that wall — it coincides with the gable, so drop it.
+  const onSameGable = (s: { x: number; y: number }, e: { x: number; y: number }) =>
+    gableSegs.some(g => pointOnSeg(s, g) && pointOnSeg(e, g));
+
   for (const arc of arcs) {
     const dx = arc.end.x - arc.start.x;
     const dy = arc.end.y - arc.start.y;
     const length = Math.sqrt(dx * dx + dy * dy);
     if (length < 1e-9) continue;
+    if (onSameGable(arc.start, arc.end)) continue;
     const edge: SkEdge = { start: arc.start, end: arc.end, length, type: arc.eType };
     if (arc.eType === 'ridge') ridges.push(edge);
     else if (arc.eType === 'hip') hips.push(edge);
@@ -69,7 +95,19 @@ export function computeRoofSkeleton(vertices: { x: number; y: number }[]): Skele
 
   const vertices3D = vertices.map(v => ({ x: v.x, y: v.y }));
 
-  return { ridges, hips, valleys, gables: [], faces, vertices3D };
+  return { ridges, hips, valleys, gables: gableSegs, faces, vertices3D };
+}
+
+/** True when point p lies on segment seg (within a small tolerance). */
+function pointOnSeg(p: { x: number; y: number }, seg: SkEdge, tol = 1e-3): boolean {
+  const ax = seg.start.x, ay = seg.start.y, bx = seg.end.x, by = seg.end.y;
+  const dx = bx - ax, dy = by - ay;
+  const L2 = dx * dx + dy * dy;
+  if (L2 < 1e-12) return Math.hypot(p.x - ax, p.y - ay) < tol;
+  let t = ((p.x - ax) * dx + (p.y - ay) * dy) / L2;
+  if (t < -tol || t > 1 + tol) return false;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(p.x - (ax + t * dx), p.y - (ay + t * dy)) < tol;
 }
 
 function emptyResult(): SkeletonResult {
