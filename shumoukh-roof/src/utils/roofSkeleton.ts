@@ -165,7 +165,22 @@ export function computeRoofSkeleton(vertices, _slopePercent, sides) {
       return count > 0 ? sum / count : 0;
     });
 
-    return { ridges, hips, valleys, gables, faces, faceHeights };
+    // حارس: استبعاد أي شدّة "هاربة" خارج حدود المضلّع (artifacts من المحرك
+    // التكراري على الأشكال المعقّدة ذات الجدران المعطّلة) حتى لا تتقاطع الخطوط.
+    const bxMin = Math.min(...coords.map(c => c[0])), bxMax = Math.max(...coords.map(c => c[0]));
+    const byMin = Math.min(...coords.map(c => c[1])), byMax = Math.max(...coords.map(c => c[1]));
+    const m = 0.05;
+    const inBox = (e) =>
+      e.start.x >= bxMin - m && e.start.x <= bxMax + m && e.start.y >= byMin - m && e.start.y <= byMax + m &&
+      e.end.x   >= bxMin - m && e.end.x   <= bxMax + m && e.end.y   >= byMin - m && e.end.y   <= byMax + m;
+
+    return {
+      ridges: ridges.filter(inBox),
+      hips: hips.filter(inBox),
+      valleys: valleys.filter(inBox),
+      gables: gables.filter(inBox),
+      faces, faceHeights,
+    };
 
   } catch (e) {
     console.warn("computeRoofSkeleton:", e);

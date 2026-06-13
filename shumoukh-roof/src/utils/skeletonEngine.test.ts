@@ -40,4 +40,11 @@ describe("roofSkeleton routes complex all-active shapes through the event engine
     expect(res.valleys.length).toBeGreaterThanOrEqual(1);
     expect(all.every((e: Seg) => Lbounds(e.start) && Lbounds(e.end))).toBe(true);
   });
+
+  it("L-shape WITH a disabled wall (iterative path) keeps every line inside the footprint", () => {
+    const sides = L.map((_, i) => ({ isActive: i !== 0 })); // أول جدار جملون
+    const res = roofSkeleton(L, 30, sides);
+    const all = [...res.ridges, ...res.hips, ...res.valleys, ...res.gables];
+    expect(all.every((e: Seg) => Lbounds(e.start) && Lbounds(e.end))).toBe(true);
+  });
 });
