@@ -1,11 +1,13 @@
 // @ts-nocheck
 import { useEffect, useRef, useCallback } from "react";
 import {
-  Engine, Scene, ArcRotateCamera, HemisphericLight, Vector3, Color3, Color4,
+  Engine, Scene, ArcRotateCamera, HemisphericLight, DirectionalLight, ShadowGenerator,
+  Vector3, Color3, Color4, Texture,
   MeshBuilder, VertexData, StandardMaterial, Mesh,
   LinesMesh, CreateGround, CreateLines,
 } from "@babylonjs/core";
 import { createRoofVertexData } from "../../utils/roofGeometry";
+import { generateTileTextures } from "../../utils/tileTextures";
 
 const COLORS = {
   ridge: new Color3(1, 0.3, 0.1),
@@ -76,23 +78,69 @@ function buildHeightMap(skeleton, slopeFactor, vertices) {
   return map;
 }
 
-function buildRoofMesh(skeleton, slopeFactor, scene, vertices) {
+function buildRoofMesh(skeleton, slopeFactor, scene, vertices, tile) {
   if (!skeleton?.faces || skeleton.faces.length === 0) return null;
 
+  // Tile texture: one texture cell ≈ one tile; repeat every `texRepeat` metres so
+  // the courses scale with the chosen tile density (tile.count = tiles per m²).
+  const count = tile?.count > 0 ? tile.count : 12;
+  const colorHex = tile?.color || tile?.colorHex || tile?.hex || null;
+  const texRepeat = Math.max(0.8, 4 / Math.sqrt(count)); // ~4 tiles per repeat
+  const { texture } = generateTileTextures(count, scene, colorHex);
+  texture.wrapU = Texture.WRAP_ADDRESSMODE;
+  texture.wrapV = Texture.WRAP_ADDRESSMODE;
+
+  // UVs are world-distance / spacing, so pass texRepeat as spacing → 1 repeat / texRepeat m.
   const heightMap = buildHeightMap(skeleton, slopeFactor, vertices);
-  const vd = createRoofVertexData(skeleton, heightMap);
+  const vd = createRoofVertexData(skeleton, heightMap, texRepeat);
   if (!vd.positions || vd.positions.length === 0) return null;
 
   const mesh = new Mesh("roof", scene);
   vd.applyToMesh(mesh);
 
   const mat = new StandardMaterial("roofMat", scene);
-  mat.diffuseColor = COLORS.roof;
-  mat.specularColor = new Color3(0.05, 0.05, 0.05);
-  mat.backFaceCulling = true;
+  mat.diffuseTexture = texture;
+  mat.diffuseColor = new Color3(1, 1, 1);
+  mat.specularColor = new Color3(0.08, 0.08, 0.08);
+  mat.specularPower = 64;
+  mat.backFaceCulling = false; // roof underside visible from low angles
   mesh.material = mat;
   mesh.receiveShadows = true;
 
+  return mesh;
+}
+
+// Vertical gable walls: fill the triangular/trapezoidal gap under each gable
+// edge (from the ground up to the raised roof edge), so a gabled end reads as a
+// solid wall instead of an open hole.
+function buildGableWalls(skeleton, heightMap, scene) {
+  const gables = skeleton?.gables || [];
+  if (!gables.length) return null;
+  const positions = [], indices = [], normals = [];
+  let base = 0;
+  const hOf = (p) => heightMap[`${p.x.toFixed(4)},${p.y.toFixed(4)}`] || 0;
+  for (const g of gables) {
+    const a = g.start, b = g.end;
+    const ha = hOf(a), hb = hOf(b);
+    if (ha < 0.01 && hb < 0.01) continue;
+    // quad: A0, B0, Btop, Atop  (Babylon: x, y=height, z=planY)
+    positions.push(a.x, 0, a.y,  b.x, 0, b.y,  b.x, hb, b.y,  a.x, ha, a.y);
+    indices.push(base, base + 1, base + 2,  base, base + 2, base + 3);
+    indices.push(base, base + 2, base + 1,  base, base + 3, base + 2); // back face
+    for (let i = 0; i < 4; i++) normals.push(0, 0, 0);
+    base += 4;
+  }
+  if (!positions.length) return null;
+  VertexData.ComputeNormals(positions, indices, normals);
+  const vd = new VertexData();
+  vd.positions = positions; vd.indices = indices; vd.normals = normals;
+  const mesh = new Mesh("gableWalls", scene);
+  vd.applyToMesh(mesh);
+  const mat = new StandardMaterial("gableMat", scene);
+  mat.diffuseColor = new Color3(0.92, 0.90, 0.86);
+  mat.specularColor = new Color3(0.03, 0.03, 0.03);
+  mat.backFaceCulling = false;
+  mesh.material = mat;
   return mesh;
 }
 
@@ -185,29 +233,50 @@ export default function Roof3DViewerBabylon({ vertices, skeleton, slope, tile })
     camera.attachControl(canvas, true);
     cameraRef.current = camera;
 
-    const light = new HemisphericLight("light", new Vector3(0.5, 1, 0.3), scene);
-    light.intensity = 0.9;
-    light.diffuse = new Color3(1, 1, 1);
-    light.specular = new Color3(0.1, 0.1, 0.1);
-    light.groundColor = new Color3(0.3, 0.3, 0.4);
+    // Soft ambient fill (sky/ground) so shadowed faces are never pure black.
+    const hemi = new HemisphericLight("ambient", new Vector3(0.2, 1, 0.1), scene);
+    hemi.intensity = 0.55;
+    hemi.diffuse = new Color3(1, 0.98, 0.95);
+    hemi.groundColor = new Color3(0.35, 0.33, 0.3);
 
-    const hemi2 = new HemisphericLight("light2", new Vector3(-0.3, 0.5, -0.5), scene);
-    hemi2.intensity = 0.4;
+    // Key sun: a directional light that drives shading + shadows.
+    const sun = new DirectionalLight("sun", new Vector3(-0.6, -1, -0.45), scene);
+    sun.position = new Vector3(18, 30, 14);
+    sun.intensity = 1.15;
+    sun.diffuse = new Color3(1, 0.96, 0.88);
 
-    const ground = CreateGround("ground", { width: 40, height: 40 }, scene);
+    const shadowGen = new ShadowGenerator(1024, sun);
+    shadowGen.useBlurExponentialShadowMap = true;
+    shadowGen.blurKernel = 32;
+    shadowGen.darkness = 0.45;
+
+    const ground = CreateGround("ground", { width: 60, height: 60 }, scene);
     const groundMat = new StandardMaterial("groundMat", scene);
-    groundMat.diffuseColor = COLORS.ground;
+    groundMat.diffuseColor = new Color3(0.22, 0.22, 0.26);
     groundMat.specularColor = new Color3(0, 0, 0);
-    groundMat.alpha = 0.5;
     ground.material = groundMat;
+    ground.position.y = -0.02;
+    ground.receiveShadows = true;
 
     // -- Build roof geometry (GPU mesh from our gable-aware skeleton) ----
     if (skeleton && vertices?.length >= 3) {
-      const roof = buildRoofMesh(skeleton, slopeFactor, scene, vertices);
-      if (roof) meshesRef.current.push(roof);
+      const roof = buildRoofMesh(skeleton, slopeFactor, scene, vertices, tile);
+      if (roof) {
+        meshesRef.current.push(roof);
+        roof.receiveShadows = true;
+        shadowGen.addShadowCaster(roof);
+      }
+
+      // Vertical gable walls (close the gap under gabled ends)
+      const heightMap = buildHeightMap(skeleton, slopeFactor, vertices);
+      const gableWalls = buildGableWalls(skeleton, heightMap, scene);
+      if (gableWalls) {
+        meshesRef.current.push(gableWalls);
+        gableWalls.receiveShadows = true;
+        shadowGen.addShadowCaster(gableWalls);
+      }
 
       // Skeleton lines (ridges/hips/valleys) lifted to their 3D heights
-      const heightMap = buildHeightMap(skeleton, slopeFactor, vertices);
       const skelLines = buildSkeletonLines(skeleton, heightMap, scene);
       meshesRef.current.push(...skelLines);
     }
@@ -224,7 +293,7 @@ export default function Roof3DViewerBabylon({ vertices, skeleton, slope, tile })
       engine.dispose();
       window.removeEventListener("resize", resize);
     };
-  }, [vertices, skeleton, slopeFactor]);
+  }, [vertices, skeleton, slopeFactor, tile]);
 
   useEffect(() => {
     buildScene();
