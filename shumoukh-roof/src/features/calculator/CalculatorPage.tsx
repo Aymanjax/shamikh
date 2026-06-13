@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -20,6 +20,8 @@ import { getSuppliersWithPrices } from "../../services/supplierService";
 import { getProgramConfig } from "../../services/adminService";
 import { createProject, updateProject, fetchProject } from "../../services/projectService";
 import BuildingCanvas from "../../components/roof/BuildingCanvas";
+// Babylon 3D viewer is heavy — load it only when the user opens the 3D preview.
+const Roof3DViewerBabylon = lazy(() => import("../../components/roof/Roof3DViewerBabylon"));
 import RoofPresets from "../../components/roof/RoofPresets";
 
 import { skeletonReady } from "../../utils/roofSkeleton";
@@ -631,6 +633,14 @@ export default function CalculatorPage() {
                 area={area}
                 slope={input.slope}
               />
+              {closed && (
+                <button
+                  onClick={() => setShow3dPreview(true)}
+                  className="mt-3 w-full bg-slate-800 hover:bg-slate-900 active:bg-slate-950 text-white font-bold py-2 rounded-sm transition text-xs flex items-center justify-center gap-2 cursor-pointer border-r-3 border-slate-950"
+                >
+                  <Box className="w-4 h-4" /> عرض ثلاثي الأبعاد (3D)
+                </button>
+              )}
             </div>
           </motion.div>
 
@@ -1200,6 +1210,45 @@ export default function CalculatorPage() {
             <button onClick={() => setSaveSuccess(null)} className="text-earth-500 hover:text-earth-700 transition cursor-pointer">
               <X className="w-4 h-4" />
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== 3D preview modal ===== */}
+      <AnimatePresence>
+        {show3dPreview && closed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShow3dPreview(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="bg-slate-900 border border-white/10 rounded-2xl p-3 w-full max-w-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-2 px-1">
+                <h3 className="text-sm font-black text-white flex items-center gap-2">
+                  <Box className="w-4 h-4" /> العرض ثلاثي الأبعاد
+                </h3>
+                <button onClick={() => setShow3dPreview(false)} className="text-white/70 hover:text-white transition p-1 cursor-pointer" aria-label="إغلاق">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <Suspense fallback={<div className="h-[400px] flex items-center justify-center text-white/60 text-xs">جارٍ تحميل العارض ثلاثي الأبعاد…</div>}>
+                <Roof3DViewerBabylon
+                  vertices={vertices}
+                  skeleton={result.roofSkeleton}
+                  slope={input.slope}
+                  tile={tile}
+                />
+              </Suspense>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

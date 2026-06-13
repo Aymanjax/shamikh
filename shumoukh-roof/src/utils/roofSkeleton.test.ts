@@ -163,3 +163,33 @@ describe("computeRoofSkeleton — gable-aware engine (ridge stops at valley)", (
     expect(sk.hips.some((h) => touches(h, 0, 0) || touches(h, 12, 0))).toBe(false);
   });
 });
+
+// ── roof faces for 3D: the skeleton faces must tile the footprint exactly ──
+import { facesFromSkeleton } from "./roofFaces";
+
+describe("facesFromSkeleton — 3D roof faces tile the footprint", () => {
+  const area = (pts: Pt[]) => {
+    let a = 0;
+    for (let i = 0; i < pts.length; i++) { const j = (i + 1) % pts.length; a += pts[i].x * pts[j].y - pts[j].x * pts[i].y; }
+    return Math.abs(a / 2);
+  };
+  const cover = (verts: Pt[], sides: { isActive: boolean }[]) => {
+    const sk = computeRoofSkeleton(verts, 30, sides) as unknown as Skel;
+    const faces = facesFromSkeleton(verts, sk);
+    const total = (faces as Pt[][]).reduce((s, f) => s + area(f), 0);
+    return { faces: faces.length, ratio: total / area(verts) };
+  };
+  const L = [
+    { x: 0, y: 0 }, { x: 8, y: 0 }, { x: 8, y: 5 },
+    { x: 4, y: 5 }, { x: 4, y: 10 }, { x: 0, y: 10 },
+  ];
+  it("L full hip → 6 faces covering 100% of the footprint", () => {
+    const { faces, ratio } = cover(L, L.map(() => ({ isActive: true })));
+    expect(faces).toBe(6);
+    expect(ratio).toBeGreaterThan(0.999);
+  });
+  it("L with top gable → faces still cover 100% (gable handled, no gaps)", () => {
+    const { ratio } = cover(L, L.map((_, i) => ({ isActive: i !== 0 })));
+    expect(ratio).toBeGreaterThan(0.999);
+  });
+});

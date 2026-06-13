@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { computeStraightSkeleton } from "./straightSkeleton";
 import { computeRoofSkeleton as computeEventSkeleton } from "./skeleton";
+import { facesFromSkeleton } from "./roofFaces";
 import { initCGAL, isCGALReady, computeCGALSkeleton, cgalReady } from "./roofSkeletonCGAL";
 
 const EPS = 0.001;
@@ -61,9 +62,12 @@ export function computeRoofSkeleton(vertices, _slopePercent, sides) {
     // فتنزلق زواياها على الجدار وينتج سقف شدّ (lean-to) مطابق للنموذج الاحترافي.
     const gableFlags = coords.map((_, i) => !!(sides && sides[i] && sides[i].isActive === false));
     try {
-      const ev = computeEventSkeleton(coords.map((c) => ({ x: c[0], y: c[1] })), gableFlags);
+      const evVerts = coords.map((c) => ({ x: c[0], y: c[1] }));
+      const ev = computeEventSkeleton(evVerts, gableFlags);
       if (ev && (ev.ridges.length || ev.hips.length || ev.valleys.length || ev.gables.length)) {
-        return { ridges: ev.ridges, hips: ev.hips, valleys: ev.valleys, gables: ev.gables || [], faces: [], faceHeights: [] };
+        // أوجه السقف من مخطّط الـskeleton (للعرض ثلاثي الأبعاد) — تغطّي الجملون صح
+        const faces = facesFromSkeleton(evVerts, ev);
+        return { ridges: ev.ridges, hips: ev.hips, valleys: ev.valleys, gables: ev.gables || [], faces, faceHeights: [] };
       }
     } catch (e) {
       console.warn("event skeleton failed, falling back to iterative:", e);
