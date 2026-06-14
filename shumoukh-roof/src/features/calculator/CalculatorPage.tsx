@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -20,6 +20,8 @@ import { getSuppliersWithPrices } from "../../services/supplierService";
 import { getProgramConfig } from "../../services/adminService";
 import { createProject, updateProject, fetchProject } from "../../services/projectService";
 import BuildingCanvas from "../../components/roof/BuildingCanvas";
+// Babylon 3D viewer is heavy — load it only when the user opens the 3D preview.
+const Roof3DViewerBabylon = lazy(() => import("../../components/roof/Roof3DViewerBabylon"));
 import RoofPresets from "../../components/roof/RoofPresets";
 
 import { skeletonReady } from "../../utils/roofSkeleton";
@@ -112,7 +114,7 @@ export default function CalculatorPage() {
   const [input, setInput] = useState({
     slope: 40, numLegs: 6, legHeight: 2.7,
     withDecor: true, enableInsulation: false,
-    tileIndex: 0,
+    tileIndex: 0, breakagePercent: 5,
   });
   const [customFields, setCustomFields] = useState([]);
   const [dragIdx, setDragIdx] = useState(null);
@@ -171,6 +173,7 @@ export default function CalculatorPage() {
       if (settings?.legHeight != null) setInput((prev) => ({ ...prev, legHeight: settings.legHeight }));
       if (settings?.withDecor != null) setInput((prev) => ({ ...prev, withDecor: settings.withDecor }));
       if (settings?.enableInsulation != null) setInput((prev) => ({ ...prev, enableInsulation: settings.enableInsulation }));
+      if (settings?.breakagePercent != null) setInput((prev) => ({ ...prev, breakagePercent: settings.breakagePercent }));
       setProjectLoading(false);
     });
     return () => { cancelled = true; };
@@ -453,6 +456,7 @@ export default function CalculatorPage() {
     slopePercent: input.slope, spacingCm: 55,
     numLegs: input.numLegs, legHeight: input.legHeight,
     withDecor: input.withDecor, enableInsulation: input.enableInsulation, tile,
+    breakagePercent: input.breakagePercent,
   }), [sides, vertices, area, boundingDims, input, tile, skeletonVer]);
 
   const costResult = useMemo(() => {
@@ -629,6 +633,14 @@ export default function CalculatorPage() {
                 area={area}
                 slope={input.slope}
               />
+              {closed && (
+                <button
+                  onClick={() => setShow3dPreview(true)}
+                  className="mt-3 w-full bg-slate-800 hover:bg-slate-900 active:bg-slate-950 text-white font-bold py-2 rounded-sm transition text-xs flex items-center justify-center gap-2 cursor-pointer border-r-3 border-slate-950"
+                >
+                  <Box className="w-4 h-4" /> عرض ثلاثي الأبعاد (3D)
+                </button>
+              )}
             </div>
           </motion.div>
 
@@ -719,6 +731,26 @@ export default function CalculatorPage() {
                   ))}
                 </div>
               </div>
+            </div>
+
+            <div className="mt-4 p-3 rounded-sm bg-earth-50 border border-earth-200">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[9px] text-earth-500 font-bold tracking-wider">نسبة الكسر / الهدر للقرميد</label>
+                <span className="text-[10px] font-black font-mono text-terracotta-500">{input.breakagePercent}%</span>
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                {[0, 5, 7, 10].map((v) => (
+                  <button key={v} onClick={() => setInput((p) => ({ ...p, breakagePercent: v }))}
+                    className={`px-3 py-1 rounded-sm text-[10px] font-bold border transition cursor-pointer ${input.breakagePercent === v ? "bg-terracotta-100 border-terracotta-300 text-terracotta-600" : "bg-white border-earth-300 text-earth-500 hover:border-terracotta-300"}`}>
+                    {v === 0 ? "بدون" : `${v}%`}
+                  </button>
+                ))}
+              </div>
+              {closed && result.tilesBreakage > 0 && (
+                <p className="text-[9px] text-earth-500 mt-2">
+                  يضيف <strong className="text-terracotta-500 font-mono">{result.tilesBreakage}</strong> حبة احتياطي كسر وقصّ (عند الأودية والحواف)
+                </p>
+              )}
             </div>
 
             <div className="flex gap-2 mt-4">
@@ -1178,6 +1210,45 @@ export default function CalculatorPage() {
             <button onClick={() => setSaveSuccess(null)} className="text-earth-500 hover:text-earth-700 transition cursor-pointer">
               <X className="w-4 h-4" />
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== 3D preview modal ===== */}
+      <AnimatePresence>
+        {show3dPreview && closed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShow3dPreview(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="bg-slate-900 border border-white/10 rounded-2xl p-3 w-full max-w-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-2 px-1">
+                <h3 className="text-sm font-black text-white flex items-center gap-2">
+                  <Box className="w-4 h-4" /> العرض ثلاثي الأبعاد
+                </h3>
+                <button onClick={() => setShow3dPreview(false)} className="text-white/70 hover:text-white transition p-1 cursor-pointer" aria-label="إغلاق">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <Suspense fallback={<div className="h-[400px] flex items-center justify-center text-white/60 text-xs">جارٍ تحميل العارض ثلاثي الأبعاد…</div>}>
+                <Roof3DViewerBabylon
+                  vertices={vertices}
+                  skeleton={result.roofSkeleton}
+                  slope={input.slope}
+                  tile={tile}
+                />
+              </Suspense>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

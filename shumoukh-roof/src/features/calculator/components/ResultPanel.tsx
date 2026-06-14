@@ -31,7 +31,9 @@ export default function ResultPanel({
     {
       key: "tiles",
       items: [
-        { id: "tiles", label: tile?.name || "قرميد", value: result.totalTiles, unit: "حبة" },
+        { id: "tiles", label: tile?.name || "قرميد", value: result.totalTiles, unit: "حبة",
+          note: result.breakagePercent > 0 && result.tilesBreakage > 0
+            ? `يشمل ${result.tilesBreakage} حبة كسر (${result.breakagePercent}%)` : null },
         { id: "tileStarts", label: "بدايات القرميد", value: result.tileStarts || 0, unit: "حبة" },
         { id: "tarabeesh", label: "الطرابيش", value: result.actualTarabeesh != null ? result.actualTarabeesh : result.tarabeesh, unit: "م" },
       ],
@@ -97,7 +99,10 @@ export default function ResultPanel({
                         className="text-earth-400 hover:text-olive-600 transition cursor-pointer shrink-0">
                         {hiddenItems.has(item.id) ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                       </button>
-                      <span className="text-xs font-bold text-earth-900 truncate">{item.label}</span>
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-earth-900 truncate block">{item.label}</span>
+                        {item.note && <span className="text-[9px] text-earth-500 block">{item.note}</span>}
+                      </div>
                     </div>
                     <span className="text-xs font-black font-mono text-earth-900 shrink-0 mr-2">
                       {item.value} <span className="text-[9px] text-earth-500 font-medium">{item.unit}</span>

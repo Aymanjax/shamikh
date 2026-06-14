@@ -103,6 +103,8 @@ export default class SplitEvent extends SkeletonEvent {
     op1.prev = node1;
     node1.prev = reflexPrev;
     reflexPrev.next = node1;
+    // node1 owns the second half of the split edge op0→op1; inherit its gable flag.
+    node1.edgeIsGable = op0.edgeIsGable;
 
     SkeletonEvent.handle(node0, ctx);
     SkeletonEvent.handle(node1, ctx);

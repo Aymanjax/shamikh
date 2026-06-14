@@ -22,10 +22,10 @@ export default class StraightSkeleton {
 
   setEpsilon(epsilon: number) { this._ctx.setEpsilon(epsilon); }
 
-  execute(contour: Point[], holes: Point[][] = []) {
+  execute(contour: Point[], holes: Point[][] = [], gableFlags: boolean[] = []) {
     this._ctx.reset(this.offsetDistance, this.distanceSign);
     this.initialNodes = [];
-    const diagonalSize = this._createNodes(contour);
+    const diagonalSize = this._createNodes(contour, gableFlags);
     holes.forEach((hole) => { this._createNodes(hole); });
     if (this.distanceSign < 0 && this.offsetDistance === Infinity) this._ctx.distance = diagonalSize * 0.51;
     if (this._ctx.distance !== 0) {
@@ -51,13 +51,15 @@ export default class StraightSkeleton {
     return false;
   }
 
-  private _createNodes(vertices: Point[]) {
+  private _createNodes(vertices: Point[], gableFlags: boolean[] = []) {
     const minPt: Point = [Infinity, Infinity];
     const maxPt: Point = [-Infinity, -Infinity];
     const first = this._createNode(vertices[0], minPt, maxPt);
+    first.edgeIsGable = gableFlags[0] === true;
     let last = first;
     for (let i = 1; i < vertices.length; i++) {
       const movingNode = this._createNode(vertices[i], minPt, maxPt);
+      movingNode.edgeIsGable = gableFlags[i] === true;
       movingNode.prev = last;
       last.next = movingNode;
       last = movingNode;

@@ -103,6 +103,8 @@ export default class SkeletonEvent {
     assert(o2.prev == node);
     o1.next = o2;
     o2.prev = o1;
+    // o1 now owns the edge node→o2 that the degenerate node used to own.
+    o1.edgeIsGable = node.edgeIsGable;
 
     const connectionTarget = distSquare(node.skelNode.p, o1.skelNode.p) < distSquare(node.skelNode.p, o2.skelNode.p) ? o1 : o2;
     node.skelNode.addDegenerationEdge(connectionTarget.skelNode);

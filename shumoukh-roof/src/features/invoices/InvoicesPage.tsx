@@ -8,7 +8,7 @@ import { printInvoice } from "../../lib/printInvoice";
 import { openWhatsApp } from "../../lib/whatsapp";
 import GlassButton from "../../components/ui/GlassButton";
 
-export interface InvoiceItem {
+
   desc: string;
   qty: number;
   price: number;
@@ -20,6 +20,8 @@ interface Invoice {
   project?: string;
   phone?: string;
   amount?: number;
+  subtotal?: number;
+  items?: LineItem[];
   status?: string;
   projectId?: string;
   items?: InvoiceItem[];
@@ -34,17 +36,6 @@ interface InvoiceForm {
   project: string;
   phone: string;
   status: string;
-  items: InvoiceItem[];
-  discount: number;
-  taxRate: number;
-  notes: string;
-}
-
-const emptyItem = (): InvoiceItem => ({ desc: "", qty: 1, price: 0 });
-const defaultForm = (): InvoiceForm => ({
-  client: "", project: "", phone: "", status: "draft",
-  items: [emptyItem()], discount: 0, taxRate: 0, notes: "",
-});
 
 // حساب مجاميع الفاتورة: بنود → فرعي → خصم → ضريبة → إجمالي
 function computeTotals(items: InvoiceItem[], discount: number, taxRate: number) {
@@ -117,25 +108,7 @@ export default function InvoicesPage() {
     enabled: !!user,
   });
 
-  const closeModal = useCallback(() => {
-    setModal(false);
-    setEditId(null);
-    setForm(defaultForm());
-    setClientError(false);
-  }, []);
 
-  const saveMutation = useMutation({
-    mutationFn: async (data: InvoiceForm) => {
-      const items = data.items.filter((it) => it.desc.trim() || it.price > 0);
-      const { total } = computeTotals(items, data.discount, data.taxRate);
-      const payload = {
-        client: data.client.trim(), project: data.project.trim(), phone: data.phone.trim(),
-        status: data.status, items, discount: data.discount || 0, taxRate: data.taxRate || 0,
-        notes: data.notes.trim(), amount: total,
-      };
-      if (editId) await updateDocument("invoices", editId, payload);
-      else await addDocument("invoices", { ...payload, userId: user!.uid });
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       closeModal();
@@ -159,22 +132,17 @@ export default function InvoicesPage() {
       clientInputRef.current?.focus();
       return;
     }
-    saveMutation.mutate(form);
-  }, [form, saveMutation]);
 
-  // فتح فاتورة للتعديل — القديمة بلا بنود تتحول لبند واحد من مبلغها
-  const handleEdit = useCallback((inv: Invoice) => {
-    setEditId(inv.id);
-    setForm({
-      client: inv.client || "", project: inv.project || "", phone: inv.phone || "",
-      status: inv.status || "draft",
-      items: inv.items && inv.items.length > 0
-        ? inv.items.map((it) => ({ ...it }))
-        : [{ desc: inv.project || "أعمال قرميد وأسطح", qty: 1, price: inv.amount || 0 }],
-      discount: inv.discount || 0, taxRate: inv.taxRate || 0, notes: inv.notes || "",
-    });
-    setModal(true);
+
+  const updateItem = useCallback((idx: number, patch: Partial<LineItem>) => {
+    setForm((p) => ({ ...p, items: p.items.map((it, i) => (i === idx ? { ...it, ...patch } : it)) }));
   }, []);
+  const addItem = useCallback(() => setForm((p) => ({ ...p, items: [...p.items, emptyItem()] })), []);
+  const removeItem = useCallback((idx: number) => {
+    setForm((p) => ({ ...p, items: p.items.length > 1 ? p.items.filter((_, i) => i !== idx) : p.items }));
+  }, []);
+
+  const formSubtotal = sumItems(form.items);
 
   const handleDelete = useCallback((id: string) => {
     if (!confirm("حذف هذه الفاتورة؟ لا يمكن التراجع عن الحذف.")) return;
@@ -296,6 +264,9 @@ export default function InvoicesPage() {
                             <Hash className="w-2.5 h-2.5 text-earth-400 shrink-0" />
                             <span className="text-[10px] text-earth-500 truncate">{inv.project}</span>
                           </div>
+                        )}
+                        {inv.items && inv.items.length > 0 && (
+                          <span className="text-[9px] text-earth-400 mt-0.5 block">{inv.items.length} بند</span>
                         )}
                       </div>
 
@@ -537,17 +508,6 @@ export default function InvoicesPage() {
                   </div>
                 </div>
 
-                {/* ملاحظات */}
-                <div className="space-y-1.5">
-                  <label htmlFor="invoice-notes" className="block text-xs font-black text-earth-700">ملاحظات تظهر أسفل الفاتورة</label>
-                  <textarea
-                    id="invoice-notes"
-                    value={form.notes}
-                    onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-                    placeholder="اختياري — شروط الدفع، مدة الضمان…"
-                    rows={2}
-                    className="w-full bg-white border-2 border-earth-200 rounded-xl py-2 px-3 text-xs text-earth-900 outline-none focus:border-terracotta-500 transition placeholder:text-earth-400 resize-none"
-                  />
                 </div>
 
                 <div className="pt-1 flex gap-2">
