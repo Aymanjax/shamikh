@@ -1,14 +1,14 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileText, Plus, Search, Download, Trash2, X, Check, Receipt, User, Hash, DollarSign, MessageCircle } from "lucide-react";
+import { FileText, Plus, Search, Download, Trash2, X, Check, Receipt, User, Hash, MessageCircle, Pencil, Percent } from "lucide-react";
 import { listDocumentsByUser, addDocument, deleteDocument, updateDocument } from "../../lib/firestoreService";
 import { useAuthStore } from "../../store/authStore";
 import { printInvoice } from "../../lib/printInvoice";
 import { openWhatsApp } from "../../lib/whatsapp";
 import GlassButton from "../../components/ui/GlassButton";
 
-interface LineItem {
+
   desc: string;
   qty: number;
   price: number;
@@ -24,6 +24,10 @@ interface Invoice {
   items?: LineItem[];
   status?: string;
   projectId?: string;
+  items?: InvoiceItem[];
+  discount?: number;
+  taxRate?: number;
+  notes?: string;
   createdAt?: unknown;
 }
 
@@ -32,24 +36,31 @@ interface InvoiceForm {
   project: string;
   phone: string;
   status: string;
-  items: LineItem[];
+
+// حساب مجاميع الفاتورة: بنود → فرعي → خصم → ضريبة → إجمالي
+function computeTotals(items: InvoiceItem[], discount: number, taxRate: number) {
+  const subtotal = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.price) || 0), 0);
+  const afterDiscount = Math.max(0, subtotal - (Number(discount) || 0));
+  const tax = +(afterDiscount * ((Number(taxRate) || 0) / 100)).toFixed(2);
+  const total = +(afterDiscount + tax).toFixed(2);
+  return { subtotal, tax, total };
 }
 
-const emptyItem = (): LineItem => ({ desc: "", qty: 1, price: 0 });
-const defaultForm: InvoiceForm = { client: "", project: "", phone: "", status: "draft", items: [emptyItem()] };
-
-const lineTotal = (it: LineItem): number => (Number(it.qty) || 0) * (Number(it.price) || 0);
-const sumItems = (items: LineItem[]): number => items.reduce((s, it) => s + lineTotal(it), 0);
-
-/** WhatsApp message — a price quote for drafts, an invoice otherwise. */
-function invoiceText(inv: Invoice): string {
+/** رسالة واتساب — عرض سعر للمسودات، فاتورة لغير ذلك. */
+function invoiceText(inv: Invoice, companyName: string): string {
   const head = inv.status === "draft" ? "عرض سعر" : "فاتورة";
-  return [
-    head,
+  const lines = [
+    `${head} — ${companyName || "شموخ"}`,
     `العميل: ${inv.client || ""}`,
     inv.project ? `المشروع: ${inv.project}` : "",
-    `المبلغ: ${inv.amount} د.أ`,
-  ].filter(Boolean).join("\n");
+  ];
+  if (inv.items && inv.items.length > 0) {
+    lines.push("———");
+    inv.items.forEach((it) => lines.push(`• ${it.desc}: ${it.qty} × ${it.price} = ${(it.qty * it.price).toFixed(2)} د.أ`));
+    lines.push("———");
+  }
+  lines.push(`الإجمالي: ${inv.amount ?? 0} د.أ`);
+  return lines.filter(Boolean).join("\n");
 }
 
 const statusConfig: Record<string, { label: string; color: string; next: string }> = {
@@ -69,11 +80,26 @@ const countLabel = (n: number): string => {
 export default function InvoicesPage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const companyName = useAuthStore((s) => s.companyName);
+  const companyProfile = useAuthStore((s) => s.companyProfile);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState<InvoiceForm>(defaultForm);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState<InvoiceForm>(defaultForm());
   const [clientError, setClientError] = useState(false);
   const clientInputRef = useRef<HTMLInputElement>(null);
+
+  const company = useMemo(() => ({
+    name: companyName,
+    logoURL: companyProfile?.logoURL,
+    phone: companyProfile?.phone,
+    address: companyProfile?.address,
+  }), [companyName, companyProfile]);
+
+  const totals = useMemo(
+    () => computeTotals(form.items, form.discount, form.taxRate),
+    [form.items, form.discount, form.taxRate]
+  );
 
   const { data: invoices = [], isLoading: loading, error } = useQuery<Invoice[]>({
     queryKey: ["invoices", user?.uid],
@@ -82,13 +108,10 @@ export default function InvoicesPage() {
     enabled: !!user,
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) => addDocument("invoices", { ...data, userId: user!.uid }),
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      setModal(false);
-      setForm(defaultForm);
-      setClientError(false);
+      closeModal();
     },
   });
 
@@ -103,24 +126,13 @@ export default function InvoicesPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["invoices"] }),
   });
 
-  const handleCreate = useCallback(() => {
+  const handleSave = useCallback(() => {
     if (!form.client.trim()) {
       setClientError(true);
       clientInputRef.current?.focus();
       return;
     }
-    const items = form.items.filter((it) => it.desc.trim() || lineTotal(it) > 0);
-    const subtotal = sumItems(items);
-    createMutation.mutate({
-      client: form.client.trim(),
-      project: form.project.trim(),
-      phone: form.phone.trim(),
-      status: form.status,
-      items,
-      subtotal,
-      amount: subtotal,
-    });
-  }, [form, createMutation]);
+
 
   const updateItem = useCallback((idx: number, patch: Partial<LineItem>) => {
     setForm((p) => ({ ...p, items: p.items.map((it, i) => (i === idx ? { ...it, ...patch } : it)) }));
@@ -141,6 +153,12 @@ export default function InvoicesPage() {
     const next = inv.status === "draft" ? "pending" : inv.status === "pending" ? "paid" : "draft";
     statusMutation.mutate({ id: inv.id, status: next });
   }, [statusMutation]);
+
+  const setItem = (i: number, patch: Partial<InvoiceItem>) =>
+    setForm((p) => ({ ...p, items: p.items.map((it, j) => (j === i ? { ...it, ...patch } : it)) }));
+  const addItem = () => setForm((p) => ({ ...p, items: [...p.items, emptyItem()] }));
+  const removeItem = (i: number) =>
+    setForm((p) => ({ ...p, items: p.items.length > 1 ? p.items.filter((_, j) => j !== i) : p.items }));
 
   const filtered = invoices.filter((inv) =>
     !search || inv.client?.includes(search) || inv.project?.includes(search)
@@ -235,6 +253,11 @@ export default function InvoicesPage() {
                         <div className="flex items-center gap-2">
                           <User className="w-3 h-3 text-earth-400 shrink-0" />
                           <span className="text-sm font-black text-earth-900 truncate">{inv.client}</span>
+                          {inv.items && inv.items.length > 0 && (
+                            <span className="text-[9px] font-mono text-earth-500 bg-earth-100 border border-earth-200 rounded-sm px-1.5 py-0.5 shrink-0">
+                              {inv.items.length} بند
+                            </span>
+                          )}
                         </div>
                         {inv.project && (
                           <div className="flex items-center gap-1.5 mt-0.5">
@@ -249,13 +272,10 @@ export default function InvoicesPage() {
 
                       {/* Amount */}
                       <div className="shrink-0 text-left" dir="ltr">
-                        <div className="flex items-center gap-1.5">
-                          <DollarSign className="w-3 h-3 text-earth-400" />
-                          <span className="text-sm font-black font-mono text-earth-900">
-                            {inv.amount}
-                          </span>
-                        </div>
-                        <span className="text-[9px] text-earth-500 font-mono">JOD</span>
+                        <span className="text-sm font-black font-mono text-earth-900">
+                          {inv.amount}
+                        </span>
+                        <span className="text-[9px] text-earth-500 font-mono block">JOD</span>
                       </div>
 
                       {/* Status */}
@@ -270,16 +290,23 @@ export default function InvoicesPage() {
                       {/* Actions */}
                       <div className="shrink-0 flex items-center gap-1">
                         <button
-                          onClick={() => openWhatsApp(inv.phone, invoiceText(inv))}
+                          onClick={() => handleEdit(inv)}
+                          className="p-1.5 text-earth-500 hover:text-terracotta-500 transition cursor-pointer rounded-sm"
+                          title="تعديل الفاتورة"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => openWhatsApp(inv.phone, invoiceText(inv, companyName))}
                           className="p-1.5 text-earth-500 hover:text-green-600 transition cursor-pointer rounded-sm"
                           title="إرسال واتساب"
                         >
                           <MessageCircle className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => printInvoice(inv)}
+                          onClick={() => printInvoice(inv, company)}
                           className="p-1.5 text-earth-500 hover:text-olive-600 transition cursor-pointer rounded-sm"
-                          title="تحميل الفاتورة"
+                          title="طباعة الفاتورة"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
@@ -300,7 +327,7 @@ export default function InvoicesPage() {
         )}
       </div>
 
-      {/* ========== CREATE MODAL ========== */}
+      {/* ========== CREATE / EDIT MODAL ========== */}
       <AnimatePresence>
         {modal && (
           <motion.div
@@ -308,23 +335,23 @@ export default function InvoicesPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setModal(false)}
+            onClick={closeModal}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 10 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="bg-white border border-earth-200 rounded-sm p-5 max-w-sm w-full"
+              className="bg-white border border-earth-200 rounded-sm p-5 max-w-2xl w-full max-h-[92vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-sm font-black text-earth-900 flex items-center gap-2">
                   <Receipt className="w-4 h-4" style={{ color: "var(--accent-terracotta)" }} />
-                  فاتورة جديدة
+                  {editId ? "تعديل الفاتورة" : "فاتورة جديدة"}
                 </h3>
                 <button
-                  onClick={() => { setModal(false); setClientError(false); }}
+                  onClick={closeModal}
                   className="text-earth-500 hover:text-earth-700 transition p-1 cursor-pointer rounded-sm"
                   aria-label="إغلاق"
                 >
@@ -333,108 +360,175 @@ export default function InvoicesPage() {
               </div>
 
               <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label htmlFor="invoice-client" className="block text-xs font-black text-earth-700">
-                    العميل
-                  </label>
-                  <input
-                    id="invoice-client"
-                    ref={clientInputRef}
-                    value={form.client}
-                    onChange={(e) => { setForm((p) => ({ ...p, client: e.target.value })); setClientError(false); }}
-                    placeholder="اسم العميل"
-                    className={`w-full bg-white border-2 rounded-xl py-2.5 px-4 text-sm text-earth-900 outline-none transition placeholder:text-earth-400 ${
-                      clientError
-                        ? "border-red-300 focus:border-red-400 focus:ring-red-100"
-                        : "border-earth-200 focus:border-terracotta-500 focus:ring-2 focus:ring-terracotta-100"
-                    }`}
-                  />
-                  {clientError && (
-                    <p className="text-[11px] text-red-500 font-medium">اسم العميل مطلوب</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor="invoice-project" className="block text-xs font-black text-earth-700">
-                    المشروع
-                  </label>
-                  <input
-                    id="invoice-project"
-                    value={form.project}
-                    onChange={(e) => setForm((p) => ({ ...p, project: e.target.value }))}
-                    placeholder="اختياري — اسم المشروع"
-                    className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm text-earth-900 outline-none focus:border-terracotta-500 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor="invoice-phone" className="block text-xs font-black text-earth-700">
-                    هاتف العميل
-                  </label>
-                  <input
-                    id="invoice-phone"
-                    value={form.phone}
-                    onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-                    placeholder="اختياري — لإرسال الفاتورة واتساب" dir="ltr"
-                    className="w-full bg-white border-2 border-earth-200 rounded-xl py-2.5 px-4 text-sm text-earth-900 outline-none focus:border-terracotta-500 focus:ring-2 focus:ring-terracotta-100 transition placeholder:text-earth-400"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-black text-earth-700">بنود الفاتورة</label>
-                    <span className="text-[10px] text-earth-500">الكمية × السعر</span>
+                {/* بيانات العميل */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <label htmlFor="invoice-client" className="block text-xs font-black text-earth-700">
+                      العميل <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="invoice-client"
+                      ref={clientInputRef}
+                      value={form.client}
+                      onChange={(e) => { setForm((p) => ({ ...p, client: e.target.value })); setClientError(false); }}
+                      placeholder="اسم العميل"
+                      className={`w-full bg-white border-2 rounded-xl py-2 px-3 text-sm text-earth-900 outline-none transition placeholder:text-earth-400 ${
+                        clientError
+                          ? "border-red-300 focus:border-red-400"
+                          : "border-earth-200 focus:border-terracotta-500"
+                      }`}
+                    />
+                    {clientError && <p className="text-[11px] text-red-500 font-medium">اسم العميل مطلوب</p>}
                   </div>
-                  <div className="space-y-2 max-h-56 overflow-y-auto">
+                  <div className="space-y-1.5">
+                    <label htmlFor="invoice-project" className="block text-xs font-black text-earth-700">المشروع</label>
+                    <input
+                      id="invoice-project"
+                      value={form.project}
+                      onChange={(e) => setForm((p) => ({ ...p, project: e.target.value }))}
+                      placeholder="اختياري"
+                      className="w-full bg-white border-2 border-earth-200 rounded-xl py-2 px-3 text-sm text-earth-900 outline-none focus:border-terracotta-500 transition placeholder:text-earth-400"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="invoice-phone" className="block text-xs font-black text-earth-700">هاتف العميل</label>
+                    <input
+                      id="invoice-phone"
+                      value={form.phone}
+                      onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                      placeholder="للواتساب" dir="ltr"
+                      className="w-full bg-white border-2 border-earth-200 rounded-xl py-2 px-3 text-sm text-earth-900 outline-none focus:border-terracotta-500 transition placeholder:text-earth-400"
+                    />
+                  </div>
+                </div>
+
+                {/* البنود */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-black text-earth-700">البنود</label>
+                    <span className="text-[10px] text-earth-500 font-mono">وصف × كمية × سعر</span>
+                  </div>
+                  <div className="border-2 border-earth-200 rounded-xl overflow-hidden">
+                    <div className="grid grid-cols-12 gap-px bg-earth-200 text-[10px] font-black text-earth-600">
+                      <div className="col-span-6 bg-earth-100 px-3 py-1.5">البيان</div>
+                      <div className="col-span-2 bg-earth-100 px-2 py-1.5 text-center">الكمية</div>
+                      <div className="col-span-2 bg-earth-100 px-2 py-1.5 text-center">السعر</div>
+                      <div className="col-span-2 bg-earth-100 px-2 py-1.5 text-center">المجموع</div>
+                    </div>
                     {form.items.map((it, i) => (
-                      <div key={i} className="flex items-center gap-1.5">
+                      <div key={i} className="grid grid-cols-12 gap-px bg-earth-100 border-t border-earth-100 group">
                         <input
                           value={it.desc}
-                          onChange={(e) => updateItem(i, { desc: e.target.value })}
-                          placeholder="البند (مثال: قرميد)"
-                          className="flex-1 min-w-0 bg-white border-2 border-earth-200 rounded-lg py-2 px-3 text-xs text-earth-900 outline-none focus:border-terracotta-500 transition placeholder:text-earth-400"
+                          onChange={(e) => setItem(i, { desc: e.target.value })}
+                          placeholder={`بند ${i + 1} — مثال: قرميد PVC مع تركيب`}
+                          className="col-span-6 bg-white px-3 py-2 text-xs text-earth-900 outline-none focus:bg-terracotta-50/30 placeholder:text-earth-300"
                         />
                         <input
-                          type="number" inputMode="decimal" value={it.qty || ""}
-                          onChange={(e) => updateItem(i, { qty: +e.target.value })}
-                          placeholder="كمية" aria-label="الكمية"
-                          className="w-14 bg-white border-2 border-earth-200 rounded-lg py-2 px-2 text-xs text-center font-mono text-earth-900 outline-none focus:border-terracotta-500 transition placeholder:text-earth-400"
+                          type="number" min="0" step="0.5" value={it.qty || ""}
+                          onChange={(e) => setItem(i, { qty: +e.target.value })}
+                          placeholder="1"
+                          className="col-span-2 bg-white px-2 py-2 text-xs font-mono text-center text-earth-900 outline-none focus:bg-terracotta-50/30"
                         />
                         <input
-                          type="number" inputMode="decimal" value={it.price || ""}
-                          onChange={(e) => updateItem(i, { price: +e.target.value })}
-                          placeholder="سعر" aria-label="السعر"
-                          className="w-16 bg-white border-2 border-earth-200 rounded-lg py-2 px-2 text-xs text-center font-mono text-earth-900 outline-none focus:border-terracotta-500 transition placeholder:text-earth-400"
+                          type="number" min="0" step="0.01" value={it.price || ""}
+                          onChange={(e) => setItem(i, { price: +e.target.value })}
+                          placeholder="0.00"
+                          className="col-span-2 bg-white px-2 py-2 text-xs font-mono text-center text-earth-900 outline-none focus:bg-terracotta-50/30"
                         />
-                        <span className="w-16 shrink-0 text-[10px] font-mono font-black text-earth-700 text-left" dir="ltr">
-                          {lineTotal(it).toFixed(2)}
-                        </span>
-                        <button
-                          onClick={() => removeItem(i)}
-                          disabled={form.items.length === 1}
-                          className="p-1.5 text-earth-400 hover:text-red-500 transition cursor-pointer rounded-sm disabled:opacity-30 disabled:cursor-default shrink-0"
-                          aria-label="حذف البند"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="col-span-2 bg-white px-2 py-2 text-xs font-mono font-black text-center text-earth-700 relative">
+                          {((it.qty || 0) * (it.price || 0)).toFixed(2)}
+                          {form.items.length > 1 && (
+                            <button
+                              onClick={() => removeItem(i)}
+                              className="absolute left-1 top-1/2 -translate-y-1/2 p-0.5 text-earth-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
+                              title="حذف البند"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
-                  </div>
-                  <button
-                    onClick={addItem}
-                    className="w-full border-2 border-dashed border-earth-200 rounded-lg py-2 text-xs text-earth-500 hover:text-earth-700 hover:border-earth-300 transition flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> إضافة بند
-                  </button>
-                  <div className="flex items-center justify-between bg-earth-50 border border-earth-200 rounded-lg px-4 py-2.5">
-                    <span className="text-xs font-black text-earth-700">الإجمالي</span>
-                    <span className="text-sm font-black font-mono text-olive-700" dir="ltr">{formSubtotal.toFixed(2)} <span className="text-[10px] text-earth-500">JOD</span></span>
+                    <button
+                      onClick={addItem}
+                      className="w-full py-2 text-[11px] font-black text-terracotta-500 hover:bg-terracotta-50 transition flex items-center justify-center gap-1 border-t border-earth-100"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> إضافة بند
+                    </button>
                   </div>
                 </div>
-                <div className="pt-1">
+
+                {/* الخصم والضريبة والمجاميع */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <label htmlFor="invoice-discount" className="block text-xs font-black text-earth-700">الخصم (د.أ)</label>
+                      <input
+                        id="invoice-discount"
+                        type="number" min="0" step="0.01" value={form.discount || ""}
+                        onChange={(e) => setForm((p) => ({ ...p, discount: +e.target.value }))}
+                        placeholder="0"
+                        className="w-full bg-white border-2 border-earth-200 rounded-xl py-2 px-3 text-sm font-mono text-earth-900 outline-none focus:border-terracotta-500 transition"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label htmlFor="invoice-tax" className="block text-xs font-black text-earth-700 flex items-center gap-1">
+                        <Percent className="w-3 h-3" /> الضريبة % <span className="font-normal text-earth-400">(اختياري — اتركها 0 بلا ضريبة)</span>
+                      </label>
+                      <input
+                        id="invoice-tax"
+                        type="number" min="0" max="100" step="0.5" value={form.taxRate || ""}
+                        onChange={(e) => setForm((p) => ({ ...p, taxRate: +e.target.value }))}
+                        placeholder="0"
+                        className="w-full bg-white border-2 border-earth-200 rounded-xl py-2 px-3 text-sm font-mono text-earth-900 outline-none focus:border-terracotta-500 transition"
+                      />
+                    </div>
+                  </div>
+                  <div className="bg-earth-50 border-2 border-earth-200 rounded-xl p-3 space-y-1.5 self-start">
+                    <div className="flex justify-between text-xs text-earth-600">
+                      <span>المجموع الفرعي</span>
+                      <span className="font-mono">{totals.subtotal.toFixed(2)}</span>
+                    </div>
+                    {form.discount > 0 && (
+                      <div className="flex justify-between text-xs text-earth-600">
+                        <span>الخصم</span>
+                        <span className="font-mono">− {form.discount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {form.taxRate > 0 && (
+                      <div className="flex justify-between text-xs text-earth-600">
+                        <span>الضريبة ({form.taxRate}%)</span>
+                        <span className="font-mono">{totals.tax.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm font-black text-earth-900 border-t-2 border-earth-200 pt-1.5">
+                      <span>الإجمالي</span>
+                      <span className="font-mono">{totals.total.toFixed(2)} د.أ</span>
+                    </div>
+                  </div>
+                </div>
+
+                </div>
+
+                <div className="pt-1 flex gap-2">
                   <button
-                    onClick={handleCreate}
-                    disabled={createMutation.isPending}
-                    className="w-full bg-olive-700 hover:bg-olive-800 active:bg-olive-900 text-earth-100 font-bold py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:pointer-events-none border-r-3 border-olive-900"
+                    onClick={handleSave}
+                    disabled={saveMutation.isPending}
+                    className="flex-1 bg-olive-700 hover:bg-olive-800 active:bg-olive-900 text-earth-100 font-bold py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:pointer-events-none border-r-3 border-olive-900"
                   >
-                    {createMutation.isPending ? "جارٍ الإنشاء..." : <><Check className="w-4 h-4" /> إنشاء الفاتورة</>}
+                    {saveMutation.isPending
+                      ? "جارٍ الحفظ..."
+                      : <><Check className="w-4 h-4" /> {editId ? "حفظ التعديلات" : "إنشاء الفاتورة"}</>}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const { total } = computeTotals(form.items, form.discount, form.taxRate);
+                      printInvoice({ ...form, id: editId || "", amount: total }, company);
+                    }}
+                    className="px-4 bg-white hover:bg-earth-50 text-earth-700 font-bold py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-2 cursor-pointer border-2 border-earth-200"
+                    title="معاينة الطباعة"
+                  >
+                    <Download className="w-4 h-4" /> معاينة
                   </button>
                 </div>
               </div>

@@ -52,6 +52,11 @@ export function applyTokens(
     const value = tokens[key];
     if (cssVar && value != null) el.style.setProperty(cssVar, value);
   });
+  // الواجهة الهندسية (القمرة) ذات أسطح ثابتة، لكنها تشتقّ ضوء الأداة من
+  // لون الأكسنت الذي يختاره المستخدم. نمرّره عبر متغيّر مستقل لا تلمسه القمرة.
+  if (tokens.accentTerracotta != null) {
+    el.style.setProperty("--ck-accent", tokens.accentTerracotta);
+  }
 }
 
 /**

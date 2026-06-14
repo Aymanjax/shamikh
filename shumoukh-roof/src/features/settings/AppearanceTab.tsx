@@ -1,18 +1,15 @@
 import { useState, useEffect } from "react";
-import { Palette, Sun, Moon, ArrowRight, Languages } from "lucide-react";
+import { Palette, ArrowRight, Languages, Sun, Moon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useT, useLang, type Lang } from "../../i18n";
+import { useUiTheme } from "../../store/uiThemeStore";
 
 export default function AppearanceTab() {
   const t = useT();
   const [lang, setLang] = useLang();
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("darkMode") === "true");
+  const uiLight = useUiTheme((s) => s.light);
+  const setLight = useUiTheme((s) => s.setLight);
   const [fontSize, setFontSize] = useState(() => localStorage.getItem("fontSize") || "normal");
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-    localStorage.setItem("darkMode", String(darkMode));
-  }, [darkMode]);
 
   useEffect(() => {
     const sizes: Record<string, string> = { small: "14px", normal: "16px", large: "18px" };
@@ -38,18 +35,21 @@ export default function AppearanceTab() {
       </div>
 
       <div className="earth-card p-5 space-y-6">
-        <div className="flex items-center justify-between gap-3 min-h-[48px]">
-          <div className="flex items-center gap-3 min-w-0">
-            {darkMode ? <Moon className="w-5 h-5 shrink-0 text-ink-secondary" /> : <Sun className="w-5 h-5 shrink-0 text-ink-secondary" />}
-            <div className="min-w-0">
-              <h3 className="text-sm font-black text-ink-primary">{t("appearance.darkMode")}</h3>
-              <p className="text-xs text-ink-muted">{t("appearance.darkModeDesc")}</p>
-            </div>
+        {/* لون الواجهة: داكن (هندسي) ↔ فاتح (أبيض) */}
+        <div>
+          <h3 className="text-sm font-black text-ink-primary mb-3">لون الواجهة</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => setLight(false)}
+              className={`py-3 px-4 rounded-sm border-2 text-sm font-black transition min-h-[48px] flex items-center justify-center gap-2 ${
+                !uiLight ? "border-terracotta-400 bg-terracotta-100 text-terracotta-500" : "border-earth-200 bg-white text-ink-muted hover:border-earth-300"}`}>
+              <Moon className="w-4 h-4" /> داكن — هندسي
+            </button>
+            <button onClick={() => setLight(true)}
+              className={`py-3 px-4 rounded-sm border-2 text-sm font-black transition min-h-[48px] flex items-center justify-center gap-2 ${
+                uiLight ? "border-terracotta-400 bg-terracotta-100 text-terracotta-500" : "border-earth-200 bg-white text-ink-muted hover:border-earth-300"}`}>
+              <Sun className="w-4 h-4" /> فاتح — أبيض
+            </button>
           </div>
-          <button onClick={() => setDarkMode(!darkMode)}
-            className={`relative shrink-0 w-14 h-8 rounded-sm transition border-2 ${darkMode ? "bg-terracotta-500 border-terracotta-500" : "bg-earth-200 border-earth-300"}`}>
-            <span className={`absolute top-0.5 w-7 h-7 bg-white rounded-full shadow transition ${darkMode ? "right-0.5" : "right-[1.35rem]"}`} />
-          </button>
         </div>
 
         <div className="border-t-2 border-earth-200 pt-6">

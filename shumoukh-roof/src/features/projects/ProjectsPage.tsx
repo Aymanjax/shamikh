@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence } from "framer-motion";
 import {
   FolderOpen, Trash2, Eye, Search, Calculator, FileText, X, Check, HardHat,
-  Bell, MessageCircle, Plus, CalendarClock, CircleDollarSign,
+  Bell, MessageCircle, Plus, CalendarClock, CircleDollarSign, Wallet, ScrollText,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { listDocuments, deleteDocument, addDocument } from "../../lib/firestoreService";
@@ -14,6 +15,8 @@ import {
   togglePaid, deletePayment, statusOf, reminders, reminderText, humanWhen,
   type Payment,
 } from "./paymentsService";
+import { listExpenses, type Expense } from "../expenses/expensesService";
+import ContractModal from "./ContractModal";
 
 interface Project {
   id: string;
@@ -37,9 +40,12 @@ const STATUS_LABEL: Record<string, string> = {
 export default function ProjectsPage() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const companyName = useAuthStore((s) => s.companyName);
+  const companyProfile = useAuthStore((s) => s.companyProfile);
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<Project | null>(null);
   const [invoiceCreated, setInvoiceCreated] = useState(false);
+  const [contractFor, setContractFor] = useState<Project | null>(null);
   const [payForm, setPayForm] = useState({ label: "", amount: 0, dueDate: "" });
 
   const { data: projects = [], isLoading: loading, error } = useQuery<Project[]>({
@@ -54,6 +60,20 @@ export default function ProjectsPage() {
     staleTime: 15_000,
     enabled: !!user,
   });
+
+  // مصاريف الورشة المرتبطة بكل مشروع — لعرض إجمالي المصاريف وصافي الربح
+  const { data: expenses = [] } = useQuery<Expense[]>({
+    queryKey: ["expenses", user?.uid],
+    queryFn: () => listExpenses(user!.uid),
+    staleTime: 30_000,
+    enabled: !!user,
+  });
+
+  const expensesByProject = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const e of expenses) if (e.projectId) m[e.projectId] = (m[e.projectId] || 0) + (e.amount || 0);
+    return m;
+  }, [expenses]);
 
   const invalidatePayments = () => queryClient.invalidateQueries({ queryKey: ["projectPayments"] });
 
@@ -292,6 +312,42 @@ export default function ProjectsPage() {
                 </button>
               </div>
 
+              {/* المصاريف وصافي الربح: المحصّل من الدفعات − مصاريف الورشة المرتبطة بالمشروع */}
+              {(() => {
+                const collected = paymentsForProject(payments, detail.id)
+                  .filter((p) => p.paid)
+                  .reduce((s, p) => s + (p.amount || 0), 0);
+                const spent = expensesByProject[detail.id] || 0;
+                const profit = collected - spent;
+                return (
+                  <div className="border-t border-earth-200 pt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-black text-earth-900 flex items-center gap-1.5 text-sm">
+                        <Wallet className="w-4 h-4 text-amber-600" /> المصاريف والربح
+                      </h4>
+                      <Link to={`/expenses?project=${detail.id}`}
+                        className="text-xs font-black text-amber-700 bg-amber-50 hover:bg-amber-100 py-1 px-2 rounded-sm border border-amber-200 transition">
+                        سجّل مصروفًا +
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5 text-center">
+                      <div className="bg-earth-50 rounded-sm py-2 px-1">
+                        <p className="text-[9px] text-earth-500 font-bold">المحصّل</p>
+                        <p className="text-sm font-black font-mono text-olive-700">{collected.toFixed(0)}</p>
+                      </div>
+                      <div className="bg-earth-50 rounded-sm py-2 px-1">
+                        <p className="text-[9px] text-earth-500 font-bold">المصاريف</p>
+                        <p className="text-sm font-black font-mono text-red-600">{spent.toFixed(0)}</p>
+                      </div>
+                      <div className={`rounded-sm py-2 px-1 border ${profit >= 0 ? "bg-olive-50 border-olive-200" : "bg-red-50 border-red-200"}`}>
+                        <p className="text-[9px] text-earth-500 font-bold">صافي الربح</p>
+                        <p className={`text-sm font-black font-mono ${profit >= 0 ? "text-olive-700" : "text-red-600"}`}>{profit.toFixed(0)}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="flex gap-2 border-t border-earth-200 pt-3">
                 <Link to="/calculator" className="flex-1 bg-olive-700 hover:bg-olive-800 text-earth-100 font-black py-2.5 rounded-sm transition text-sm text-center border-r-3 border-olive-900">
                   فتح في الحاسبة
@@ -300,11 +356,35 @@ export default function ProjectsPage() {
                   className="flex-1 bg-olive-600 hover:bg-olive-700 text-earth-100 font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1 border-r-3 border-olive-800">
                   {invoiceCreated ? (<><Check className="w-4 h-4" /> تم</>) : createInvoiceMutation.isPending ? ("جارٍ...") : (<><FileText className="w-4 h-4" /> فاتورة</>)}
                 </button>
+                <button onClick={() => setContractFor(detail)}
+                  className="flex-1 bg-amber-600 hover:bg-amber-700 text-earth-100 font-black py-2.5 rounded-sm transition text-sm flex items-center justify-center gap-1 border-r-3 border-amber-800">
+                  <ScrollText className="w-4 h-4" /> اتفاقية عمل
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* اتفاقية العمل — صيغة جاهزة للقرميد بالنظام الأردني، معبّأة من المشروع */}
+      <AnimatePresence>
+        {contractFor && (
+          <ContractModal
+            seed={{
+              projectId: contractFor.id,
+              companyName,
+              companyPhone: companyProfile?.phone,
+              clientName: contractFor.client?.name,
+              clientPhone: contractFor.client?.phone,
+              clientAddress: contractFor.client?.address,
+              area: contractFor.result?.flatArea || contractFor.result?.actualArea,
+              totalCost: contractFor.result?.totalCost,
+              payments: paymentsForProject(payments, contractFor.id),
+            }}
+            onClose={() => setContractFor(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -5,6 +5,8 @@ export const cockpit = {
   "cockpit.title": "لوحة القيادة",
   "cockpit.systemLabel": "نظام شموخ",
   "cockpit.online": "متّصل",
+  "cockpit.offline": "غير متّصل · يعمل محليًا",
+  "cockpit.install": "ثبّت التطبيق",
   "cockpit.primaryReadout": "إجمالي مُحصّل",
   "cockpit.outstanding": "قيد التحصيل",
   "cockpit.unit": "دينار",

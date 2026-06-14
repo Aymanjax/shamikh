@@ -10,6 +10,7 @@ export const common = {
   "nav.projects": "Projects",
   "nav.invoices": "Invoices",
   "nav.workers": "Workers",
+  "nav.expenses": "Expenses",
   "nav.subscription": "Subscription",
   "nav.settings": "Settings",
   "nav.admin": "Admin",

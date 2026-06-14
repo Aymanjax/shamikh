@@ -6,7 +6,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Crosshair, Plus, LayoutDashboard, Calculator, FolderOpen,
-  FileText, Users, Settings, ShieldCheck, Power,
+  FileText, Users, Wallet, Settings, ShieldCheck, Power,
 } from "lucide-react";
 import { useT } from "../../i18n";
 import { logoutUser } from "../../features/auth/authService";
@@ -20,8 +20,9 @@ const NODES: Node[] = [
   { to: "/projects", icon: FolderOpen, labelKey: "nav.projects", code: "02" },
   { to: "/invoices", icon: FileText, labelKey: "nav.invoices", code: "03" },
   { to: "/workers", icon: Users, labelKey: "nav.workers", code: "04" },
-  { to: "/settings", icon: Settings, labelKey: "nav.settings", code: "05" },
-  { to: "/admin", icon: ShieldCheck, labelKey: "nav.admin", code: "06", adminOnly: true },
+  { to: "/expenses", icon: Wallet, labelKey: "nav.expenses", code: "05" },
+  { to: "/settings", icon: Settings, labelKey: "nav.settings", code: "06" },
+  { to: "/admin", icon: ShieldCheck, labelKey: "nav.admin", code: "07", adminOnly: true },
 ];
 
 const RADIUS = 140;

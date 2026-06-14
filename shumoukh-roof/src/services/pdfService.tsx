@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { pdf } from "@react-pdf/renderer";
+import "../components/pdf/registerFonts";
 import MaterialListPDF from "../components/pdf/MaterialListPDF";
 import QuotationPDF from "../components/pdf/QuotationPDF";
 import InvoicePDF from "../components/pdf/InvoicePDF";

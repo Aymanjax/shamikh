@@ -57,25 +57,6 @@ export function printCalculatorResult(result: any, input: any, tileName: string,
   win.document.close();
 }
 
-export function printInvoice(invoice: any) {
-  const statusMap: Record<string, string> = { paid: "مدفوعة", pending: "قيد الانتظار", draft: "مسودة" };
-  const items: Array<{ desc?: string; qty?: number; price?: number }> = Array.isArray(invoice.items) ? invoice.items : [];
-  const subtotal = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.price) || 0), 0);
-  const grandTotal = items.length ? subtotal : Number(invoice.amount) || 0;
-  const itemsHtml = items.length
-    ? `<table>
-        <thead><tr><th>#</th><th>البند</th><th>الكمية</th><th>السعر</th><th>المجموع</th></tr></thead>
-        <tbody>
-          ${items.map((it, i) => `<tr><td>${i + 1}</td><td>${it.desc || "—"}</td><td>${it.qty ?? 0}</td><td>${(Number(it.price) || 0).toFixed(2)}</td><td>${((Number(it.qty) || 0) * (Number(it.price) || 0)).toFixed(2)}</td></tr>`).join("")}
-        </tbody>
-      </table>`
-    : "";
-  const win = window.open("", "_blank");
-  if (!win) return;
-  win.document.write(`
-    <!DOCTYPE html><html dir="rtl" lang="ar">
-    <head><meta charset="UTF-8"><title>فاتورة</title>
-    <style>
       @page { margin: 15mm; }
       * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
       body { padding: 20px; color: #1e293b; }
@@ -94,19 +75,29 @@ export function printInvoice(invoice: any) {
       @media print { body { padding: 0; } }
     </style></head>
     <body>
-      <div class="header">
-        <h1>شموخ ERP</h1>
-        <p>فاتورة - ${new Date().toLocaleDateString("ar")}</p>
+      <div class="top">
+        <div class="co">
+          ${company?.logoURL ? `<img src="${esc(company.logoURL)}" alt="" />` : ""}
+          <div>
+            <h1>${esc(company?.name || "شموخ ERP")}</h1>
+            ${company?.address ? `<p>${esc(company.address)}</p>` : ""}
+            ${company?.phone ? `<p dir="ltr" style="text-align:right">${esc(company.phone)}</p>` : ""}
+          </div>
+        </div>
+        <div class="meta">
+          <div class="t">${title}</div>
+          <p>رقم: ${esc(invNo)}</p>
+          <p>التاريخ: ${dateStr}</p>
+          <p>الحالة: ${esc(statusMap[invoice.status || ""] || invoice.status || "")}</p>
+        </div>
       </div>
-      <div class="box">
-        <div><span>العميل</span>${invoice.client || "غير محدد"}</div>
-        <div><span>المشروع</span>${invoice.project || "—"}</div>
-        <div><span>الحالة</span>${statusMap[invoice.status] || invoice.status}</div>
+
+      <div class="client">
+        <div><span>العميل</span><b>${esc(invoice.client || "غير محدد")}</b></div>
+        ${invoice.project ? `<div><span>المشروع</span><b>${esc(invoice.project)}</b></div>` : ""}
+        ${invoice.phone ? `<div><span>الهاتف</span><b dir="ltr">${esc(invoice.phone)}</b></div>` : ""}
       </div>
-      ${itemsHtml}
-      <div class="total"><span>المبلغ الإجمالي</span><span>${grandTotal.toFixed(2)} د.أ</span></div>
-      <div class="footer">www.shumoukh.com</div>
-      <script>window.print();window.close();</script>
+
     </body></html>
   `);
   win.document.close();

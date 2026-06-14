@@ -5,6 +5,10 @@
    مثل خطوط الليزر وأدوات القياس الهندسية.
    ============================================================ */
 
+/* لون ضوء الأداة الافتراضي على الجذر — يحقن نظام الثيم بديلاً عليه عبر inline
+   على <html>، فيسري على كامل القمرة لأنها ترث المتغيّر ولا تُعيد تعريفه. */
+:root { --ck-accent: #ed9450; }
+
 .cockpit-root {
   /* الأسطح — فولاذ بارد متدرّج العمق */
   --ck-void: #08090b;
@@ -23,12 +27,14 @@
   --ck-ink-dim: #a7adb4;
   --ck-ink-mute: #6a727b;
 
-  /* ضوء الأداة — الكهرماني/التيراكوتا هو "الليزر" */
-  --ck-laser: #ed9450;
-  --ck-laser-hot: #f3a866;
-  --ck-laser-deep: #c2703e;
-  --ck-laser-glow: rgba(237, 148, 80, 0.45);
-  --ck-laser-film: rgba(237, 148, 80, 0.08);
+  /* ضوء الأداة — يُشتق كله من --ck-accent (المعرّف على :root أدناه).
+     نظام الثيم يحقن قيمة المستخدم على <html> فتتجاوز الافتراضي حيًّا.
+     ملاحظة: لا نُعرّف --ck-accent هنا حتى لا يحجب حقن المستخدم. */
+  --ck-laser: var(--ck-accent);
+  --ck-laser-hot: color-mix(in srgb, var(--ck-accent) 78%, #ffffff);
+  --ck-laser-deep: color-mix(in srgb, var(--ck-accent) 80%, #000000);
+  --ck-laser-glow: color-mix(in srgb, var(--ck-accent) 45%, transparent);
+  --ck-laser-film: color-mix(in srgb, var(--ck-accent) 8%, transparent);
 
   /* إشارات الحالة */
   --ck-ok: #93a86b;       /* زيتوني — تمام */
@@ -56,6 +62,40 @@
   color: var(--ck-ink);
   font-family: var(--font-sans, "Noto Kufi Arabic", system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   الوضع الفاتح (الأبيض): نفس القشرة والقائمة الدائرية، لكن
+   بأسطح الورق الدافئة الأصلية. لا تُطبق إعادة تعريف اللوحة
+   الداكنة هنا، فتعود كل الصفحات لثيمها الفاتح تلقائيًا.
+   ============================================================ */
+.cockpit-root.cockpit-light {
+  --ck-void: #ece6dd;
+  --ck-graphite: #f5f0eb;
+  --ck-steel: #faf7f4;
+  --ck-steel-hi: #ffffff;
+  --ck-steel-line: #e8ddd2;
+
+  --ck-hair: rgba(45, 36, 24, 0.10);
+  --ck-hair-strong: rgba(45, 36, 24, 0.22);
+  --ck-grid: rgba(45, 36, 24, 0.05);
+
+  --ck-ink: #2d2418;
+  --ck-ink-dim: #5a4a38;
+  --ck-ink-mute: #9a8670;
+
+  /* ضوء الأداة أدكن على الفاتح ليبقى مقروءًا */
+  --ck-laser: color-mix(in srgb, var(--ck-accent) 72%, #000000);
+  --ck-laser-hot: color-mix(in srgb, var(--ck-accent) 88%, #000000);
+  --ck-laser-deep: color-mix(in srgb, var(--ck-accent) 55%, #000000);
+  --ck-laser-glow: color-mix(in srgb, var(--ck-accent) 30%, transparent);
+  --ck-laser-film: color-mix(in srgb, var(--ck-accent) 10%, transparent);
+
+  --ck-ok: #57664c;
+  --ck-ok-glow: rgba(87, 102, 76, 0.35);
+  --ck-warn: #8f6f1e;
+  --ck-alert: #b91c1c;
+  --ck-alert-glow: rgba(185, 28, 28, 0.3);
 }
 
 /* شبكة المخطط الهندسي (blueprint) — خطوط قياس باهتة */
@@ -120,9 +160,9 @@
 }
 
 /* تمرير نظيف داخل اللوحات */
-.cockpit-root ::-webkit-scrollbar { width: 8px; height: 8px; }
-.cockpit-root ::-webkit-scrollbar-thumb { background: var(--ck-steel-line); border-radius: 0; }
-.cockpit-root ::-webkit-scrollbar-track { background: transparent; }
+.cockpit-root:not(.cockpit-light) ::-webkit-scrollbar { width: 8px; height: 8px; }
+.cockpit-root:not(.cockpit-light) ::-webkit-scrollbar-thumb { background: var(--ck-steel-line); border-radius: 0; }
+.cockpit-root:not(.cockpit-light) ::-webkit-scrollbar-track { background: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
   .ck-live-dot { animation: none; }
@@ -135,7 +175,7 @@
    المبدأ: السطوح الفاتحة تصبح داكنة، الحبر الداكن يصبح فاتحًا،
    والتيراكوتا تتحول لضوء أداة كهرماني.
    ============================================================ */
-.cockpit-root {
+.cockpit-root:not(.cockpit-light) {
   /* السطوح: earth-50/100 كانت فاتحة → فولاذ متدرج */
   --color-earth-50: #1b222b;
   --color-earth-100: #10141a;
@@ -188,17 +228,17 @@
   --color-deep-earth-800: #141920;
   --color-deep-earth-900: #0b0e12;
 
-  /* التيراكوتا → ضوء أداة (أفتح على الداكن) */
-  --color-terracotta-50: #2a1d13;
-  --color-terracotta-100: #342315;
-  --color-terracotta-200: #52351d;
-  --color-terracotta-300: #a86238;
-  --color-terracotta-400: #ed9450;
-  --color-terracotta-500: #e08544;
-  --color-terracotta-600: #f3a866;
-  --color-terracotta-700: #f7bd88;
-  --color-terracotta-800: #fbd3ab;
-  --color-terracotta-900: #fde9d3;
+  /* التيراكوتا → سُلّم مشتق من --ck-accent (ضوء الأداة) */
+  --color-terracotta-50: color-mix(in srgb, var(--ck-accent) 16%, #0e1116);
+  --color-terracotta-100: color-mix(in srgb, var(--ck-accent) 22%, #0e1116);
+  --color-terracotta-200: color-mix(in srgb, var(--ck-accent) 32%, #0e1116);
+  --color-terracotta-300: color-mix(in srgb, var(--ck-accent) 58%, #000000);
+  --color-terracotta-400: var(--ck-accent);
+  --color-terracotta-500: color-mix(in srgb, var(--ck-accent) 92%, #000000);
+  --color-terracotta-600: color-mix(in srgb, var(--ck-accent) 80%, #ffffff);
+  --color-terracotta-700: color-mix(in srgb, var(--ck-accent) 60%, #ffffff);
+  --color-terracotta-800: color-mix(in srgb, var(--ck-accent) 40%, #ffffff);
+  --color-terracotta-900: color-mix(in srgb, var(--ck-accent) 22%, #ffffff);
 
   /* الزيتوني */
   --color-olive-50: #1a2114;
@@ -211,6 +251,25 @@
   --color-olive-700: #bcc99a;
   --color-olive-800: #d3dcba;
   --color-olive-900: #e9efd9;
+
+  /* درجات الخلفية/الحدود الفاتحة في صفحات الميزات (amber/emerald/ice-blue/blue)
+     لا تمرّ عبر رموز القمرة، فكانت تظهر صناديق فاتحة على الداكن. نُحوّل فقط
+     الدرجات 50/100/200 (خلفيات وحدود، لا نصوص) إلى صبغات داكنة ناعمة. تبقى
+     الدرجات 300+ على قيمها الطبيعية لأنها مشبعة وتُقرأ على الداكن. */
+  --color-amber-50: color-mix(in srgb, #d9a441 14%, #0e1116);
+  --color-amber-100: color-mix(in srgb, #d9a441 20%, #0e1116);
+  --color-amber-200: color-mix(in srgb, #d9a441 30%, #0e1116);
+  --color-emerald-50: color-mix(in srgb, #2fae6e 14%, #0e1116);
+  --color-emerald-100: color-mix(in srgb, #2fae6e 20%, #0e1116);
+  --color-emerald-200: color-mix(in srgb, #2fae6e 30%, #0e1116);
+  --color-ice-blue-50: color-mix(in srgb, #3f8f88 16%, #0e1116);
+  --color-ice-blue-100: color-mix(in srgb, #3f8f88 22%, #0e1116);
+  --color-ice-blue-200: color-mix(in srgb, #3f8f88 32%, #0e1116);
+  --color-blue-50: color-mix(in srgb, #5a86c4 14%, #0e1116);
+  --color-blue-100: color-mix(in srgb, #5a86c4 20%, #0e1116);
+  --color-blue-200: color-mix(in srgb, #5a86c4 30%, #0e1116);
+  --color-green-50: color-mix(in srgb, #6ea84a 14%, #0e1116);
+  --color-green-100: color-mix(in srgb, #6ea84a 20%, #0e1116);
 
   /* أحمر التنبيه (Tailwind الافتراضي يُستخدم في الصفحات) */
   --color-red-50: #2a1512;
@@ -235,10 +294,10 @@
   --ink-muted: #79828c;
   --ink-inverse: #10141a;
 
-  --accent-terracotta: #ed9450;
-  --accent-terracotta-soft: #2f2013;
-  --accent-terracotta-border: #a86238;
-  --accent-terracotta-glow: rgba(237, 148, 80, 0.16);
+  --accent-terracotta: var(--ck-accent);
+  --accent-terracotta-soft: color-mix(in srgb, var(--ck-accent) 18%, #0e1116);
+  --accent-terracotta-border: color-mix(in srgb, var(--ck-accent) 58%, #000000);
+  --accent-terracotta-glow: color-mix(in srgb, var(--ck-accent) 16%, transparent);
 
   --accent-olive: #93a86b;
   --accent-olive-soft: #202817;
@@ -261,28 +320,28 @@
 }
 
 /* عناصر theme.css ذات الألوان الصلبة */
-.cockpit-root .earth-card,
-.cockpit-root .glass-card {
+.cockpit-root:not(.cockpit-light) .earth-card,
+.cockpit-root:not(.cockpit-light) .glass-card {
   border-color: rgba(233, 221, 208, 0.09);
   border-radius: 2px;
 }
-.cockpit-root .earth-card:hover,
-.cockpit-root .glass-card:hover {
+.cockpit-root:not(.cockpit-light) .earth-card:hover,
+.cockpit-root:not(.cockpit-light) .glass-card:hover {
   border-color: rgba(233, 221, 208, 0.18);
 }
-.cockpit-root ::-webkit-scrollbar-thumb { background: #29323d; }
-.cockpit-root ::-webkit-scrollbar-thumb:hover { background: #3a4452; }
+.cockpit-root:not(.cockpit-light) ::-webkit-scrollbar-thumb { background: #29323d; }
+.cockpit-root:not(.cockpit-light) ::-webkit-scrollbar-thumb:hover { background: #3a4452; }
 
-.cockpit-root .shimmer-skeleton {
+.cockpit-root:not(.cockpit-light) .shimmer-skeleton {
   background: linear-gradient(90deg, #1b222b 25%, #232b35 50%, #1b222b 75%);
   background-size: 200% 100%;
 }
 @media (prefers-reduced-motion: reduce) {
-  .cockpit-root .shimmer-skeleton { background: #1b222b; }
+  .cockpit-root:not(.cockpit-light) .shimmer-skeleton { background: #1b222b; }
 }
 
 /* شبكة المخطط القديمة (AmbientGrid) داخل القمرة: خطوط أوضح قليلًا */
-.cockpit-root .ambient-grid-pattern {
+.cockpit-root:not(.cockpit-light) .ambient-grid-pattern {
   background-image:
     repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(233, 221, 208, 0.03) 47px, rgba(233, 221, 208, 0.03) 48px),
     repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(233, 221, 208, 0.03) 47px, rgba(233, 221, 208, 0.03) 48px);
